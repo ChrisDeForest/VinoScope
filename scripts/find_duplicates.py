@@ -3,8 +3,8 @@ import sys
 import pandas as pd
 from rapidfuzz import fuzz
 
-NAME_THRESHOLD = 75
-WINERY_THRESHOLD = 75
+NAME_THRESHOLD = 90
+WINERY_THRESHOLD = 90
 
 
 def score_pair(row_a, row_b):
