@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.wines import router as wines_router
+from app.api.recommendations import router as recommendations_router
 
 app = FastAPI(title="VinoScope API")
 
@@ -16,8 +17,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
 app.include_router(wines_router, prefix="/api")
+app.include_router(recommendations_router, prefix="/api")
