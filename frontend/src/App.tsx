@@ -3,7 +3,8 @@ import { PageShell } from "./components/layout/PageShell";
 import { HomePage } from "./pages/HomePage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { WineDetailPage } from "./pages/WineDetailPage";
-import { DiscoverPage, PairPage, ComparePage, LearnPage } from "./pages/StubPages";
+import { DiscoverPage } from "./pages/DiscoverPage";
+import { PairPage, ComparePage, LearnPage } from "./pages/StubPages";
 
 export function App() {
   return (

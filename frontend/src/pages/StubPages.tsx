@@ -1,14 +1,5 @@
 import { StubPage } from "../components/common/StubPage";
 
-export function DiscoverPage() {
-  return (
-    <StubPage
-      title="Discover"
-      description="Discover will be a short questionnaire about what you like — sweetness, body, tannin, acidity, food pairings, and more. Answers you're unsure about are left out rather than guessed, and your answers become a preference profile that's matched against every wine in the catalog using a weighted similarity score. This page doesn't have a working questionnaire yet."
-    />
-  );
-}
-
 export function PairPage() {
   return (
     <StubPage
