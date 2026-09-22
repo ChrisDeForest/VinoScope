@@ -84,9 +84,9 @@ export function FilterDrawer({
       }
     }
 
-    document.addEventListener("keydown", handleKeyDown);
+    dialog?.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      dialog?.removeEventListener("keydown", handleKeyDown);
       previousActiveElementRef.current?.focus();
       previousActiveElementRef.current = null;
     };
