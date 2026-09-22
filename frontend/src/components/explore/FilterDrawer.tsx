@@ -2,16 +2,29 @@ import { useEffect, useRef, useState } from "react";
 import type { SortOption } from "../../types/wine";
 import { DEFAULT_FILTERS, type FilterValues } from "./filterTypes";
 
-const TYPE_OPTIONS = ["", "red", "white", "rose", "sparkling"];
+const TYPE_OPTIONS = ["", "red", "white", "rosé", "sparkling", "fortified"];
 const TYPE_LABELS: Record<string, string> = {
   "": "All types",
   red: "Red",
   white: "White",
-  rose: "Rosé",
+  rosé: "Rosé",
   sparkling: "Sparkling",
+  fortified: "Fortified",
 };
 
-const COUNTRY_OPTIONS = ["", "United States", "France", "Italy", "Spain", "Argentina", "Australia", "Other"];
+const COUNTRY_OPTIONS = [
+  "",
+  "Argentina",
+  "Australia",
+  "Chile",
+  "France",
+  "Germany",
+  "Italy",
+  "New Zealand",
+  "Portugal",
+  "Spain",
+  "United States",
+];
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "winery", label: "Winery (A-Z)" },
