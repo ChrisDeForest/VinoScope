@@ -1,4 +1,10 @@
-import type { ListWinesParams, WineDetail, WineListResponse } from "../types/wine";
+import type {
+  ListWinesParams,
+  RecommendationRequest,
+  RecommendationResponse,
+  WineDetail,
+  WineListResponse,
+} from "../types/wine";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -36,6 +42,18 @@ export async function getWine(id: number): Promise<WineDetail> {
   }
   if (!response.ok) {
     throw new ApiError(response.status, `Failed to load wine (${response.status})`);
+  }
+  return response.json();
+}
+
+export async function getRecommendations(request: RecommendationRequest): Promise<RecommendationResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `Failed to load recommendations (${response.status})`);
   }
   return response.json();
 }

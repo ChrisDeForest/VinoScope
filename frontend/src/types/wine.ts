@@ -54,3 +54,31 @@ export interface ListWinesParams {
   limit?: number;
   offset?: number;
 }
+
+export interface RecommendationAnswers {
+  sweetness?: number;
+  acidity?: number;
+  tannin?: number;
+  body?: number;
+  fruitiness?: number;
+  type?: string;
+  country?: string;
+  min_price?: number;
+  max_price?: number;
+}
+
+export interface RecommendationRequest extends RecommendationAnswers {
+  limit?: number;
+  offset?: number;
+}
+
+export interface RecommendationItem extends WineListItem {
+  match_score: number;
+  explanation: string[];
+}
+
+export interface RecommendationResponse {
+  profile: { description: string[] };
+  total: number;
+  items: RecommendationItem[];
+}

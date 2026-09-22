@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { listWines, getWine, ApiError } from "./api";
+import { listWines, getWine, getRecommendations, ApiError } from "./api";
 
 describe("api service", () => {
   const originalFetch = globalThis.fetch;
@@ -62,5 +62,36 @@ describe("api service", () => {
       .mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "Wine not found" }) });
 
     await expect(getWine(999)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("getRecommendations", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("posts the request as JSON and returns parsed JSON", async () => {
+    const mockResponse = { profile: { description: [] }, total: 0, items: [] };
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => mockResponse });
+
+    const result = await getRecommendations({ type: "red", sweetness: 1 });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/recommendations"),
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "red", sweetness: 1 }),
+      })
+    );
+    expect(result).toEqual(mockResponse);
+  });
+
+  it("throws ApiError on a non-ok response", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    await expect(getRecommendations({})).rejects.toBeInstanceOf(ApiError);
   });
 });
