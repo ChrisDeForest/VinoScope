@@ -14,7 +14,10 @@ def test_db_url():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     engine.dispose()
-    return url
+    yield url
+    engine = get_engine(url)
+    Base.metadata.drop_all(engine)
+    engine.dispose()
 
 
 def test_summarize_counts_wines_wineries_and_listings(test_db_url):
