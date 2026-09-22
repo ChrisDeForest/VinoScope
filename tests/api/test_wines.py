@@ -42,6 +42,28 @@ def seeded_wines(db_session):
     return {"wine1": wine1.id, "wine2": wine2.id, "wine3": wine3.id}
 
 
+@pytest.fixture
+def wine_with_all_null_percentage_grapes(db_session):
+    winery = Winery(name="Unknown Blends Estate", country="United States", region="Sonoma")
+    db_session.add(winery)
+    db_session.flush()
+
+    grape_z = Grape(name="Zinfandel")
+    grape_a = Grape(name="Aglianico")
+    grape_m = Grape(name="Malbec")
+    db_session.add_all([grape_z, grape_a, grape_m])
+    db_session.flush()
+
+    wine = Wine(winery=winery, name="Mystery Field Blend", vintage=2020, type="red", country="United States")
+    wine.grapes.append(WineGrape(grape=grape_z, percentage=None))
+    wine.grapes.append(WineGrape(grape=grape_a, percentage=None))
+    wine.grapes.append(WineGrape(grape=grape_m, percentage=None))
+    db_session.add(wine)
+    db_session.commit()
+
+    return wine.id
+
+
 def test_list_wines_no_filters_returns_all_with_total(client, seeded_wines):
     response = client.get("/api/wines")
     assert response.status_code == 200
@@ -57,8 +79,22 @@ def test_list_wines_filters_by_type(client, seeded_wines):
     assert body["items"][0]["id"] == seeded_wines["wine2"]
 
 
+def test_list_wines_filters_by_type_case_insensitive(client, seeded_wines):
+    response = client.get("/api/wines", params={"type": "WHITE"})
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == seeded_wines["wine2"]
+
+
 def test_list_wines_filters_by_country(client, seeded_wines):
     response = client.get("/api/wines", params={"country": "France"})
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == seeded_wines["wine3"]
+
+
+def test_list_wines_filters_by_country_case_insensitive(client, seeded_wines):
+    response = client.get("/api/wines", params={"country": "fRaNcE"})
     body = response.json()
     assert body["total"] == 1
     assert body["items"][0]["id"] == seeded_wines["wine3"]
@@ -69,6 +105,13 @@ def test_list_wines_filters_by_grape_substring(client, seeded_wines):
     body = response.json()
     ids = {item["id"] for item in body["items"]}
     assert ids == {seeded_wines["wine1"], seeded_wines["wine3"]}
+
+
+def test_list_wines_filters_by_grape_escapes_percent_wildcard(client, seeded_wines):
+    response = client.get("/api/wines", params={"grape": "%"})
+    body = response.json()
+    assert body["total"] == 0
+    assert body["items"] == []
 
 
 def test_list_wines_filters_by_price_range(client, seeded_wines):
@@ -156,6 +199,21 @@ def test_list_wines_limit_over_max_returns_422(client, seeded_wines):
     assert response.status_code == 422
 
 
+def test_list_wines_min_price_negative_returns_422(client, seeded_wines):
+    response = client.get("/api/wines", params={"min_price": -1})
+    assert response.status_code == 422
+
+
+def test_list_wines_max_price_negative_returns_422(client, seeded_wines):
+    response = client.get("/api/wines", params={"max_price": -1})
+    assert response.status_code == 422
+
+
+def test_list_wines_offset_negative_returns_422(client, seeded_wines):
+    response = client.get("/api/wines", params={"offset": -1})
+    assert response.status_code == 422
+
+
 def test_get_wine_detail_returns_full_record(client, seeded_wines):
     response = client.get(f"/api/wines/{seeded_wines['wine1']}")
     assert response.status_code == 200
@@ -189,3 +247,36 @@ def test_get_wine_detail_unknown_id_returns_404(client, seeded_wines):
     response = client.get("/api/wines/999999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Wine not found"
+
+
+def test_get_wine_detail_no_listings_returns_empty_list_and_null_price(client, seeded_wines):
+    response = client.get(f"/api/wines/{seeded_wines['wine2']}")
+    body = response.json()
+    assert body["listings"] == []
+    assert body["price"] is None
+
+
+def test_get_wine_detail_all_null_percentage_grapes_ordered_alphabetically(
+    client, wine_with_all_null_percentage_grapes
+):
+    response = client.get(f"/api/wines/{wine_with_all_null_percentage_grapes}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["grapes"] == [
+        {"name": "Aglianico", "percentage": None},
+        {"name": "Malbec", "percentage": None},
+        {"name": "Zinfandel", "percentage": None},
+    ]
+
+
+def test_list_wines_all_null_percentage_grapes_ordered_alphabetically(
+    client, wine_with_all_null_percentage_grapes
+):
+    response = client.get("/api/wines")
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["grapes"] == [
+        {"name": "Aglianico", "percentage": None},
+        {"name": "Malbec", "percentage": None},
+        {"name": "Zinfandel", "percentage": None},
+    ]

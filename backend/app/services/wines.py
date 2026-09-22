@@ -19,18 +19,38 @@ def _min_price_subquery():
     )
 
 
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _grapes_for_wine(db: Session, wine_id: int) -> list[dict]:
-    rows = (
-        db.query(Grape.name, WineGrape.percentage)
+    stmt = (
+        select(Grape.name, WineGrape.percentage)
         .join(WineGrape, WineGrape.grape_id == Grape.id)
-        .filter(WineGrape.wine_id == wine_id)
-        .all()
+        .where(WineGrape.wine_id == wine_id)
+        .order_by(WineGrape.percentage.desc().nulls_last(), Grape.name)
     )
-    rows = sorted(rows, key=lambda r: (r[1] is None, -(r[1] or 0)))
+    rows = db.execute(stmt).all()
     return [{"name": name, "percentage": pct} for name, pct in rows]
 
 
-def _row_to_dict(wine: Wine, winery_name: str, min_price: Optional[float], db: Session) -> dict:
+def _grapes_for_wines(db: Session, wine_ids: list[int]) -> dict[int, list[dict]]:
+    if not wine_ids:
+        return {}
+    stmt = (
+        select(WineGrape.wine_id, Grape.name, WineGrape.percentage)
+        .join(Grape, Grape.id == WineGrape.grape_id)
+        .where(WineGrape.wine_id.in_(wine_ids))
+        .order_by(WineGrape.wine_id, WineGrape.percentage.desc().nulls_last(), Grape.name)
+    )
+    rows = db.execute(stmt).all()
+    result: dict[int, list[dict]] = {wid: [] for wid in wine_ids}
+    for wine_id, name, pct in rows:
+        result[wine_id].append({"name": name, "percentage": pct})
+    return result
+
+
+def _row_to_dict(wine: Wine, winery_name: str, min_price: Optional[float], grapes: list[dict]) -> dict:
     return {
         "id": wine.id,
         "name": wine.name,
@@ -39,7 +59,7 @@ def _row_to_dict(wine: Wine, winery_name: str, min_price: Optional[float], db: S
         "type": wine.type,
         "country": wine.country,
         "region": wine.region,
-        "grapes": _grapes_for_wine(db, wine.id),
+        "grapes": grapes,
         "price": min_price,
         "image_url": wine.image_url,
         "sweetness": wine.sweetness,
@@ -64,66 +84,72 @@ def list_wines(
 ) -> tuple[int, list[dict]]:
     price_sq = _min_price_subquery()
 
-    query = (
-        db.query(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
+    stmt = (
+        select(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
         .join(Winery, Wine.winery_id == Winery.id)
         .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
     )
 
     if type is not None:
-        query = query.filter(func.lower(Wine.type) == type.lower())
+        stmt = stmt.where(func.lower(Wine.type) == type.lower())
     if country is not None:
-        query = query.filter(func.lower(Wine.country) == country.lower())
+        stmt = stmt.where(func.lower(Wine.country) == country.lower())
     if grape is not None:
-        query = query.filter(
+        stmt = stmt.where(
             Wine.id.in_(
                 select(WineGrape.wine_id)
                 .join(Grape, Grape.id == WineGrape.grape_id)
-                .where(Grape.name.ilike(f"%{grape}%"))
+                .where(Grape.name.ilike(f"%{_escape_like(grape)}%", escape="\\"))
             )
         )
     if min_price is not None:
-        query = query.filter(price_sq.c.min_price >= min_price)
+        stmt = stmt.where(price_sq.c.min_price >= min_price)
     if max_price is not None:
-        query = query.filter(price_sq.c.min_price <= max_price)
+        stmt = stmt.where(price_sq.c.min_price <= max_price)
 
-    total = query.count()
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
 
     if sort == "price_asc":
-        query = query.order_by(price_sq.c.min_price.asc().nulls_last(), Wine.id)
+        stmt = stmt.order_by(price_sq.c.min_price.asc().nulls_last(), Wine.id)
     elif sort == "price_desc":
-        query = query.order_by(price_sq.c.min_price.desc().nulls_last(), Wine.id)
+        stmt = stmt.order_by(price_sq.c.min_price.desc().nulls_last(), Wine.id)
     elif sort == "vintage":
-        query = query.order_by(Wine.vintage.asc().nulls_last(), Wine.id)
+        stmt = stmt.order_by(Wine.vintage.asc().nulls_last(), Wine.id)
     else:
-        query = query.order_by(Winery.name.asc(), Wine.id)
+        stmt = stmt.order_by(Winery.name.asc(), Wine.id)
 
-    rows = query.offset(offset).limit(limit).all()
-    items = [_row_to_dict(wine, winery_name, min_price_val, db) for wine, winery_name, min_price_val in rows]
+    rows = db.execute(stmt.offset(offset).limit(limit)).all()
+    wine_ids = [wine.id for wine, _, _ in rows]
+    grapes_by_wine = _grapes_for_wines(db, wine_ids)
+    items = [
+        _row_to_dict(wine, winery_name, min_price_val, grapes_by_wine.get(wine.id, []))
+        for wine, winery_name, min_price_val in rows
+    ]
     return total, items
 
 
 def get_wine(db: Session, wine_id: int) -> Optional[dict]:
     price_sq = _min_price_subquery()
-    row = (
-        db.query(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
+    stmt = (
+        select(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
         .join(Winery, Wine.winery_id == Winery.id)
         .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
-        .filter(Wine.id == wine_id)
-        .one_or_none()
+        .where(Wine.id == wine_id)
     )
+    row = db.execute(stmt).one_or_none()
     if row is None:
         return None
     wine, winery_name, min_price_val = row
 
-    listing_rows = (
-        db.query(RetailerListing, Retailer.name.label("retailer_name"))
+    listing_stmt = (
+        select(RetailerListing, Retailer.name.label("retailer_name"))
         .join(Retailer, RetailerListing.retailer_id == Retailer.id)
-        .filter(RetailerListing.wine_id == wine_id)
-        .all()
+        .where(RetailerListing.wine_id == wine_id)
     )
+    listing_rows = db.execute(listing_stmt).all()
 
-    data = _row_to_dict(wine, winery_name, min_price_val, db)
+    grapes = _grapes_for_wine(db, wine_id)
+    data = _row_to_dict(wine, winery_name, min_price_val, grapes)
     data["subregion"] = wine.subregion
     data["abv"] = wine.abv
     data["description"] = wine.description
