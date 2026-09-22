@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VinoScope</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("vinoscope-theme");
+          var theme = stored === "cream-terracotta" || stored === "charcoal-gold" ? stored : "dark-burgundy";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark-burgundy");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
