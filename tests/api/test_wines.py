@@ -280,3 +280,43 @@ def test_list_wines_all_null_percentage_grapes_ordered_alphabetically(
         {"name": "Malbec", "percentage": None},
         {"name": "Zinfandel", "percentage": None},
     ]
+
+
+def test_list_wines_filters_by_search_matches_wine_name(client, seeded_wines):
+    response = client.get("/api/wines", params={"q": "chardonnay"})
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == seeded_wines["wine2"]
+
+
+def test_list_wines_filters_by_search_matches_winery_name(client, seeded_wines):
+    response = client.get("/api/wines", params={"q": "caymus"})
+    body = response.json()
+    ids = {item["id"] for item in body["items"]}
+    assert ids == {seeded_wines["wine1"], seeded_wines["wine2"]}
+
+
+def test_list_wines_search_is_case_insensitive(client, seeded_wines):
+    response = client.get("/api/wines", params={"q": "MARGAUX"})
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == seeded_wines["wine3"]
+
+
+def test_list_wines_search_escapes_percent_wildcard(client, seeded_wines):
+    response = client.get("/api/wines", params={"q": "%"})
+    body = response.json()
+    assert body["total"] == 0
+    assert body["items"] == []
+
+
+def test_list_wines_search_combines_with_other_filters(client, seeded_wines):
+    response = client.get("/api/wines", params={"q": "caymus", "type": "white"})
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == seeded_wines["wine2"]
+
+
+def test_cors_allows_configured_frontend_origin(client):
+    response = client.get("/api/wines", headers={"Origin": "http://localhost:5173"})
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"

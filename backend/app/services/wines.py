@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Grape, Retailer, RetailerListing, Wine, WineGrape, Winery
@@ -76,6 +76,7 @@ def list_wines(
     type: Optional[str] = None,
     country: Optional[str] = None,
     grape: Optional[str] = None,
+    q: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     sort: SortOption = "winery",
@@ -102,6 +103,9 @@ def list_wines(
                 .where(Grape.name.ilike(f"%{_escape_like(grape)}%", escape="\\"))
             )
         )
+    if q is not None:
+        pattern = f"%{_escape_like(q)}%"
+        stmt = stmt.where(or_(Wine.name.ilike(pattern, escape="\\"), Winery.name.ilike(pattern, escape="\\")))
     if min_price is not None:
         stmt = stmt.where(price_sq.c.min_price >= min_price)
     if max_price is not None:
