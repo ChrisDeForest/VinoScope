@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { PageShell } from "./components/layout/PageShell";
 import { StubPage } from "./components/common/StubPage";
 import { HomePage } from "./pages/HomePage";
+import { ExplorePage } from "./pages/ExplorePage";
 import { DiscoverPage, PairPage, ComparePage, LearnPage } from "./pages/StubPages";
 
 export function App() {
@@ -9,10 +10,7 @@ export function App() {
     <PageShell>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route
-          path="/explore"
-          element={<StubPage title="Explore" description="The wine catalog is coming soon." />}
-        />
+        <Route path="/explore" element={<ExplorePage />} />
         <Route
           path="/wines/:id"
           element={<StubPage title="Wine Detail" description="Wine detail pages are coming soon." />}
