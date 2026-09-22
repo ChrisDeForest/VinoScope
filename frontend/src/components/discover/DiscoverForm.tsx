@@ -7,9 +7,11 @@ import { DimensionField } from "./DimensionField";
 export function DiscoverForm({
   initialAnswers,
   onSubmit,
+  submitting = false,
 }: {
   initialAnswers: RecommendationAnswers;
   onSubmit: (answers: RecommendationAnswers) => void;
+  submitting?: boolean;
 }) {
   const [draft, setDraft] = useState<RecommendationAnswers>(initialAnswers);
 
@@ -98,8 +100,12 @@ export function DiscoverForm({
         />
       ))}
 
-      <button type="submit" className="bg-accent text-surface font-semibold px-6 py-3 rounded self-start">
-        See My Recommendations
+      <button
+        type="submit"
+        disabled={submitting}
+        className="bg-accent text-surface font-semibold px-6 py-3 rounded self-start disabled:opacity-50"
+      >
+        {submitting ? "Finding wines…" : "See My Recommendations"}
       </button>
     </form>
   );

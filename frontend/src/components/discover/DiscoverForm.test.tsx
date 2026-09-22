@@ -30,4 +30,16 @@ describe("DiscoverForm", () => {
     const submitted = onSubmit.mock.calls[0][0];
     expect(submitted.sweetness).toBeUndefined();
   });
+
+  it("disables the submit button and shows a loading label while submitting", () => {
+    render(<DiscoverForm initialAnswers={{}} onSubmit={vi.fn()} submitting />);
+    const button = screen.getByRole("button", { name: "Finding wines…" });
+    expect(button).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "See My Recommendations" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the submit button enabled by default when submitting is not passed", () => {
+    render(<DiscoverForm initialAnswers={{}} onSubmit={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "See My Recommendations" })).toBeEnabled();
+  });
 });
