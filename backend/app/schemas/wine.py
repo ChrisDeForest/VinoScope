@@ -29,3 +29,18 @@ class WineListItem(BaseModel):
 class WineListResponse(BaseModel):
     total: int
     items: list[WineListItem]
+
+
+class RetailerListingOut(BaseModel):
+    retailer: str
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    product_url: Optional[str] = None
+    availability: Optional[str] = None
+
+
+class WineDetail(WineListItem):
+    subregion: Optional[str] = None
+    abv: Optional[float] = None
+    description: Optional[str] = None
+    listings: list[RetailerListingOut]

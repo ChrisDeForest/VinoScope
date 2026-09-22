@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Grape, RetailerListing, Wine, WineGrape, Winery
+from app.models import Grape, Retailer, RetailerListing, Wine, WineGrape, Winery
 
 SortOption = Literal["price_asc", "price_desc", "vintage", "winery"]
 
@@ -101,3 +101,40 @@ def list_wines(
     rows = query.offset(offset).limit(limit).all()
     items = [_row_to_dict(wine, winery_name, min_price_val, db) for wine, winery_name, min_price_val in rows]
     return total, items
+
+
+def get_wine(db: Session, wine_id: int) -> Optional[dict]:
+    price_sq = _min_price_subquery()
+    row = (
+        db.query(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
+        .join(Winery, Wine.winery_id == Winery.id)
+        .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
+        .filter(Wine.id == wine_id)
+        .one_or_none()
+    )
+    if row is None:
+        return None
+    wine, winery_name, min_price_val = row
+
+    listing_rows = (
+        db.query(RetailerListing, Retailer.name.label("retailer_name"))
+        .join(Retailer, RetailerListing.retailer_id == Retailer.id)
+        .filter(RetailerListing.wine_id == wine_id)
+        .all()
+    )
+
+    data = _row_to_dict(wine, winery_name, min_price_val, db)
+    data["subregion"] = wine.subregion
+    data["abv"] = wine.abv
+    data["description"] = wine.description
+    data["listings"] = [
+        {
+            "retailer": retailer_name,
+            "price": listing.price,
+            "currency": listing.currency,
+            "product_url": listing.product_url,
+            "availability": listing.availability,
+        }
+        for listing, retailer_name in listing_rows
+    ]
+    return data

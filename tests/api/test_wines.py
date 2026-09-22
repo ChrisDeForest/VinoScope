@@ -154,3 +154,38 @@ def test_list_wines_invalid_sort_returns_422(client, seeded_wines):
 def test_list_wines_limit_over_max_returns_422(client, seeded_wines):
     response = client.get("/api/wines", params={"limit": 101})
     assert response.status_code == 422
+
+
+def test_get_wine_detail_returns_full_record(client, seeded_wines):
+    response = client.get(f"/api/wines/{seeded_wines['wine1']}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == seeded_wines["wine1"]
+    assert body["name"] == "Caymus Cabernet Sauvignon"
+    assert body["winery"] == "Caymus Vineyards"
+    assert body["price"] == 79.99
+    assert body["grapes"] == [{"name": "Cabernet Sauvignon", "percentage": 100.0}]
+
+
+def test_get_wine_detail_includes_all_listings(client, seeded_wines):
+    response = client.get(f"/api/wines/{seeded_wines['wine1']}")
+    body = response.json()
+    retailers = {listing["retailer"] for listing in body["listings"]}
+    assert retailers == {"Total Wine", "Wine.com"}
+    prices = {listing["price"] for listing in body["listings"]}
+    assert prices == {79.99, 84.99}
+
+
+def test_get_wine_detail_blend_wine_includes_ordered_grapes(client, seeded_wines):
+    response = client.get(f"/api/wines/{seeded_wines['wine3']}")
+    body = response.json()
+    assert body["grapes"] == [
+        {"name": "Cabernet Sauvignon", "percentage": 60.0},
+        {"name": "Merlot", "percentage": 40.0},
+    ]
+
+
+def test_get_wine_detail_unknown_id_returns_404(client, seeded_wines):
+    response = client.get("/api/wines/999999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Wine not found"

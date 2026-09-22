@@ -1,10 +1,10 @@
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.wine import WineListResponse
+from app.schemas.wine import WineDetail, WineListResponse
 from app.services import wines as wines_service
 
 router = APIRouter()
@@ -34,3 +34,11 @@ def list_wines(
         offset=offset,
     )
     return WineListResponse(total=total, items=items)
+
+
+@router.get("/wines/{wine_id}", response_model=WineDetail)
+def get_wine(wine_id: int, db: Session = Depends(get_db)) -> WineDetail:
+    wine = wines_service.get_wine(db, wine_id)
+    if wine is None:
+        raise HTTPException(status_code=404, detail="Wine not found")
+    return WineDetail(**wine)
