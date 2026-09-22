@@ -116,7 +116,7 @@ name,winery,vintage,grape,grape_pct,type,country,region,subregion,abv,price,curr
 ```
 
 - A blank template lives at `data/raw/wines_template.csv`.
-- Every field except `name`, `type`, `source_site`, `source_url` may be blank; blank cells become null DB columns, not fabricated defaults.
+- Every field except `name`, `winery`, `type`, `source_site`, `source_url` may be blank; blank cells become null DB columns, not fabricated defaults.
 - `grape` supports blends as a `;`-separated `Name:pct` list (`Cabernet Sauvignon:60;Merlot:40`) or a single grape name for varietal wines. `grape_pct` is derived from this during normalization and is not filled in by hand.
 - `sweetness`/`acidity`/`tannin`/`body`/`fruitiness` are entered manually, informed by online reviews/descriptions and an LLM-assisted pass done externally (outside this pipeline) — the pipeline just consumes whatever values land in the CSV.
 

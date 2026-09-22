@@ -1,5 +1,12 @@
+import os
 import sys
 from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend"))
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -8,6 +15,9 @@ from app.database.base import get_engine, get_session_factory
 from app.models import Grape, Retailer, RetailerListing, Wine, WineGrape, Winery
 
 VALID_TYPES = {"red", "white", "rosé", "sparkling", "dessert", "fortified"}
+INT_FIELDS = ("vintage",)
+RATING_FIELDS = ("sweetness", "acidity", "tannin", "body", "fruitiness")
+FLOAT_FIELDS = ("abv", "price")
 
 
 class ImportValidationError(Exception):
@@ -24,6 +34,14 @@ def _clean(value):
     return text if text else None
 
 
+def _try_parse_numeric(value, parser):
+    """Attempt to parse a cleaned (non-blank) value with parser; return (parsed, ok)."""
+    try:
+        return parser(value), True
+    except (TypeError, ValueError):
+        return None, False
+
+
 def validate_row(row):
     errors = []
     if not _clean(row.get("name")):
@@ -33,10 +51,36 @@ def validate_row(row):
         errors.append("missing type")
     elif wine_type.lower() not in VALID_TYPES:
         errors.append(f"invalid type {wine_type!r}")
+    if not _clean(row.get("winery")):
+        errors.append("missing winery")
     if not _clean(row.get("source_site")):
         errors.append("missing source_site")
     if not _clean(row.get("source_url")):
         errors.append("missing source_url")
+
+    for field_name in INT_FIELDS:
+        value = _clean(row.get(field_name))
+        if value is not None:
+            _, ok = _try_parse_numeric(value, int)
+            if not ok:
+                errors.append(f"invalid {field_name} {value!r}")
+
+    for field_name in FLOAT_FIELDS:
+        value = _clean(row.get(field_name))
+        if value is not None:
+            _, ok = _try_parse_numeric(value, float)
+            if not ok:
+                errors.append(f"invalid {field_name} {value!r}")
+
+    for field_name in RATING_FIELDS:
+        value = _clean(row.get(field_name))
+        if value is not None:
+            parsed, ok = _try_parse_numeric(value, int)
+            if not ok:
+                errors.append(f"invalid {field_name} {value!r}")
+            elif not (1 <= parsed <= 5):
+                errors.append(f"{field_name} must be between 1 and 5, got {value!r}")
+
     return errors
 
 

@@ -1,4 +1,11 @@
 import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend"))
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app.database.base import get_engine, get_session_factory
 from app.models import RetailerListing, Wine, Winery

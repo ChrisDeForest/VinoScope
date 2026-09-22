@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 
@@ -88,6 +89,9 @@ def normalize_row(row):
 def normalize_csv(input_path, output_path):
     df = pd.read_csv(input_path, dtype=str)
     rows = [normalize_row(row) for _, row in df.iterrows()]
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     pd.DataFrame(rows).to_csv(output_path, index=False)
 
 
