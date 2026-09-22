@@ -8,7 +8,7 @@ class Winery(Base):
     __tablename__ = "wineries"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     country: Mapped[str | None] = mapped_column(String(100))
     region: Mapped[str | None] = mapped_column(String(100))
     website: Mapped[str | None] = mapped_column(String(500))
