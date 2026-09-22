@@ -22,10 +22,10 @@ const baseWine: WineListItem = {
   fruitiness: 3,
 };
 
-function renderCard(wine: WineListItem) {
+function renderCard(wine: WineListItem, extra: { matchScore?: number; explanation?: string[] } = {}) {
   render(
     <MemoryRouter>
-      <WineCard wine={wine} />
+      <WineCard wine={wine} matchScore={extra.matchScore} explanation={extra.explanation} />
     </MemoryRouter>
   );
 }
@@ -64,5 +64,27 @@ describe("WineCard", () => {
       ],
     });
     expect(screen.getByText("Blend")).toBeInTheDocument();
+  });
+
+  it("renders a match score badge when matchScore is provided", () => {
+    renderCard(baseWine, { matchScore: 0.92 });
+    expect(screen.getByText("92% Match")).toBeInTheDocument();
+  });
+
+  it("does not render a match score badge when matchScore is not provided", () => {
+    renderCard(baseWine);
+    expect(screen.queryByText(/% Match/)).not.toBeInTheDocument();
+  });
+
+  it("renders up to 3 explanation items joined by a middot", () => {
+    renderCard(baseWine, {
+      explanation: ["High tannin", "Full-bodied", "Within your price range", "Extra reason"],
+    });
+    expect(screen.getByText("High tannin · Full-bodied · Within your price range")).toBeInTheDocument();
+  });
+
+  it("does not render an explanation line when explanation is not provided", () => {
+    renderCard(baseWine);
+    expect(screen.queryByText(/High tannin/)).not.toBeInTheDocument();
   });
 });

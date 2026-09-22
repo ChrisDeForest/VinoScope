@@ -43,4 +43,14 @@ describe("WineGrid", () => {
     );
     expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
   });
+
+  it("passes match_score and explanation through to WineCard", () => {
+    render(
+      <MemoryRouter>
+        <WineGrid wines={[{ ...wine(1), match_score: 0.75, explanation: ["Full-bodied"] }]} />
+      </MemoryRouter>
+    );
+    expect(screen.getByText("75% Match")).toBeInTheDocument();
+    expect(screen.getByText("Full-bodied")).toBeInTheDocument();
+  });
 });
