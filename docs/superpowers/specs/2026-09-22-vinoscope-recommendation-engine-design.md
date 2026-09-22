@@ -142,7 +142,7 @@ Invalid request bodies (an out-of-range dimension value, `limit` out of bounds, 
 ## File Structure
 
 - Create: `backend/app/schemas/recommendation.py` — `RecommendationRequest`, `ProfileOut`, `RecommendationItem`, `RecommendationResponse`
-- Create: `backend/app/services/recommendations.py` — `get_recommendations(db, request: RecommendationRequest) -> tuple[int, ProfileOut, list[dict]]`, plus the distance/scoring/label/explanation helper functions
+- Create: `backend/app/services/recommendations.py` — `get_recommendations(db, *, sweetness=None, acidity=None, tannin=None, body=None, fruitiness=None, type=None, country=None, min_price=None, max_price=None, limit=20, offset=0) -> tuple[int, list[str], list[dict]]` (total, profile description lines, item dicts each including `match_score` and `explanation`), plus the distance/scoring/label/explanation helper functions
 - Create: `backend/app/api/recommendations.py` — the route, registered in `main.py` under the same `/api` prefix as the wines router
 - Modify: `backend/app/main.py` — register the new router
 - Test: `tests/api/test_recommendations.py`

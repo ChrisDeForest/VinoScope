@@ -144,13 +144,15 @@ def test_recommendations_user_unsure_dimension_excluded_from_scoring_and_profile
 
 
 def test_recommendations_wine_side_missing_dimension_excluded_for_that_wine_only(client, recommendation_wines):
-    response = client.post("/api/recommendations", json={"type": "red", "acidity": 4})
+    response = client.post("/api/recommendations", json={"type": "red", "sweetness": 1, "acidity": 1})
     body = response.json()
     items_by_id = {item["id"]: item for item in body["items"]}
     partial = items_by_id[recommendation_wines["partial_red"]]
     bold = items_by_id[recommendation_wines["bold_red"]]
+    # partial_red: acidity=None (excluded), sweetness=1 matches user's sweetness=1 exactly -> distance 0 -> score 1.0
     assert partial["match_score"] == 1.0
-    assert bold["match_score"] < 1.0
+    # bold_red: both dims present. sweetness diff=0, acidity diff=|1-3|=2 -> distance = sqrt((0+4)/2) = sqrt(2) ≈ 1.4142
+    assert bold["match_score"] == pytest.approx(1 / (1 + (2 ** 0.5)))
 
 
 def test_recommendations_wine_with_zero_overlap_gets_neutral_score(client, recommendation_wines):
@@ -181,14 +183,22 @@ def test_recommendations_empty_request_returns_all_wines_equal_score_sorted_by_w
 
 
 def test_recommendations_pagination(client, recommendation_wines):
+    full_response = client.post("/api/recommendations", json={"type": "red"})
+    all_ids = [item["id"] for item in full_response.json()["items"]]
+    assert len(all_ids) == 4
+
     response = client.post("/api/recommendations", json={"type": "red", "limit": 2, "offset": 0})
     body = response.json()
     assert body["total"] == 4
-    assert len(body["items"]) == 2
+    page1_ids = [item["id"] for item in body["items"]]
+    assert len(page1_ids) == 2
 
     response2 = client.post("/api/recommendations", json={"type": "red", "limit": 2, "offset": 2})
     body2 = response2.json()
-    assert len(body2["items"]) == 2
+    page2_ids = [item["id"] for item in body2["items"]]
+    assert len(page2_ids) == 2
+
+    assert page1_ids + page2_ids == all_ids
 
 
 def test_recommendations_explanation_includes_hard_filters_and_close_matches(client, recommendation_wines):
@@ -230,3 +240,15 @@ def test_recommendations_invalid_limit_returns_422(client, recommendation_wines)
 def test_recommendations_invalid_offset_returns_422(client, recommendation_wines):
     response = client.post("/api/recommendations", json={"offset": -1})
     assert response.status_code == 422
+
+
+def test_recommendations_cors_allows_post_preflight(client):
+    response = client.options(
+        "/api/recommendations",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 200
+    assert "POST" in response.headers.get("access-control-allow-methods", "")
