@@ -6,6 +6,18 @@ from rapidfuzz import fuzz
 NAME_THRESHOLD = 90
 WINERY_THRESHOLD = 90
 
+REVIEW_COLUMNS = [
+    "index_a",
+    "index_b",
+    "name_a",
+    "name_b",
+    "winery_a",
+    "winery_b",
+    "vintage",
+    "name_score",
+    "winery_score",
+]
+
 
 def score_pair(row_a, row_b):
     name_score = fuzz.token_set_ratio(str(row_a["name"]), str(row_b["name"]))
@@ -46,7 +58,8 @@ def find_duplicate_pairs(df):
 def write_review_file(cleaned_csv_path, review_csv_path):
     df = pd.read_csv(cleaned_csv_path, dtype=str)
     pairs = find_duplicate_pairs(df)
-    pd.DataFrame(pairs).to_csv(review_csv_path, index=False)
+    review_df = pd.DataFrame(pairs, columns=REVIEW_COLUMNS) if not pairs else pd.DataFrame(pairs)
+    review_df.to_csv(review_csv_path, index=False)
     return len(pairs)
 
 

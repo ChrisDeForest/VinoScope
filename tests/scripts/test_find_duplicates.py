@@ -49,3 +49,30 @@ def test_write_review_file_writes_csv_with_pair_count(tmp_path):
     assert count == 1
     review_df = pd.read_csv(review_csv)
     assert len(review_df) == 1
+
+
+def test_write_review_file_with_no_duplicates_writes_header_only_csv(tmp_path):
+    cleaned_csv = tmp_path / "cleaned.csv"
+    cleaned_csv.write_text(
+        "name,winery,vintage\n"
+        "Caymus Cabernet Sauvignon,Caymus Vineyards,2022\n"
+        "Kendall-Jackson Chardonnay,Kendall-Jackson,2022\n"
+    )
+    review_csv = tmp_path / "review.csv"
+
+    count = write_review_file(str(cleaned_csv), str(review_csv))
+
+    assert count == 0
+    review_df = pd.read_csv(review_csv)
+    assert len(review_df) == 0
+    assert list(review_df.columns) == [
+        "index_a",
+        "index_b",
+        "name_a",
+        "name_b",
+        "winery_a",
+        "winery_b",
+        "vintage",
+        "name_score",
+        "winery_score",
+    ]
