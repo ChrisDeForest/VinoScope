@@ -27,3 +27,16 @@ design docs.
    Review the output file by hand before continuing.
 4. Import: `python scripts/import_wines.py data/cleaned/<file>.csv`
 5. Verify: `python scripts/verify_import.py`
+
+## Frontend setup
+
+1. Copy the environment file:
+   `cp frontend/.env.example frontend/.env`
+2. Install dependencies:
+   `cd frontend && npm install && cd ..`
+3. Start the backend API (the frontend needs it for data):
+   `cd backend && uvicorn app.main:app --port 8000`
+4. In a separate terminal, start the frontend dev server:
+   `cd frontend && npm run dev`
+5. Open the printed local URL (default `http://localhost:5173`).
+6. Run frontend tests: `cd frontend && npm run test`

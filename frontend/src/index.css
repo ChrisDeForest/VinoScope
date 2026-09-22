@@ -1,8 +1,8 @@
+@import "./theme/themes.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./theme/themes.css";
 
 body {
   background-color: var(--color-surface);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, listWines } from "../services/api";
 import { useApiQuery } from "../hooks/useApiQuery";
 import type { WineListItem } from "../types/wine";
@@ -24,6 +24,13 @@ export function ExplorePage() {
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const loadMoreRequestId = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      loadMoreRequestId.current += 1;
+    };
+  }, []);
 
   const { data, loading, error } = useApiQuery(
     () => listWines(filtersToApiParams(appliedFilters, PAGE_SIZE, 0)),
@@ -38,24 +45,36 @@ export function ExplorePage() {
   }, [data]);
 
   async function handleLoadMore() {
+    const requestId = ++loadMoreRequestId.current;
     setLoadingMore(true);
     setLoadMoreError(null);
     try {
       const next = await listWines(filtersToApiParams(appliedFilters, PAGE_SIZE, items.length));
+      if (requestId !== loadMoreRequestId.current) return;
       setItems((prev) => [...prev, ...next.items]);
     } catch (err) {
+      if (requestId !== loadMoreRequestId.current) return;
       setLoadMoreError(err instanceof ApiError ? err.message : "Failed to load more wines");
     } finally {
+      if (requestId !== loadMoreRequestId.current) return;
       setLoadingMore(false);
     }
   }
 
+  function invalidateLoadMore() {
+    loadMoreRequestId.current += 1;
+    setLoadingMore(false);
+    setLoadMoreError(null);
+  }
+
   function handleApplyFilters(filters: FilterValues) {
+    invalidateLoadMore();
     setAppliedFilters(filters);
     setDrawerOpen(false);
   }
 
   function handleClearFilters() {
+    invalidateLoadMore();
     setAppliedFilters(DEFAULT_FILTERS);
   }
 

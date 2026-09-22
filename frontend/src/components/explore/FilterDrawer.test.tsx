@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { FilterDrawer } from "./FilterDrawer";
 import { DEFAULT_FILTERS } from "./filterTypes";
@@ -42,5 +43,50 @@ describe("FilterDrawer", () => {
     render(<FilterDrawer open initialFilters={DEFAULT_FILTERS} onApply={vi.fn()} onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: "Close filters" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("focuses the dialog, traps Tab, dismisses Escape, and returns focus to the opener", async () => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open filters
+          </button>
+          <FilterDrawer open={open} initialFilters={DEFAULT_FILTERS} onApply={vi.fn()} onClose={() => setOpen(false)} />
+        </>
+      );
+    }
+
+    const user = userEvent.setup();
+    render(<Harness />);
+    const opener = screen.getByRole("button", { name: "Open filters" });
+    await user.click(opener);
+
+    const dialog = screen.getByRole("dialog", { name: "Filters" });
+    const closeButton = within(dialog).getByRole("button", { name: "Close filters" });
+    const applyButton = within(dialog).getByRole("button", { name: "Apply" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(closeButton).toHaveFocus();
+
+    await user.tab({ shift: true });
+    expect(applyButton).toHaveFocus();
+    await user.tab();
+    expect(closeButton).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+  });
+
+  it("keeps the price inputs within the drawer width", () => {
+    render(<FilterDrawer open initialFilters={DEFAULT_FILTERS} onApply={vi.fn()} onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole("dialog", { name: "Filters" });
+    for (const label of ["Min price", "Max price"]) {
+      const input = within(dialog).getByLabelText(label);
+      expect(input).toHaveClass("w-full", "min-w-0");
+      expect(input.parentElement).toHaveClass("min-w-0");
+    }
   });
 });
