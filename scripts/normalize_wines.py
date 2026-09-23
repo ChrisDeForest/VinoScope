@@ -13,6 +13,13 @@ COUNTRY_ALIASES = {
     "uk": "United Kingdom",
 }
 
+CURRENCY_ALIASES = {
+    "euro": "EUR",
+    "euros": "EUR",
+    "dollar": "USD",
+    "dollars": "USD",
+}
+
 
 def clean_text(value):
     if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -49,6 +56,13 @@ def normalize_country(country):
     return COUNTRY_ALIASES.get(cleaned.lower(), cleaned.title())
 
 
+def normalize_currency(currency):
+    cleaned = clean_text(currency)
+    if cleaned is None:
+        return None
+    return CURRENCY_ALIASES.get(cleaned.lower(), cleaned.upper())
+
+
 def validate_vintage(vintage):
     cleaned = clean_text(vintage)
     if cleaned is None:
@@ -74,7 +88,7 @@ def normalize_row(row):
         "subregion": clean_text(row.get("subregion")),
         "abv": clean_text(row.get("abv")),
         "price": clean_text(row.get("price")),
-        "currency": clean_text(row.get("currency")),
+        "currency": normalize_currency(row.get("currency")),
         "sweetness": clean_text(row.get("sweetness")),
         "acidity": clean_text(row.get("acidity")),
         "tannin": clean_text(row.get("tannin")),

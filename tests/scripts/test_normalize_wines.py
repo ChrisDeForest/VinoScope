@@ -4,6 +4,7 @@ import pytest
 from scripts.normalize_wines import (
     clean_text,
     normalize_country,
+    normalize_currency,
     normalize_csv,
     normalize_row,
     split_grape_blend,
@@ -46,6 +47,22 @@ def test_normalize_country_applies_known_aliases():
 
 def test_normalize_country_title_cases_unknown_values():
     assert normalize_country("france") == "France"
+
+
+def test_normalize_currency_maps_known_aliases():
+    assert normalize_currency("EURO") == "EUR"
+    assert normalize_currency("euro") == "EUR"
+    assert normalize_currency("Euros") == "EUR"
+
+
+def test_normalize_currency_uppercases_unknown_codes():
+    assert normalize_currency("usd") == "USD"
+    assert normalize_currency("zar") == "ZAR"
+
+
+def test_normalize_currency_allows_blank():
+    assert normalize_currency("") is None
+    assert normalize_currency(None) is None
 
 
 def test_validate_vintage_accepts_four_digit_year():
