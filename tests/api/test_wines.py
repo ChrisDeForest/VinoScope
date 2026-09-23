@@ -456,3 +456,15 @@ def test_list_wines_search_combines_with_other_filters(client, seeded_wines):
 def test_cors_allows_configured_frontend_origin(client):
     response = client.get("/api/wines", headers={"Origin": "http://localhost:5173"})
     assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+
+def test_cors_preflight_allows_patch_method(client):
+    response = client.options(
+        "/api/wines/1",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "PATCH",
+        },
+    )
+    assert response.status_code == 200
+    assert "PATCH" in response.headers.get("access-control-allow-methods", "")
