@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { WineDetailPage } from "./WineDetailPage";
 import * as api from "../services/api";
 import { ApiError } from "../services/api";
+import { setAdminKey, clearAdminKey } from "../services/adminAuth";
 import type { WineDetail } from "../types/wine";
 
 vi.mock("../services/api", async () => {
@@ -62,6 +64,10 @@ describe("WineDetailPage", () => {
     getWineMock.mockReset();
   });
 
+  afterEach(() => {
+    clearAdminKey();
+  });
+
   it("renders the full wine record", async () => {
     getWineMock.mockResolvedValue(fullWine);
     renderDetail();
@@ -85,5 +91,26 @@ describe("WineDetailPage", () => {
     renderDetail();
 
     await waitFor(() => expect(screen.getByText(/no retailers currently listed/i)).toBeInTheDocument());
+  });
+
+  it("does not show an edit toggle when not logged in as admin", async () => {
+    clearAdminKey();
+    getWineMock.mockResolvedValue(fullWine);
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByText("Caymus Cabernet Sauvignon")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /edit this wine/i })).not.toBeInTheDocument();
+  });
+
+  it("shows an edit toggle when logged in as admin, and reveals the edit panel", async () => {
+    setAdminKey("test-key");
+    getWineMock.mockResolvedValue(fullWine);
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByText("Caymus Cabernet Sauvignon")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /edit this wine/i }));
+
+    expect(screen.getByText("Wine details")).toBeInTheDocument();
+    clearAdminKey();
   });
 });

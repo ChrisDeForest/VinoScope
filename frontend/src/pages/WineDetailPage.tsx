@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { getWine, ApiError } from "../services/api";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { CharacteristicBar } from "../components/wine/CharacteristicBar";
@@ -6,6 +7,9 @@ import { RetailerListingRow } from "../components/wine/RetailerListingRow";
 import { ErrorMessage } from "../components/common/ErrorMessage";
 import { Skeleton } from "../components/common/Skeleton";
 import { formatVintage } from "../utils/format";
+import { getAdminKey } from "../services/adminAuth";
+import { WineEditPanel } from "../components/admin/WineEditPanel";
+import type { WineDetail } from "../types/wine";
 
 const PLACEHOLDER_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='520'%3E%3Crect width='400' height='520' fill='%232f1b1e'/%3E%3C/svg%3E";
@@ -14,7 +18,14 @@ export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
   const wineId = Number(id);
 
-  const { data: wine, loading, error } = useApiQuery(() => getWine(wineId), [wineId]);
+  const { data, loading, error } = useApiQuery(() => getWine(wineId), [wineId]);
+  const [wine, setWine] = useState<WineDetail | null>(null);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    setWine(data);
+    setEditing(false);
+  }, [data]);
 
   if (loading) {
     return (
@@ -60,7 +71,18 @@ export function WineDetailPage() {
             {wine.winery} &middot; {formatVintage(wine.vintage)}
           </p>
           <p className="text-ink-muted">{[wine.region, wine.subregion, wine.country].filter(Boolean).join(", ")}</p>
+          {getAdminKey() ? (
+            <button
+              type="button"
+              onClick={() => setEditing((prev) => !prev)}
+              className="text-sm text-accent hover:underline mt-1"
+            >
+              {editing ? "Close editor" : "Edit this wine"}
+            </button>
+          ) : null}
         </div>
+
+        {editing ? <WineEditPanel wine={wine} onUpdated={setWine} /> : null}
 
         <div className="flex flex-col gap-2">
           <CharacteristicBar label="Sweetness" value={wine.sweetness} />
@@ -90,7 +112,7 @@ export function WineDetailPage() {
           {wine.listings.length === 0 ? (
             <p className="text-ink-muted text-sm">No retailers currently listed.</p>
           ) : (
-            wine.listings.map((listing, i) => <RetailerListingRow key={i} listing={listing} />)
+            wine.listings.map((listing) => <RetailerListingRow key={listing.id} listing={listing} />)
           )}
         </div>
       </div>
