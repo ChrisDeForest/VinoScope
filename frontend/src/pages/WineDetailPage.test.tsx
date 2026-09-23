@@ -36,6 +36,7 @@ const fullWine: WineDetail = {
   fruitiness: 3,
   listings: [
     {
+      id: 1,
       retailer: "Total Wine",
       price: 79.99,
       currency: "USD",

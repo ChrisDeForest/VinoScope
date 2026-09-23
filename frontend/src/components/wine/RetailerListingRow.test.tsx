@@ -7,6 +7,7 @@ describe("RetailerListingRow", () => {
     render(
       <RetailerListingRow
         listing={{
+          id: 1,
           retailer: "Total Wine",
           price: 79.99,
           currency: "USD",
@@ -28,6 +29,7 @@ describe("RetailerListingRow", () => {
     render(
       <RetailerListingRow
         listing={{
+          id: 1,
           retailer: "Local Shop",
           price: 50,
           currency: "USD",
@@ -44,6 +46,7 @@ describe("RetailerListingRow", () => {
     render(
       <RetailerListingRow
         listing={{
+          id: 1,
           retailer: "Euro Wines",
           price: 50,
           currency: "EUR",
@@ -61,6 +64,7 @@ describe("RetailerListingRow", () => {
     render(
       <RetailerListingRow
         listing={{
+          id: 1,
           retailer: "Total Wine",
           price: 79.99,
           currency: "USD",
