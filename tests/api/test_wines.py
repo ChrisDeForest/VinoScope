@@ -710,3 +710,61 @@ def test_cors_preflight_allows_patch_method(client):
     )
     assert response.status_code == 200
     assert "PATCH" in response.headers.get("access-control-allow-methods", "")
+
+
+def test_update_grapes_replaces_existing_blend(client, admin_headers, seeded_wines):
+    response = client.put(
+        f"/api/wines/{seeded_wines['wine1']}/grapes",
+        json={"grapes": [{"name": "Petit Verdot", "percentage": 100}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["grapes"] == [{"name": "Petit Verdot", "percentage": 100.0}]
+
+
+def test_update_grapes_reuses_existing_grape(client, admin_headers, seeded_wines, db_session):
+    client.put(
+        f"/api/wines/{seeded_wines['wine1']}/grapes",
+        json={"grapes": [{"name": "Cabernet Sauvignon", "percentage": 100}]},
+        headers=admin_headers,
+    )
+    count = db_session.query(Grape).filter_by(name="Cabernet Sauvignon").count()
+    assert count == 1
+
+
+def test_update_grapes_creates_new_grape(client, admin_headers, seeded_wines, db_session):
+    response = client.put(
+        f"/api/wines/{seeded_wines['wine2']}/grapes",
+        json={"grapes": [{"name": "Nebbiolo", "percentage": None}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    assert db_session.query(Grape).filter_by(name="Nebbiolo").one_or_none() is not None
+
+
+def test_update_grapes_allows_empty_blend(client, admin_headers, seeded_wines):
+    response = client.put(
+        f"/api/wines/{seeded_wines['wine1']}/grapes", json={"grapes": []}, headers=admin_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["grapes"] == []
+
+
+def test_update_grapes_duplicate_name_returns_422(client, admin_headers, seeded_wines):
+    response = client.put(
+        f"/api/wines/{seeded_wines['wine1']}/grapes",
+        json={"grapes": [{"name": "Merlot", "percentage": 50}, {"name": "Merlot", "percentage": 50}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_update_grapes_unknown_wine_returns_404(client, admin_headers):
+    response = client.put("/api/wines/999999/grapes", json={"grapes": [{"name": "Merlot"}]}, headers=admin_headers)
+    assert response.status_code == 404
+
+
+def test_update_grapes_missing_admin_key_returns_401(client, seeded_wines):
+    response = client.put(f"/api/wines/{seeded_wines['wine1']}/grapes", json={"grapes": []})
+    assert response.status_code == 401

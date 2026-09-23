@@ -130,6 +130,27 @@ class RetailerListingUpdate(BaseModel):
         return _validate_product_url(value)
 
 
+class GrapeIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Annotated[str, Field(max_length=100)]
+    percentage: Optional[Annotated[float, Field(ge=0, le=100)]] = None
+
+
+class GrapesUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    grapes: list[GrapeIn]
+
+    @field_validator("grapes")
+    @classmethod
+    def _reject_duplicate_names(cls, value):
+        names = [g.name.strip().lower() for g in value]
+        if len(names) != len(set(names)):
+            raise ValueError("duplicate grape name in request")
+        return value
+
+
 class WineDetail(WineListItem):
     subregion: Optional[str] = None
     abv: Optional[float] = None

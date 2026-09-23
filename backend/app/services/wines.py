@@ -262,3 +262,24 @@ def delete_listing(db: Session, wine_id: int, listing_id: int) -> bool:
     db.delete(listing)
     db.commit()
     return True
+
+
+def get_or_create_grape(db: Session, name: str) -> Grape:
+    grape = db.query(Grape).filter_by(name=name).one_or_none()
+    if grape is None:
+        grape = Grape(name=name)
+        db.add(grape)
+        db.flush()
+    return grape
+
+
+def update_grapes(db: Session, wine_id: int, grapes: list[dict]) -> Optional[dict]:
+    wine = db.get(Wine, wine_id)
+    if wine is None:
+        return None
+    wine.grapes.clear()
+    for entry in grapes:
+        grape = get_or_create_grape(db, entry["name"])
+        wine.grapes.append(WineGrape(grape=grape, percentage=entry.get("percentage")))
+    db.commit()
+    return get_wine(db, wine_id)

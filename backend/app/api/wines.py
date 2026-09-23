@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, require_admin_key
 from app.models import Wine
 from app.schemas.wine import (
+    GrapesUpdate,
     RetailerListingCreate,
     RetailerListingOut,
     RetailerListingUpdate,
@@ -112,3 +113,15 @@ def delete_listing(wine_id: int, listing_id: int, db: Session = Depends(get_db))
     deleted = wines_service.delete_listing(db, wine_id, listing_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+
+@router.put(
+    "/wines/{wine_id}/grapes",
+    response_model=WineDetail,
+    dependencies=[Depends(require_admin_key)],
+)
+def update_grapes(wine_id: int, body: GrapesUpdate, db: Session = Depends(get_db)) -> WineDetail:
+    result = wines_service.update_grapes(db, wine_id, [g.model_dump() for g in body.grapes])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Wine not found")
+    return WineDetail(**result)
