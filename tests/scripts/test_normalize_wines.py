@@ -62,6 +62,12 @@ def test_validate_vintage_rejects_non_year_value():
         validate_vintage("22")
 
 
+def test_validate_vintage_accepts_nv_case_insensitive():
+    assert validate_vintage("NV") is None
+    assert validate_vintage("nv") is None
+    assert validate_vintage("Nv") is None
+
+
 def test_normalize_row_produces_expected_fields():
     row = {
         "name": " Caymus Cabernet Sauvignon 750ml ",

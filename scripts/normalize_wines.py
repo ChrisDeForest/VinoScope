@@ -53,6 +53,8 @@ def validate_vintage(vintage):
     cleaned = clean_text(vintage)
     if cleaned is None:
         return None
+    if cleaned.upper() == "NV":
+        return None
     if not re.fullmatch(r"\d{4}", cleaned):
         raise ValueError(f"Invalid vintage: {vintage!r}")
     return int(cleaned)
