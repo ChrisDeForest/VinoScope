@@ -61,6 +61,8 @@ def validate_row(row):
     for field_name in INT_FIELDS:
         value = _clean(row.get(field_name))
         if value is not None:
+            if field_name == "vintage" and value.upper() == "NV":
+                continue
             _, ok = _try_parse_numeric(value, int)
             if not ok:
                 errors.append(f"invalid {field_name} {value!r}")
@@ -127,7 +129,8 @@ def upsert_wine(session: Session, row) -> Wine:
     winery = get_or_create_winery(
         session, _clean(row.get("winery")), _clean(row.get("country")), _clean(row.get("region"))
     )
-    vintage = int(row["vintage"]) if _clean(row.get("vintage")) else None
+    vintage_raw = _clean(row.get("vintage"))
+    vintage = None if vintage_raw is None or vintage_raw.upper() == "NV" else int(vintage_raw)
     name = _clean(row["name"])
     wine_type = _clean(row["type"]).lower()
 

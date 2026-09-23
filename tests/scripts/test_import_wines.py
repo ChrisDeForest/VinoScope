@@ -88,6 +88,30 @@ def test_import_csv_is_idempotent_on_winery_name_vintage(tmp_path, test_db_url):
         engine.dispose()
 
 
+def test_import_csv_accepts_nv_vintage(tmp_path, test_db_url):
+    csv_path = _write_csv(
+        tmp_path,
+        [
+            "NV Brut Champagne,Some Winery,NV,Chardonnay;Pinot Noir,60.0;40.0,"
+            "sparkling,France,Champagne,,12.0,49.99,USD,2,4,2,3,2,,,"
+            "Total Wine,https://example.com/nv,XYZ789"
+        ],
+    )
+
+    count = import_csv(csv_path, database_url=test_db_url)
+    assert count == 1
+
+    engine = get_engine(test_db_url)
+    Session = get_session_factory(engine)
+    session = Session()
+    try:
+        wine = session.query(Wine).filter_by(name="NV Brut Champagne").one()
+        assert wine.vintage is None
+    finally:
+        session.close()
+        engine.dispose()
+
+
 def test_import_csv_rejects_entire_file_on_invalid_row(tmp_path, test_db_url):
     csv_path = _write_csv(
         tmp_path,
