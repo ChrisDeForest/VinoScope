@@ -15,6 +15,8 @@ function wine(id: number): WineListItem {
     region: "Napa Valley",
     grapes: [],
     price: 20,
+    currency: null,
+    price_usd_approx: null,
     image_url: null,
     sweetness: null,
     acidity: null,

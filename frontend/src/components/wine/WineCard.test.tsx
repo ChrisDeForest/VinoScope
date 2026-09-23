@@ -14,6 +14,8 @@ const baseWine: WineListItem = {
   region: "Napa Valley",
   grapes: [{ name: "Cabernet Sauvignon", percentage: 100 }],
   price: 79.99,
+  currency: null,
+  price_usd_approx: null,
   image_url: "https://example.com/bottle.jpg",
   sweetness: 1,
   acidity: 3,
@@ -86,5 +88,16 @@ describe("WineCard", () => {
   it("does not render an explanation line when explanation is not provided", () => {
     renderCard(baseWine);
     expect(screen.queryByText(/High tannin/)).not.toBeInTheDocument();
+  });
+
+  it("shows an approx-USD conversion line for a non-USD priced wine", () => {
+    renderCard({ ...baseWine, price: 50, currency: "EUR", price_usd_approx: 54.0 });
+    expect(screen.getByText("€50.00")).toBeInTheDocument();
+    expect(screen.getByText("≈ $54.00 USD")).toBeInTheDocument();
+  });
+
+  it("does not show a conversion line for a USD priced wine", () => {
+    renderCard(baseWine);
+    expect(screen.queryByText(/≈/)).not.toBeInTheDocument();
   });
 });
