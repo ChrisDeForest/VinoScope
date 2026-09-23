@@ -56,11 +56,11 @@ export interface ListWinesParams {
 }
 
 export interface RecommendationAnswers {
-  sweetness?: number;
-  acidity?: number;
-  tannin?: number;
-  body?: number;
-  fruitiness?: number;
+  sweetness?: number | number[];
+  acidity?: number | number[];
+  tannin?: number | number[];
+  body?: number | number[];
+  fruitiness?: number | number[];
   type?: string;
   country?: string;
   min_price?: number;

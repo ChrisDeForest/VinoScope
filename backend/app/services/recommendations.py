@@ -41,15 +41,19 @@ LABELS: dict[str, dict[int, str]] = {
 }
 
 
-def _distance(user_values: dict[str, Optional[int]], wine: Wine) -> float:
+def _levels(value: int | list[int] | None) -> list[int]:
+    return [value] if isinstance(value, int) else (value or [])
+
+
+def _distance(user_values: dict[str, int | list[int] | None], wine: Wine) -> float:
     total_weighted_sq = 0.0
     total_weight = 0.0
     for dim in DIMENSIONS:
-        user_val = user_values.get(dim)
+        user_val = _levels(user_values.get(dim))
         wine_val = getattr(wine, dim)
-        if user_val is None or wine_val is None:
+        if not user_val or wine_val is None:
             continue
-        total_weighted_sq += (user_val - wine_val) ** 2
+        total_weighted_sq += min((level - wine_val) ** 2 for level in user_val)
         total_weight += 1
     if total_weight == 0:
         return 0.0
@@ -81,16 +85,16 @@ def _price_explanation(min_price: Optional[float], max_price: Optional[float]) -
 
 
 def build_profile(
-    user_values: dict[str, Optional[int]],
+    user_values: dict[str, int | list[int] | None],
     type: Optional[str],
     min_price: Optional[float],
     max_price: Optional[float],
 ) -> list[str]:
     description: list[str] = []
     for dim in DIMENSIONS:
-        val = user_values.get(dim)
-        if val is not None:
-            description.append(LABELS[dim][val])
+        val = _levels(user_values.get(dim))
+        if val:
+            description.append(" or ".join(LABELS[dim][level] for level in sorted(set(val))))
     if type is not None:
         description.append(f"Primarily {type} wines")
     price_phrase = _price_phrase(min_price, max_price)
@@ -100,7 +104,7 @@ def build_profile(
 
 
 def build_explanation(
-    user_values: dict[str, Optional[int]],
+    user_values: dict[str, int | list[int] | None],
     wine: Wine,
     type: Optional[str],
     country: Optional[str],
@@ -116,11 +120,11 @@ def build_explanation(
     if country is not None:
         explanation.append(f"From {country}")
     for dim in DIMENSIONS:
-        user_val = user_values.get(dim)
+        user_val = _levels(user_values.get(dim))
         wine_val = getattr(wine, dim)
-        if user_val is None or wine_val is None:
+        if not user_val or wine_val is None:
             continue
-        if abs(user_val - wine_val) <= 1:
+        if min(abs(level - wine_val) for level in user_val) <= 1:
             explanation.append(LABELS[dim][wine_val])
     return explanation
 
@@ -128,11 +132,11 @@ def build_explanation(
 def get_recommendations(
     db: Session,
     *,
-    sweetness: Optional[int] = None,
-    acidity: Optional[int] = None,
-    tannin: Optional[int] = None,
-    body: Optional[int] = None,
-    fruitiness: Optional[int] = None,
+    sweetness: int | list[int] | None = None,
+    acidity: int | list[int] | None = None,
+    tannin: int | list[int] | None = None,
+    body: int | list[int] | None = None,
+    fruitiness: int | list[int] | None = None,
     type: Optional[str] = None,
     country: Optional[str] = None,
     min_price: Optional[float] = None,

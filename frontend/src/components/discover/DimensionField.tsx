@@ -8,25 +8,38 @@ export function DimensionField({
   onChange,
 }: {
   dimension: Dimension;
-  value: number | undefined;
-  onChange: (value: number | undefined) => void;
+  value: number | number[] | undefined;
+  onChange: (value: number | number[] | undefined) => void;
 }) {
+  const selected = typeof value === "number" ? [value] : value ?? [];
   const labels = DIMENSION_LABELS[dimension];
   return (
     <fieldset className="flex flex-col gap-1">
       <legend className="text-sm text-ink-muted mb-1">{DIMENSION_TITLES[dimension]}</legend>
+      <p className="text-xs text-ink-muted">Select all that you enjoy.</p>
       <div className="flex flex-col gap-1">
         {LEVELS.map((level) => (
           <label key={level} className="flex items-center gap-2 text-sm text-ink">
-            <input type="radio" name={dimension} checked={value === level} onChange={() => onChange(level)} />
+            <input
+              type="checkbox"
+              className="accent-accent"
+              checked={selected.includes(level)}
+              onChange={() => {
+                const next = selected.includes(level)
+                  ? selected.filter((item) => item !== level)
+                  : [...selected, level].sort((a, b) => a - b);
+                onChange(next.length ? next : undefined);
+              }}
+            />
             {labels[level]}
           </label>
         ))}
         <label className="flex items-center gap-2 text-sm text-ink-muted">
           <input
-            type="radio"
+            type="checkbox"
+            className="accent-accent"
             name={dimension}
-            checked={value === undefined}
+            checked={selected.length === 0}
             onChange={() => onChange(undefined)}
           />
           I'm unsure

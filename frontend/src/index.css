@@ -8,3 +8,14 @@ body {
   background-color: var(--color-surface);
   color: var(--color-ink);
 }
+
+.discover-price {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.discover-price::-webkit-inner-spin-button,
+.discover-price::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

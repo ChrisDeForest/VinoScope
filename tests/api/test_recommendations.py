@@ -3,6 +3,17 @@ import pytest
 from app.models import Retailer, RetailerListing, Wine, Winery
 
 
+def test_multiple_preferences_rank_each_selected_level_as_a_match(client, recommendation_wines):
+    response = client.post("/api/recommendations", json={"body": [2, 5], "sweetness": [1]})
+    assert response.status_code == 200
+    result = response.json()
+    scores = {item["name"]: item["match_score"] for item in result["items"]}
+    assert scores["Alpha Bold Red"] == 1
+    assert scores["Alpha Light Red"] == 1
+    assert scores["Beta White"] < 1
+    assert "Light-bodied or Very full-bodied" in result["profile"]["description"]
+
+
 @pytest.fixture
 def recommendation_wines(db_session):
     alpha = Winery(name="Alpha Cellars", country="United States", region="Napa Valley")

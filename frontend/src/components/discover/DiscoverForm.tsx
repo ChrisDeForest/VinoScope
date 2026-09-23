@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { RecommendationAnswers } from "../../types/wine";
 import { TYPE_OPTIONS, TYPE_LABELS, COUNTRY_OPTIONS } from "../../constants/wineOptions";
 import { DIMENSIONS } from "../../utils/dimensionLabels";
+import { PriceField } from "./PriceField";
 import { DimensionField } from "./DimensionField";
 
 export function DiscoverForm({
@@ -63,32 +64,8 @@ export function DiscoverForm({
       </div>
 
       <div className="flex gap-2">
-        <div className="flex flex-col gap-1 flex-1">
-          <label htmlFor="discover-min-price" className="text-sm text-ink-muted">
-            Min price
-          </label>
-          <input
-            id="discover-min-price"
-            type="number"
-            min={0}
-            value={draft.min_price ?? ""}
-            onChange={(e) => update("min_price", e.target.value === "" ? undefined : Number(e.target.value))}
-            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-          />
-        </div>
-        <div className="flex flex-col gap-1 flex-1">
-          <label htmlFor="discover-max-price" className="text-sm text-ink-muted">
-            Max price
-          </label>
-          <input
-            id="discover-max-price"
-            type="number"
-            min={0}
-            value={draft.max_price ?? ""}
-            onChange={(e) => update("max_price", e.target.value === "" ? undefined : Number(e.target.value))}
-            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-          />
-        </div>
+        <PriceField id="discover-min-price" label="Min price" value={draft.min_price} onChange={(value) => update("min_price", value)} />
+        <PriceField id="discover-max-price" label="Max price" value={draft.max_price} onChange={(value) => update("max_price", value)} />
       </div>
 
       {DIMENSIONS.map((dimension) => (

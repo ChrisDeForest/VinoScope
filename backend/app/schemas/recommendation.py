@@ -1,16 +1,20 @@
-from typing import Optional
+from typing import Annotated, Optional
 
 from pydantic import BaseModel, Field
 
 from app.schemas.wine import WineListItem
 
 
+PreferenceLevel = Annotated[int, Field(ge=1, le=5)]
+Preference = PreferenceLevel | list[PreferenceLevel] | None
+
+
 class RecommendationRequest(BaseModel):
-    sweetness: Optional[int] = Field(default=None, ge=1, le=5)
-    acidity: Optional[int] = Field(default=None, ge=1, le=5)
-    tannin: Optional[int] = Field(default=None, ge=1, le=5)
-    body: Optional[int] = Field(default=None, ge=1, le=5)
-    fruitiness: Optional[int] = Field(default=None, ge=1, le=5)
+    sweetness: Preference = None
+    acidity: Preference = None
+    tannin: Preference = None
+    body: Preference = None
+    fruitiness: Preference = None
     type: Optional[str] = None
     country: Optional[str] = None
     min_price: Optional[float] = Field(default=None, ge=0)

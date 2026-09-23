@@ -21,7 +21,7 @@ describe("DimensionField", () => {
     const user = userEvent.setup();
     render(<DimensionField dimension="tannin" value={undefined} onChange={onChange} />);
     await user.click(screen.getByLabelText("High tannin"));
-    expect(onChange).toHaveBeenCalledWith(5);
+    expect(onChange).toHaveBeenCalledWith([5]);
   });
 
   it("calls onChange with undefined when 'I'm unsure' is selected", async () => {
