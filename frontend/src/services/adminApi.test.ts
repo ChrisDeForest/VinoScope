@@ -7,7 +7,7 @@ import {
   updateListing,
   deleteListing,
 } from "./adminApi";
-import { setAdminKey, clearAdminKey } from "./adminAuth";
+import { setAdminKey } from "./adminAuth";
 import { ApiError } from "./api";
 
 const fetchMock = vi.fn();
