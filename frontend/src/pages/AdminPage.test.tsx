@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AdminPage } from "./AdminPage";
 import * as adminApi from "../services/adminApi";
 import * as api from "../services/api";
-import { clearAdminKey, getAdminKey } from "../services/adminAuth";
+import { clearAdminKey, getAdminKey, setAdminKey } from "../services/adminAuth";
 import { ApiError } from "../services/api";
 import type { AdminStats, WineListResponse } from "../types/wine";
 
@@ -117,6 +117,49 @@ describe("AdminPage", () => {
     await userEvent.click(screen.getByText("Caymus Cabernet Sauvignon"));
 
     expect(await screen.findByText("Wine details")).toBeInTheDocument();
+  });
+
+  it("shows statistics on page load when an admin key is already stored", async () => {
+    setAdminKey("existing-key");
+    getAdminStatsMock.mockResolvedValue(stats);
+    listWinesMock.mockResolvedValue(winesResponse);
+
+    renderAdmin();
+
+    await waitFor(() => expect(screen.getByText(/2 wines/i)).toBeInTheDocument());
+  });
+
+  it("loads more wines when the Load more button is clicked", async () => {
+    setAdminKey("existing-key");
+    getAdminStatsMock.mockResolvedValue(stats);
+    const firstPage: WineListResponse = {
+      total: 25,
+      items: Array.from({ length: 20 }, (_, i) => ({
+        ...winesResponse.items[0],
+        id: i + 1,
+        name: `Wine ${i + 1}`,
+      })),
+    };
+    const secondPage: WineListResponse = {
+      total: 25,
+      items: Array.from({ length: 5 }, (_, i) => ({
+        ...winesResponse.items[0],
+        id: i + 21,
+        name: `Wine ${i + 21}`,
+      })),
+    };
+    listWinesMock.mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage);
+
+    renderAdmin();
+
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /load more/i }));
+
+    await waitFor(() => expect(screen.getByText("Wine 21")).toBeInTheDocument());
+    expect(listWinesMock).toHaveBeenCalledTimes(2);
+    const secondCallArgs = listWinesMock.mock.calls[1][0];
+    expect(secondCallArgs.offset).toBe(20);
   });
 
   it("logs out and returns to the login form", async () => {

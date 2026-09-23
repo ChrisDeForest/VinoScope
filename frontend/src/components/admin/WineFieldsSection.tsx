@@ -6,6 +6,7 @@ import { clearAdminKey } from "../../services/adminAuth";
 
 const WINE_TYPES = ["red", "white", "rosé", "sparkling", "dessert", "fortified"];
 const RATING_DIMENSIONS = ["sweetness", "acidity", "tannin", "body", "fruitiness"] as const;
+const NULLABLE_TEXT_FIELDS = new Set(["country", "region", "subregion", "description", "image_url"]);
 
 export function WineFieldsSection({
   wine,
@@ -45,7 +46,11 @@ export function WineFieldsSection({
     setError(null);
     const payload: WineUpdatePayload = {};
     for (const field of dirty) {
-      (payload as Record<string, unknown>)[field] = (form as Record<string, unknown>)[field];
+      let value = (form as Record<string, unknown>)[field];
+      if (value === "" && NULLABLE_TEXT_FIELDS.has(field)) {
+        value = null;
+      }
+      (payload as Record<string, unknown>)[field] = value;
     }
     try {
       const updated = await updateWine(wine.id, payload);

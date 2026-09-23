@@ -78,6 +78,24 @@ describe("WineDetailPage", () => {
     expect(screen.getByText(/A bold, structured cabernet/)).toBeInTheDocument();
   });
 
+  it("never flashes the error view while the successful response settles", async () => {
+    getWineMock.mockResolvedValue(fullWine);
+    let sawErrorFlash = false;
+    const observer = new MutationObserver(() => {
+      if (document.body.textContent?.includes("Couldn't load this wine")) {
+        sawErrorFlash = true;
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByText("Caymus Cabernet Sauvignon")).toBeInTheDocument());
+    observer.disconnect();
+
+    expect(sawErrorFlash).toBe(false);
+  });
+
   it("renders a not-found state on a 404", async () => {
     getWineMock.mockRejectedValue(new ApiError(404, "Wine not found"));
     renderDetail("999999");

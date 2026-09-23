@@ -19,13 +19,15 @@ export function WineDetailPage() {
   const wineId = Number(id);
 
   const { data, loading, error } = useApiQuery(() => getWine(wineId), [wineId]);
-  const [wine, setWine] = useState<WineDetail | null>(null);
+  const [edited, setEdited] = useState<WineDetail | null>(null);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    setWine(data);
+    setEdited(null);
     setEditing(false);
   }, [data]);
+
+  const wine = edited ?? data;
 
   if (loading) {
     return (
@@ -51,7 +53,7 @@ export function WineDetailPage() {
     );
   }
 
-  if (error || !wine) {
+  if (error || !data || !wine) {
     return <ErrorMessage message="Couldn't load this wine. Please try again." />;
   }
 
@@ -82,7 +84,7 @@ export function WineDetailPage() {
           ) : null}
         </div>
 
-        {editing ? <WineEditPanel wine={wine} onUpdated={setWine} /> : null}
+        {editing ? <WineEditPanel wine={wine} onUpdated={setEdited} /> : null}
 
         <div className="flex flex-col gap-2">
           <CharacteristicBar label="Sweetness" value={wine.sweetness} />

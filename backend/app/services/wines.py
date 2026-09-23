@@ -265,7 +265,8 @@ def delete_listing(db: Session, wine_id: int, listing_id: int) -> bool:
 
 
 def get_or_create_grape(db: Session, name: str) -> Grape:
-    grape = db.query(Grape).filter_by(name=name).one_or_none()
+    name = name.strip()
+    grape = db.query(Grape).filter(func.lower(Grape.name) == name.lower()).one_or_none()
     if grape is None:
         grape = Grape(name=name)
         db.add(grape)

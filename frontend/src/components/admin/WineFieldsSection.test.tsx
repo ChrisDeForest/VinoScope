@@ -60,6 +60,18 @@ describe("WineFieldsSection", () => {
     expect(onUpdated).toHaveBeenCalledWith({ ...wine, abv: 15.0 });
   });
 
+  it("maps a cleared nullable field to null instead of an empty string", async () => {
+    const onUpdated = vi.fn();
+    updateWineMock.mockResolvedValue({ ...wine, image_url: null });
+    render(<WineFieldsSection wine={{ ...wine, image_url: "https://example.com/x.jpg" }} onUpdated={onUpdated} />);
+
+    const imageUrlInput = screen.getByLabelText(/image url/i);
+    await userEvent.clear(imageUrlInput);
+    await userEvent.click(screen.getByRole("button", { name: /save wine/i }));
+
+    expect(updateWineMock).toHaveBeenCalledWith(1, { image_url: null });
+  });
+
   it("shows an error message when the save fails", async () => {
     const { ApiError } = await import("../../services/api");
     updateWineMock.mockRejectedValue(new ApiError(422, "invalid type"));

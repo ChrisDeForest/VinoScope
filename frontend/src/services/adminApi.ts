@@ -1,7 +1,8 @@
 import type {
   AdminStats,
   GrapeInput,
-  ListingPayload,
+  ListingCreatePayload,
+  ListingUpdatePayload,
   RetailerListing,
   WineDetail,
   WineUpdatePayload,
@@ -16,10 +17,21 @@ function adminHeaders(): Record<string, string> {
   return key ? { "X-Admin-Key": key } : {};
 }
 
+async function throwApiError(response: Response, fallbackMessage: string): Promise<never> {
+  let message = fallbackMessage;
+  try {
+    const body = await response.json();
+    if (typeof body.detail === "string") message = body.detail;
+  } catch {
+    // response body wasn't JSON — keep the generic message
+  }
+  throw new ApiError(response.status, message);
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
   const response = await fetch(`${API_BASE_URL}/api/admin/stats`, { headers: adminHeaders() });
   if (!response.ok) {
-    throw new ApiError(response.status, `Failed to load admin stats (${response.status})`);
+    await throwApiError(response, `Failed to load admin stats (${response.status})`);
   }
   return response.json();
 }
@@ -31,7 +43,7 @@ export async function updateWine(id: number, payload: WineUpdatePayload): Promis
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new ApiError(response.status, `Failed to update wine (${response.status})`);
+    await throwApiError(response, `Failed to update wine (${response.status})`);
   }
   return response.json();
 }
@@ -43,19 +55,19 @@ export async function updateGrapes(id: number, grapes: GrapeInput[]): Promise<Wi
     body: JSON.stringify({ grapes }),
   });
   if (!response.ok) {
-    throw new ApiError(response.status, `Failed to update grapes (${response.status})`);
+    await throwApiError(response, `Failed to update grapes (${response.status})`);
   }
   return response.json();
 }
 
-export async function createListing(wineId: number, payload: ListingPayload): Promise<RetailerListing> {
+export async function createListing(wineId: number, payload: ListingCreatePayload): Promise<RetailerListing> {
   const response = await fetch(`${API_BASE_URL}/api/wines/${wineId}/listings`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...adminHeaders() },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new ApiError(response.status, `Failed to create listing (${response.status})`);
+    await throwApiError(response, `Failed to create listing (${response.status})`);
   }
   return response.json();
 }
@@ -63,7 +75,7 @@ export async function createListing(wineId: number, payload: ListingPayload): Pr
 export async function updateListing(
   wineId: number,
   listingId: number,
-  payload: ListingPayload
+  payload: ListingUpdatePayload
 ): Promise<RetailerListing> {
   const response = await fetch(`${API_BASE_URL}/api/wines/${wineId}/listings/${listingId}`, {
     method: "PATCH",
@@ -71,7 +83,7 @@ export async function updateListing(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new ApiError(response.status, `Failed to update listing (${response.status})`);
+    await throwApiError(response, `Failed to update listing (${response.status})`);
   }
   return response.json();
 }
@@ -82,6 +94,6 @@ export async function deleteListing(wineId: number, listingId: number): Promise<
     headers: adminHeaders(),
   });
   if (!response.ok) {
-    throw new ApiError(response.status, `Failed to delete listing (${response.status})`);
+    await throwApiError(response, `Failed to delete listing (${response.status})`);
   }
 }

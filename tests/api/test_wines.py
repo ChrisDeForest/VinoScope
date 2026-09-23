@@ -712,6 +712,15 @@ def test_cors_preflight_allows_patch_method(client):
     assert "PATCH" in response.headers.get("access-control-allow-methods", "")
 
 
+def test_cors_preflight_allows_put_method(client):
+    response = client.options(
+        "/api/wines/1/grapes",
+        headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "PUT"},
+    )
+    assert response.status_code == 200
+    assert "PUT" in response.headers.get("access-control-allow-methods", "")
+
+
 def test_update_grapes_replaces_existing_blend(client, admin_headers, seeded_wines):
     response = client.put(
         f"/api/wines/{seeded_wines['wine1']}/grapes",
@@ -731,6 +740,22 @@ def test_update_grapes_reuses_existing_grape(client, admin_headers, seeded_wines
     )
     count = db_session.query(Grape).filter_by(name="Cabernet Sauvignon").count()
     assert count == 1
+
+
+def test_update_grapes_case_and_whitespace_insensitive_reuse(client, admin_headers, seeded_wines, db_session):
+    client.put(
+        f"/api/wines/{seeded_wines['wine2']}/grapes",
+        json={"grapes": [{"name": "Syrah", "percentage": 100}]},
+        headers=admin_headers,
+    )
+    client.put(
+        f"/api/wines/{seeded_wines['wine3']}/grapes",
+        json={"grapes": [{"name": "  syrah  ", "percentage": 100}]},
+        headers=admin_headers,
+    )
+    all_grapes = db_session.query(Grape).all()
+    matches = [g for g in all_grapes if g.name.strip().lower() == "syrah"]
+    assert len(matches) == 1
 
 
 def test_update_grapes_creates_new_grape(client, admin_headers, seeded_wines, db_session):

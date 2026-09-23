@@ -35,6 +35,7 @@ describe("adminApi", () => {
     expect(String(url)).toContain("/api/wines/1");
     expect(options.method).toBe("PATCH");
     expect(JSON.parse(options.body as string)).toEqual({ abv: 14.5 });
+    expect((options.headers as Record<string, string>)["X-Admin-Key"]).toBe("test-key");
   });
 
   it("updateGrapes sends a PUT to the grapes endpoint", async () => {
@@ -44,6 +45,7 @@ describe("adminApi", () => {
     expect(String(url)).toContain("/api/wines/1/grapes");
     expect(options.method).toBe("PUT");
     expect(JSON.parse(options.body as string)).toEqual({ grapes: [{ name: "Merlot", percentage: 100 }] });
+    expect((options.headers as Record<string, string>)["X-Admin-Key"]).toBe("test-key");
   });
 
   it("createListing sends a POST to the listings endpoint", async () => {
@@ -52,6 +54,7 @@ describe("adminApi", () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(String(url)).toContain("/api/wines/1/listings");
     expect(options.method).toBe("POST");
+    expect((options.headers as Record<string, string>)["X-Admin-Key"]).toBe("test-key");
   });
 
   it("updateListing sends a PATCH to the specific listing", async () => {
@@ -60,6 +63,7 @@ describe("adminApi", () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(String(url)).toContain("/api/wines/1/listings/5");
     expect(options.method).toBe("PATCH");
+    expect((options.headers as Record<string, string>)["X-Admin-Key"]).toBe("test-key");
   });
 
   it("deleteListing sends a DELETE to the specific listing", async () => {
@@ -68,10 +72,19 @@ describe("adminApi", () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(String(url)).toContain("/api/wines/1/listings/5");
     expect(options.method).toBe("DELETE");
+    expect((options.headers as Record<string, string>)["X-Admin-Key"]).toBe("test-key");
   });
 
   it("throws ApiError on a non-ok response", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
     await expect(getAdminStats()).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("uses the server's error detail as the ApiError message when present", async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 422, json: async () => ({ detail: "invalid type" }) });
+    await expect(updateWine(1, { type: "bogus" })).rejects.toMatchObject({
+      status: 422,
+      message: "invalid type",
+    });
   });
 });

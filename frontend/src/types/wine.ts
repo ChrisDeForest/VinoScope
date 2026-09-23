@@ -122,8 +122,15 @@ export interface WineUpdatePayload {
   image_url?: string | null;
 }
 
-export interface ListingPayload {
-  retailer?: string;
+export interface ListingCreatePayload {
+  retailer: string;
+  price?: number | null;
+  currency?: string | null;
+  availability?: string | null;
+  product_url?: string | null;
+}
+
+export interface ListingUpdatePayload {
   price?: number | null;
   currency?: string | null;
   availability?: string | null;

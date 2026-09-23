@@ -5,6 +5,7 @@ import { getAdminStats } from "../services/adminApi";
 import { listWines, getWine, ApiError } from "../services/api";
 import { WineEditPanel } from "../components/admin/WineEditPanel";
 import { ErrorMessage } from "../components/common/ErrorMessage";
+import { LoadMoreButton } from "../components/explore/LoadMoreButton";
 
 const PAGE_SIZE = 20;
 
@@ -17,20 +18,23 @@ export function AdminPage() {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<WineListItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [expandedWine, setExpandedWine] = useState<WineDetail | null>(null);
-  const requestId = useRef(0);
+  const statsRequestId = useRef(0);
+  const winesRequestId = useRef(0);
 
   useEffect(() => {
     if (!authed) return;
-    const id = ++requestId.current;
+    const id = ++statsRequestId.current;
     setStatsError(null);
     getAdminStats()
       .then((data) => {
-        if (id !== requestId.current) return;
+        if (id !== statsRequestId.current) return;
         setStats(data);
       })
       .catch((err) => {
-        if (id !== requestId.current) return;
+        if (id !== statsRequestId.current) return;
         if (err instanceof ApiError && err.status === 401) {
           clearAdminKey();
           setAuthed(false);
@@ -43,19 +47,39 @@ export function AdminPage() {
 
   useEffect(() => {
     if (!authed) return;
-    const id = ++requestId.current;
+    const id = ++winesRequestId.current;
+    setItems([]);
+    setLoadMoreError(null);
     listWines({ q: query || undefined, limit: PAGE_SIZE, offset: 0 })
       .then((data) => {
-        if (id !== requestId.current) return;
+        if (id !== winesRequestId.current) return;
         setItems(data.items);
         setTotal(data.total);
       })
       .catch(() => {
-        if (id !== requestId.current) return;
+        if (id !== winesRequestId.current) return;
         setItems([]);
         setTotal(0);
       });
   }, [authed, query]);
+
+  async function handleLoadMore() {
+    const id = ++winesRequestId.current;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+    try {
+      const data = await listWines({ q: query || undefined, limit: PAGE_SIZE, offset: items.length });
+      if (id !== winesRequestId.current) return;
+      setItems((prev) => [...prev, ...data.items]);
+      setTotal(data.total);
+    } catch (err) {
+      if (id !== winesRequestId.current) return;
+      setLoadMoreError(err instanceof ApiError ? err.message : "Failed to load more wines");
+    } finally {
+      if (id !== winesRequestId.current) return;
+      setLoadingMore(false);
+    }
+  }
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -76,6 +100,7 @@ export function AdminPage() {
     setAuthed(false);
     setStats(null);
     setExpandedWine(null);
+    setPassword("");
   }
 
   async function handleRowClick(wineId: number) {
@@ -83,8 +108,12 @@ export function AdminPage() {
       setExpandedWine(null);
       return;
     }
-    const wine = await getWine(wineId);
-    setExpandedWine(wine);
+    try {
+      const wine = await getWine(wineId);
+      setExpandedWine(wine);
+    } catch {
+      // Failed to load the wine (deleted, network blip) — leave expandedWine as-is.
+    }
   }
 
   if (!authed) {
@@ -182,6 +211,8 @@ export function AdminPage() {
             </div>
           ))}
         </div>
+        {loadMoreError ? <ErrorMessage message={loadMoreError} onRetry={handleLoadMore} /> : null}
+        {items.length < total ? <LoadMoreButton onClick={handleLoadMore} loading={loadingMore} /> : null}
       </section>
     </div>
   );
