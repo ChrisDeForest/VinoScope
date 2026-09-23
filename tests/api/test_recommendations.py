@@ -135,6 +135,34 @@ def test_recommendations_hard_filter_price_range(client, recommendation_wines):
     }
 
 
+def test_recommendations_price_filter_uses_usd_equivalent_not_raw_number(client, db_session, recommendation_wines):
+    winery = Winery(name="ZAR Cellars", country="South Africa", region="Stellenbosch")
+    db_session.add(winery)
+    db_session.flush()
+
+    retailer = Retailer(name="ZAR Retailer")
+    db_session.add(retailer)
+    db_session.flush()
+
+    zar_wine = Wine(
+        winery=winery,
+        name="Stellenbosch Red",
+        vintage=2020,
+        type="red",
+        country="South Africa",
+    )
+    # Raw price 900 ZAR * 0.055 rate ~= $49.50 USD -- should pass max_price=60
+    # even though the raw number 900 is far above 60.
+    zar_wine.listings.append(RetailerListing(retailer=retailer, price=900.0, currency="ZAR"))
+    db_session.add(zar_wine)
+    db_session.commit()
+
+    response = client.post("/api/recommendations", json={"max_price": 60})
+    body = response.json()
+    ids = {item["id"] for item in body["items"]}
+    assert zar_wine.id in ids
+
+
 def test_recommendations_ranks_closer_match_first(client, recommendation_wines):
     response = client.post(
         "/api/recommendations", json={"type": "red", "sweetness": 1, "tannin": 5, "body": 5}

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { WineListItem } from "../../types/wine";
-import { formatPrice, formatVintage, primaryGrapeLabel } from "../../utils/format";
+import { formatPrice, formatVintage, primaryGrapeLabel, formatApproxUsd, hasApproxUsdConversion } from "../../utils/format";
 
 const PLACEHOLDER_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='260'%3E%3Crect width='200' height='260' fill='%232f1b1e'/%3E%3C/svg%3E";
@@ -39,7 +39,10 @@ export function WineCard({
         </p>
         <p className="text-sm text-ink-muted">{[wine.region, wine.country].filter(Boolean).join(", ")}</p>
         <p className="text-sm text-ink-muted">{primaryGrapeLabel(wine.grapes)}</p>
-        <p className="text-sm font-semibold text-ink mt-1">{formatPrice(wine.price)}</p>
+        <p className="text-sm font-semibold text-ink mt-1">{formatPrice(wine.price, wine.currency)}</p>
+        {hasApproxUsdConversion(wine.currency, wine.price_usd_approx) ? (
+          <p className="text-xs text-ink-muted">{formatApproxUsd(wine.price_usd_approx)}</p>
+        ) : null}
         {explanation && explanation.length > 0 ? (
           <p className="text-xs text-ink-muted mt-1">{explanation.slice(0, 3).join(" · ")}</p>
         ) : null}

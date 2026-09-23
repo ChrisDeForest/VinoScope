@@ -13,6 +13,8 @@ export interface WineListItem {
   region: string | null;
   grapes: Grape[];
   price: number | null;
+  currency: string | null;
+  price_usd_approx: number | null;
   image_url: string | null;
   sweetness: number | null;
   acidity: number | null;
@@ -30,6 +32,7 @@ export interface RetailerListing {
   retailer: string;
   price: number | null;
   currency: string | null;
+  price_usd_approx: number | null;
   product_url: string | null;
   availability: string | null;
 }

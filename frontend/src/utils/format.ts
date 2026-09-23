@@ -1,6 +1,30 @@
-export function formatPrice(price: number | null): string {
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  CAD: "CA$",
+  AUD: "A$",
+  CHF: "CHF ",
+  JPY: "¥",
+  ZAR: "R",
+  HUF: "Ft ",
+  NZD: "NZ$",
+};
+
+export function formatPrice(price: number | null, currency: string | null): string {
   if (price === null) return "Price unavailable";
+  const symbol = currency ? CURRENCY_SYMBOLS[currency] : undefined;
+  if (symbol !== undefined) return `${symbol}${price.toFixed(2)}`;
+  if (currency) return `${currency} ${price.toFixed(2)}`;
   return `$${price.toFixed(2)}`;
+}
+
+export function formatApproxUsd(priceUsdApprox: number | null): string {
+  return priceUsdApprox === null ? "" : `≈ $${priceUsdApprox.toFixed(2)} USD`;
+}
+
+export function hasApproxUsdConversion(currency: string | null, priceUsdApprox: number | null): boolean {
+  return currency !== null && currency !== "USD" && currency in CURRENCY_SYMBOLS && priceUsdApprox !== null;
 }
 
 export function formatVintage(vintage: number | null): string {

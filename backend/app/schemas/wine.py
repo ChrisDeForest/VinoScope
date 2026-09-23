@@ -18,6 +18,8 @@ class WineListItem(BaseModel):
     region: Optional[str] = None
     grapes: list[GrapeOut]
     price: Optional[float] = None
+    currency: Optional[str] = None
+    price_usd_approx: Optional[float] = None
     image_url: Optional[str] = None
     sweetness: Optional[int] = None
     acidity: Optional[int] = None
@@ -35,6 +37,7 @@ class RetailerListingOut(BaseModel):
     retailer: str
     price: Optional[float] = None
     currency: Optional[str] = None
+    price_usd_approx: Optional[float] = None
     product_url: Optional[str] = None
     availability: Optional[str] = None
 

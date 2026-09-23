@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Wine, Winery
-from app.services.wines import _grapes_for_wines, _min_price_subquery, _row_to_dict
+from app.services.wines import _cheapest_listing_subquery, _grapes_for_wines, _row_to_dict
 
 DIMENSIONS = ("sweetness", "acidity", "tannin", "body", "fruitiness")
 
@@ -152,9 +152,9 @@ def get_recommendations(
         "fruitiness": fruitiness,
     }
 
-    price_sq = _min_price_subquery()
+    price_sq = _cheapest_listing_subquery()
     stmt = (
-        select(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
+        select(Wine, Winery.name.label("winery_name"), price_sq.c.price, price_sq.c.currency)
         .join(Winery, Wine.winery_id == Winery.id)
         .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
     )
@@ -163,29 +163,29 @@ def get_recommendations(
     if country is not None:
         stmt = stmt.where(func.lower(Wine.country) == country.lower())
     if min_price is not None:
-        stmt = stmt.where(price_sq.c.min_price >= min_price)
+        stmt = stmt.where(price_sq.c.usd_price >= min_price)
     if max_price is not None:
-        stmt = stmt.where(price_sq.c.min_price <= max_price)
+        stmt = stmt.where(price_sq.c.usd_price <= max_price)
 
     rows = db.execute(stmt).all()
 
     scored = []
-    for wine, winery_name, min_price_val in rows:
+    for wine, winery_name, price, currency in rows:
         distance = _distance(user_values, wine)
         score = _match_score(distance)
-        scored.append((score, wine, winery_name, min_price_val))
+        scored.append((score, wine, winery_name, price, currency))
 
     scored.sort(key=lambda entry: (-entry[0], entry[2], entry[1].id))
 
     total = len(scored)
     page = scored[offset : offset + limit]
 
-    wine_ids = [wine.id for _, wine, _, _ in page]
+    wine_ids = [wine.id for _, wine, _, _, _ in page]
     grapes_by_wine = _grapes_for_wines(db, wine_ids)
 
     items = []
-    for score, wine, winery_name, min_price_val in page:
-        data = _row_to_dict(wine, winery_name, min_price_val, grapes_by_wine.get(wine.id, []))
+    for score, wine, winery_name, price, currency in page:
+        data = _row_to_dict(wine, winery_name, price, currency, grapes_by_wine.get(wine.id, []))
         data["match_score"] = score
         data["explanation"] = build_explanation(user_values, wine, type, country, min_price, max_price)
         items.append(data)
