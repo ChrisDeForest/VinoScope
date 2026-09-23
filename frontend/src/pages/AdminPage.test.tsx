@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { AdminPage } from "./AdminPage";
@@ -160,6 +160,48 @@ describe("AdminPage", () => {
     expect(listWinesMock).toHaveBeenCalledTimes(2);
     const secondCallArgs = listWinesMock.mock.calls[1][0];
     expect(secondCallArgs.offset).toBe(20);
+  });
+
+  it("does not leave Load more stuck loading when the query changes while a load-more request is in flight", async () => {
+    setAdminKey("existing-key");
+    getAdminStatsMock.mockResolvedValue(stats);
+    const firstPage: WineListResponse = {
+      total: 25,
+      items: Array.from({ length: 20 }, (_, i) => ({
+        ...winesResponse.items[0],
+        id: i + 1,
+        name: `Wine ${i + 1}`,
+      })),
+    };
+    const searchPage: WineListResponse = {
+      total: 5,
+      items: [{ ...winesResponse.items[0], id: 999, name: "Searched Wine" }],
+    };
+
+    let resolveLoadMore: ((value: WineListResponse) => void) | undefined;
+    const loadMorePromise = new Promise<WineListResponse>((resolve) => {
+      resolveLoadMore = resolve;
+    });
+
+    listWinesMock
+      .mockResolvedValueOnce(firstPage) // initial list load
+      .mockReturnValueOnce(loadMorePromise) // load-more click, never resolves during the test
+      .mockResolvedValueOnce(searchPage); // list reload triggered by the query change
+
+    renderAdmin();
+
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /load more/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /loading/i })).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText(/search wines/i), { target: { value: "Searched" } });
+
+    await waitFor(() => expect(screen.getByText("Searched Wine")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /^load more$/i })).not.toBeDisabled();
+
+    // Clean up the never-resolved promise so it doesn't leak into other tests.
+    resolveLoadMore?.({ total: 25, items: [] });
   });
 
   it("logs out and returns to the login form", async () => {

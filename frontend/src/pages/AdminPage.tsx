@@ -50,6 +50,7 @@ export function AdminPage() {
     const id = ++winesRequestId.current;
     setItems([]);
     setLoadMoreError(null);
+    setLoadingMore(false);
     listWines({ q: query || undefined, limit: PAGE_SIZE, offset: 0 })
       .then((data) => {
         if (id !== winesRequestId.current) return;
