@@ -1,3 +1,4 @@
+import hmac
 import os
 from functools import lru_cache
 from typing import Generator
@@ -25,5 +26,5 @@ def get_db() -> Generator[Session, None, None]:
 
 def require_admin_key(x_admin_key: str | None = Header(default=None)) -> None:
     expected = os.environ.get("ADMIN_API_KEY")
-    if not expected or x_admin_key != expected:
+    if not expected or not hmac.compare_digest(x_admin_key or "", expected):
         raise HTTPException(status_code=401, detail="Invalid or missing admin key")

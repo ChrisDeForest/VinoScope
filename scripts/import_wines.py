@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.database.base import get_engine, get_session_factory
 from app.models import Grape, Retailer, RetailerListing, Wine, WineGrape, Winery
 from app.schemas.wine import VALID_TYPES
+
 INT_FIELDS = ("vintage",)
 RATING_FIELDS = ("sweetness", "acidity", "tannin", "body", "fruitiness")
 FLOAT_FIELDS = ("abv", "price")

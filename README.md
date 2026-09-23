@@ -8,6 +8,9 @@ design docs.
 
 1. Copy the environment file:
    `cp .env.example .env`
+   Set `ADMIN_API_KEY` in `.env` to a real secret value before the write endpoints
+   (`PATCH`/`POST`/`DELETE` on `/wines`) will work — until then they correctly
+   respond with 401.
 2. Install dependencies:
    `pip install -r backend/requirements.txt`
 3. Start Postgres:
