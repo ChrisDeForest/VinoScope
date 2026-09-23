@@ -108,7 +108,13 @@ def normalize_csv(input_path, output_path):
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-    pd.DataFrame(rows).to_csv(output_path, index=False)
+    out_df = pd.DataFrame(rows)
+    if "vintage" in out_df.columns:
+        # A blank vintage anywhere in the batch upcasts an all-int column to
+        # float64 (pandas has no native nullable int), which would otherwise
+        # write "2023.0" instead of "2023" for every other row.
+        out_df["vintage"] = out_df["vintage"].astype("Int64")
+    out_df.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":

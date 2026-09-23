@@ -121,3 +121,25 @@ def test_normalize_csv_writes_cleaned_output(tmp_path):
     assert out_df.loc[0, "name"] == "Caymus Cabernet Sauvignon"
     assert out_df.loc[0, "country"] == "United States"
     assert out_df.loc[0, "grape"] == "Cabernet Sauvignon;Merlot"
+
+
+def test_normalize_csv_preserves_integer_vintage_when_other_rows_have_blank_vintage(tmp_path):
+    input_csv = tmp_path / "raw.csv"
+    input_csv.write_text(
+        "name,winery,vintage,grape,grape_pct,type,country,region,subregion,"
+        "abv,price,currency,sweetness,acidity,tannin,body,fruitiness,"
+        "description,image_url,source_site,source_url,source_product_id\n"
+        "Caymus Cabernet Sauvignon,Caymus Vineyards,2022,"
+        "Cabernet Sauvignon,,red,usa,Napa Valley,,14.6,79.99,"
+        "USD,1,3,5,5,3,Bold and rich,,Total Wine,https://example.com,ABC123\n"
+        "Unknown Vintage Wine,Some Winery,,"
+        "Merlot,,red,usa,Napa Valley,,14.0,29.99,"
+        "USD,2,3,3,3,3,Simple red,,Total Wine,https://example.com/2,DEF456\n"
+    )
+    output_csv = tmp_path / "cleaned.csv"
+
+    normalize_csv(str(input_csv), str(output_csv))
+
+    out_df = pd.read_csv(output_csv, dtype=str)
+    assert out_df.loc[0, "vintage"] == "2022"
+    assert pd.isna(out_df.loc[1, "vintage"])
