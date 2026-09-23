@@ -33,3 +33,9 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture
+def admin_headers(monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "test-admin-key")
+    return {"X-Admin-Key": "test-admin-key"}

@@ -64,12 +64,6 @@ def wine_with_all_null_percentage_grapes(db_session):
     return wine.id
 
 
-@pytest.fixture
-def admin_headers(monkeypatch):
-    monkeypatch.setenv("ADMIN_API_KEY", "test-admin-key")
-    return {"X-Admin-Key": "test-admin-key"}
-
-
 def test_update_wine_changes_single_field_leaves_others(client, admin_headers, seeded_wines):
     response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"abv": 14.9}, headers=admin_headers)
     assert response.status_code == 200
