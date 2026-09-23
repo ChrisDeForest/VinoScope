@@ -21,7 +21,8 @@ design docs.
 
 1. Copy `data/raw/wines_template.csv` to a new file in `data/raw/` and fill in rows
    (see the template header for the expected columns; leave a cell blank if
-   you don't know the value).
+   you don't know the value). For non-vintage wines, put `NV` in the vintage
+   column (or leave it blank).
 2. Normalize: `python scripts/normalize_wines.py data/raw/<file>.csv data/cleaned/<file>.csv`
 3. Check for duplicates: `python scripts/find_duplicates.py data/cleaned/<file>.csv data/cleaned/<file>.review.csv`
    Review the output file by hand before continuing.
