@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 from sqlalchemy import case, func, or_, select
@@ -90,6 +91,18 @@ def _row_to_dict(
     }
 
 
+def _listing_to_dict(listing: RetailerListing, retailer_name: str) -> dict:
+    return {
+        "id": listing.id,
+        "retailer": retailer_name,
+        "price": listing.price,
+        "currency": listing.currency,
+        "price_usd_approx": approx_usd(listing.price, listing.currency),
+        "product_url": listing.product_url,
+        "availability": listing.availability,
+    }
+
+
 def list_wines(
     db: Session,
     *,
@@ -177,17 +190,7 @@ def get_wine(db: Session, wine_id: int) -> Optional[dict]:
     data["subregion"] = wine.subregion
     data["abv"] = wine.abv
     data["description"] = wine.description
-    data["listings"] = [
-        {
-            "retailer": retailer_name,
-            "price": listing.price,
-            "currency": listing.currency,
-            "price_usd_approx": approx_usd(listing.price, listing.currency),
-            "product_url": listing.product_url,
-            "availability": listing.availability,
-        }
-        for listing, retailer_name in listing_rows
-    ]
+    data["listings"] = [_listing_to_dict(listing, retailer_name) for listing, retailer_name in listing_rows]
     return data
 
 
@@ -203,3 +206,59 @@ def update_wine(db: Session, wine_id: int, updates: dict) -> Optional[dict]:
         setattr(wine, field, value)
     db.commit()
     return get_wine(db, wine_id)
+
+
+def get_or_create_retailer(db: Session, name: str) -> Retailer:
+    retailer = db.query(Retailer).filter_by(name=name).one_or_none()
+    if retailer is None:
+        retailer = Retailer(name=name)
+        db.add(retailer)
+        db.flush()
+    return retailer
+
+
+def _get_listing_for_wine(db: Session, wine_id: int, listing_id: int) -> Optional[RetailerListing]:
+    return db.query(RetailerListing).filter_by(id=listing_id, wine_id=wine_id).one_or_none()
+
+
+def create_listing(db: Session, wine_id: int, data: dict) -> Optional[dict]:
+    wine = db.get(Wine, wine_id)
+    if wine is None:
+        return None
+    retailer = get_or_create_retailer(db, data["retailer"])
+    now = datetime.now(timezone.utc)
+    listing = RetailerListing(
+        wine_id=wine_id,
+        retailer_id=retailer.id,
+        price=data.get("price"),
+        currency=data.get("currency"),
+        availability=data.get("availability"),
+        product_url=data.get("product_url"),
+        collected_at=now,
+        last_verified_at=now,
+    )
+    db.add(listing)
+    db.commit()
+    db.refresh(listing)
+    return _listing_to_dict(listing, retailer.name)
+
+
+def update_listing(db: Session, wine_id: int, listing_id: int, updates: dict) -> Optional[dict]:
+    listing = _get_listing_for_wine(db, wine_id, listing_id)
+    if listing is None:
+        return None
+    for field, value in updates.items():
+        setattr(listing, field, value)
+    listing.last_verified_at = datetime.now(timezone.utc)
+    db.commit()
+    retailer = db.get(Retailer, listing.retailer_id)
+    return _listing_to_dict(listing, retailer.name)
+
+
+def delete_listing(db: Session, wine_id: int, listing_id: int) -> bool:
+    listing = _get_listing_for_wine(db, wine_id, listing_id)
+    if listing is None:
+        return False
+    db.delete(listing)
+    db.commit()
+    return True

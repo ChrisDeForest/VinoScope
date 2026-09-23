@@ -65,12 +65,38 @@ class WineListResponse(BaseModel):
 
 
 class RetailerListingOut(BaseModel):
+    id: int
     retailer: str
     price: Optional[float] = None
     currency: Optional[str] = None
     price_usd_approx: Optional[float] = None
     product_url: Optional[str] = None
     availability: Optional[str] = None
+
+
+class RetailerListingCreate(BaseModel):
+    retailer: str
+    price: Optional[Annotated[float, Field(ge=0)]] = None
+    currency: Optional[str] = None
+    availability: Optional[str] = None
+    product_url: Optional[str] = None
+
+    @field_validator("currency")
+    @classmethod
+    def _uppercase_currency(cls, value):
+        return value.upper() if value is not None else value
+
+
+class RetailerListingUpdate(BaseModel):
+    price: Optional[Annotated[float, Field(ge=0)]] = None
+    currency: Optional[str] = None
+    availability: Optional[str] = None
+    product_url: Optional[str] = None
+
+    @field_validator("currency")
+    @classmethod
+    def _uppercase_currency(cls, value):
+        return value.upper() if value is not None else value
 
 
 class WineDetail(WineListItem):

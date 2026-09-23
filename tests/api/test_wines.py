@@ -142,6 +142,116 @@ def test_update_wine_wrong_admin_key_returns_401(client, admin_headers, seeded_w
     assert response.status_code == 401
 
 
+def test_get_wine_detail_listing_includes_id(client, seeded_wines):
+    response = client.get(f"/api/wines/{seeded_wines['wine1']}")
+    body = response.json()
+    assert all("id" in listing for listing in body["listings"])
+
+
+def test_create_listing_adds_new_retailer(client, admin_headers, seeded_wines):
+    response = client.post(
+        f"/api/wines/{seeded_wines['wine2']}/listings",
+        json={"retailer": "Brand New Shop", "price": 25.00, "currency": "usd"},
+        headers=admin_headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["retailer"] == "Brand New Shop"
+    assert body["price"] == 25.00
+    assert body["currency"] == "USD"
+    assert "id" in body
+
+
+def test_create_listing_reuses_existing_retailer(client, admin_headers, seeded_wines, db_session):
+    client.post(
+        f"/api/wines/{seeded_wines['wine2']}/listings",
+        json={"retailer": "Total Wine", "price": 10.00},
+        headers=admin_headers,
+    )
+    count = db_session.query(Retailer).filter_by(name="Total Wine").count()
+    assert count == 1
+
+
+def test_create_listing_unknown_wine_returns_404(client, admin_headers):
+    response = client.post("/api/wines/999999/listings", json={"retailer": "Some Shop"}, headers=admin_headers)
+    assert response.status_code == 404
+
+
+def test_create_listing_missing_admin_key_returns_401(client, seeded_wines):
+    response = client.post(f"/api/wines/{seeded_wines['wine2']}/listings", json={"retailer": "Some Shop"})
+    assert response.status_code == 401
+
+
+def test_update_listing_changes_price_and_bumps_last_verified(client, admin_headers, seeded_wines, db_session):
+    wine3 = db_session.get(Wine, seeded_wines["wine3"])
+    listing = wine3.listings[0]
+    listing_id = listing.id
+    before = listing.last_verified_at
+
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine3']}/listings/{listing_id}", json={"price": 199.99}, headers=admin_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["price"] == 199.99
+
+    db_session.refresh(listing)
+    assert listing.last_verified_at != before
+
+
+def test_update_listing_uppercases_currency(client, admin_headers, seeded_wines, db_session):
+    wine3 = db_session.get(Wine, seeded_wines["wine3"])
+    listing_id = wine3.listings[0].id
+
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine3']}/listings/{listing_id}", json={"currency": "eur"}, headers=admin_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["currency"] == "EUR"
+
+
+def test_update_listing_from_different_wine_returns_404(client, admin_headers, seeded_wines, db_session):
+    wine3 = db_session.get(Wine, seeded_wines["wine3"])
+    listing_id = wine3.listings[0].id
+
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine1']}/listings/{listing_id}", json={"price": 1.00}, headers=admin_headers
+    )
+    assert response.status_code == 404
+
+
+def test_update_listing_unknown_id_returns_404(client, admin_headers, seeded_wines):
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine1']}/listings/999999", json={"price": 1.00}, headers=admin_headers
+    )
+    assert response.status_code == 404
+
+
+def test_delete_listing_removes_it(client, admin_headers, seeded_wines, db_session):
+    wine3 = db_session.get(Wine, seeded_wines["wine3"])
+    listing_id = wine3.listings[0].id
+
+    response = client.delete(f"/api/wines/{seeded_wines['wine3']}/listings/{listing_id}", headers=admin_headers)
+    assert response.status_code == 204
+
+    follow_up = client.get(f"/api/wines/{seeded_wines['wine3']}")
+    assert follow_up.json()["listings"] == []
+
+
+def test_delete_listing_from_different_wine_returns_404(client, admin_headers, seeded_wines, db_session):
+    wine3 = db_session.get(Wine, seeded_wines["wine3"])
+    listing_id = wine3.listings[0].id
+
+    response = client.delete(f"/api/wines/{seeded_wines['wine1']}/listings/{listing_id}", headers=admin_headers)
+    assert response.status_code == 404
+
+
+def test_delete_listing_missing_admin_key_returns_401(client, seeded_wines, db_session):
+    wine3 = db_session.get(Wine, seeded_wines["wine3"])
+    listing_id = wine3.listings[0].id
+    response = client.delete(f"/api/wines/{seeded_wines['wine3']}/listings/{listing_id}")
+    assert response.status_code == 401
+
+
 @pytest.fixture
 def mixed_currency_wines(db_session):
     winery = Winery(name="Global Cellars", country="France", region="Bordeaux")

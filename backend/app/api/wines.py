@@ -4,7 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin_key
-from app.schemas.wine import WineDetail, WineListResponse, WineUpdate
+from app.schemas.wine import (
+    RetailerListingCreate,
+    RetailerListingOut,
+    RetailerListingUpdate,
+    WineDetail,
+    WineListResponse,
+    WineUpdate,
+)
 from app.services import wines as wines_service
 from app.services.wines import SortOption
 
@@ -62,3 +69,42 @@ def update_wine(wine_id: int, body: WineUpdate, db: Session = Depends(get_db)) -
     if result is None:
         raise HTTPException(status_code=404, detail="Wine not found")
     return WineDetail(**result)
+
+
+@router.post(
+    "/wines/{wine_id}/listings",
+    response_model=RetailerListingOut,
+    status_code=201,
+    dependencies=[Depends(require_admin_key)],
+)
+def create_listing(wine_id: int, body: RetailerListingCreate, db: Session = Depends(get_db)) -> RetailerListingOut:
+    result = wines_service.create_listing(db, wine_id, body.model_dump())
+    if result is None:
+        raise HTTPException(status_code=404, detail="Wine not found")
+    return RetailerListingOut(**result)
+
+
+@router.patch(
+    "/wines/{wine_id}/listings/{listing_id}",
+    response_model=RetailerListingOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def update_listing(
+    wine_id: int, listing_id: int, body: RetailerListingUpdate, db: Session = Depends(get_db)
+) -> RetailerListingOut:
+    updates = body.model_dump(exclude_unset=True)
+    result = wines_service.update_listing(db, wine_id, listing_id, updates)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return RetailerListingOut(**result)
+
+
+@router.delete(
+    "/wines/{wine_id}/listings/{listing_id}",
+    status_code=204,
+    dependencies=[Depends(require_admin_key)],
+)
+def delete_listing(wine_id: int, listing_id: int, db: Session = Depends(get_db)) -> None:
+    deleted = wines_service.delete_listing(db, wine_id, listing_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Listing not found")
