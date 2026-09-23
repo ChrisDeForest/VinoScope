@@ -27,7 +27,15 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-        <ThemeSwitcher />
+        <div className="flex items-center gap-3">
+          <ThemeSwitcher />
+          <NavLink
+            to="/admin"
+            className={({ isActive }) => `text-sm ${isActive ? "text-accent" : "text-ink-muted hover:text-ink"}`}
+          >
+            Admin
+          </NavLink>
+        </div>
       </div>
     </header>
   );
