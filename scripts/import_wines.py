@@ -164,16 +164,29 @@ def upsert_wine(session: Session, row) -> Wine:
 
 def create_retailer_listing(session: Session, wine: Wine, row) -> RetailerListing:
     retailer = get_or_create_retailer(session, _clean(row["source_site"]))
-    listing = RetailerListing(
-        wine=wine,
-        retailer=retailer,
-        price=float(row["price"]) if _clean(row.get("price")) else None,
-        currency=_clean(row.get("currency")),
-        product_url=_clean(row.get("source_url")),
-        source_product_id=_clean(row.get("source_product_id")),
-        collected_at=datetime.now(timezone.utc),
+    product_id = _clean(row.get("source_product_id"))
+    product_url = _clean(row.get("source_url"))
+    candidates = session.query(RetailerListing).filter_by(
+        wine_id=wine.id, retailer_id=retailer.id
     )
-    session.add(listing)
+    listing = None
+    if product_id:
+        listing = candidates.filter_by(source_product_id=product_id).order_by(RetailerListing.id).first()
+    if listing is None and product_url:
+        url_matches = candidates.filter_by(product_url=product_url)
+        # Do not merge different known products that happen to share a URL.
+        if product_id:
+            url_matches = url_matches.filter(RetailerListing.source_product_id.is_(None))
+        listing = url_matches.order_by(RetailerListing.id).first()
+    if listing is None:
+        listing = RetailerListing(wine=wine, retailer=retailer)
+        session.add(listing)
+    listing.price = float(row["price"]) if _clean(row.get("price")) else None
+    listing.currency = _clean(row.get("currency"))
+    listing.product_url = product_url
+    if product_id:
+        listing.source_product_id = product_id
+    listing.collected_at = datetime.now(timezone.utc)
     return listing
 
 

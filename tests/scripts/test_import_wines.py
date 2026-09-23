@@ -82,7 +82,7 @@ def test_import_csv_is_idempotent_on_winery_name_vintage(tmp_path, test_db_url):
         wines = session.query(Wine).filter_by(name="Caymus Cabernet Sauvignon").all()
         assert len(wines) == 1
         listings = session.query(RetailerListing).all()
-        assert len(listings) == 2
+        assert len(listings) == 1
     finally:
         session.close()
         engine.dispose()
@@ -254,4 +254,45 @@ def test_import_csv_allows_blank_optional_fields(tmp_path, test_db_url):
         assert wine.fruitiness is None
     finally:
         session.close()
+        engine.dispose()
+
+
+@pytest.mark.parametrize("product_id", ["ABC123", ""])
+def test_reimport_updates_listing_price_and_currency(tmp_path, test_db_url, product_id):
+    row = (
+        "Caymus Cabernet Sauvignon,Caymus Vineyards,2022,Cabernet Sauvignon,,red,"
+        "United States,Napa Valley,,14.6,79.99,USD,1,3,5,5,3,,,"
+        f"Total Wine,https://example.com/wine,{product_id}"
+    )
+    csv_path = _write_csv(tmp_path, [row])
+    import_csv(csv_path, database_url=test_db_url)
+    _write_csv(tmp_path, [row.replace("79.99,USD", "65.00,EUR")])
+    import_csv(csv_path, database_url=test_db_url)
+    engine = get_engine(test_db_url)
+    try:
+        with get_session_factory(engine)() as session:
+            listing = session.query(RetailerListing).one()
+            assert listing.price == 65.0
+            assert listing.currency == "EUR"
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("replacement", [
+    "Other Retailer,https://example.com/wine,ABC123",
+    "Total Wine,https://example.com/other,OTHER",
+])
+def test_import_preserves_distinct_retailer_offers(tmp_path, test_db_url, replacement):
+    prefix = (
+        "Caymus Cabernet Sauvignon,Caymus Vineyards,2022,Cabernet Sauvignon,,red,"
+        "United States,Napa Valley,,14.6,79.99,USD,1,3,5,5,3,,,"
+    )
+    csv_path = _write_csv(tmp_path, [prefix + "Total Wine,https://example.com/wine,ABC123", prefix + replacement])
+    import_csv(csv_path, database_url=test_db_url)
+    import_csv(csv_path, database_url=test_db_url)
+    engine = get_engine(test_db_url)
+    try:
+        with get_session_factory(engine)() as session:
+            assert session.query(RetailerListing).count() == 2
+    finally:
         engine.dispose()
