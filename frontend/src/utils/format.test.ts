@@ -18,6 +18,10 @@ describe("formatPrice", () => {
     expect(formatPrice(100, "XYZ")).toBe("XYZ 100.00");
   });
 
+  it("formats NZD with an NZ dollar sign", () => {
+    expect(formatPrice(45, "NZD")).toBe("NZ$45.00");
+  });
+
   it("defaults to a dollar sign when currency is null", () => {
     expect(formatPrice(20, null)).toBe("$20.00");
   });
@@ -56,6 +60,10 @@ describe("hasApproxUsdConversion", () => {
 
   it("is false when price_usd_approx is null", () => {
     expect(hasApproxUsdConversion("EUR", null)).toBe(false);
+  });
+
+  it("is true for NZD with a value", () => {
+    expect(hasApproxUsdConversion("NZD", 27.45)).toBe(true);
   });
 });
 

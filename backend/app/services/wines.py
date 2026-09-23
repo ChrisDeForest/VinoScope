@@ -12,7 +12,7 @@ SortOption = Literal["price_asc", "price_desc", "vintage", "winery"]
 def _rate_case():
     return case(
         {code: rate for code, rate in CURRENCY_RATES.items()},
-        value=RetailerListing.currency,
+        value=func.upper(RetailerListing.currency),
         else_=1.0,
     )
 

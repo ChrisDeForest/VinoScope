@@ -94,6 +94,45 @@ def mixed_currency_wines(db_session):
     return {"wine_eur": wine_eur.id, "wine_usd": wine_usd.id}
 
 
+@pytest.fixture
+def lowercase_currency_competing_listings_wine(db_session):
+    winery = Winery(name="Case Test Winery", country="France", region="Loire")
+    db_session.add(winery)
+    db_session.flush()
+
+    retailer = Retailer(name="Lowercase Retailer")
+    db_session.add(retailer)
+    db_session.flush()
+
+    wine = Wine(winery=winery, name="Lowercase EUR Wine", vintage=2021, type="white", country="France")
+    # Lowercase currency, e.g. from data that bypassed normalize_wines.py's normalization.
+    # Real USD equivalent: 40.00 * 1.08 (EUR rate) = 43.20.
+    wine.listings.append(RetailerListing(retailer=retailer, price=40.00, currency="eur"))
+    # USD equivalent: 42.00 -- genuinely cheaper than the EUR listing's real 43.20,
+    # so this listing should be picked as the wine's cheapest.
+    wine.listings.append(RetailerListing(retailer=retailer, price=42.00, currency="USD"))
+    db_session.add(wine)
+    db_session.commit()
+
+    return wine.id
+
+
+def test_list_wines_lowercase_currency_ranked_case_insensitively(
+    client, lowercase_currency_competing_listings_wine
+):
+    response = client.get("/api/wines", params={"q": "Lowercase EUR Wine"})
+    body = response.json()
+    item = body["items"][0]
+    # If the SQL ranking treated lowercase "eur" as unmatched (rate 1.0 fallback), it
+    # would rank the EUR listing's usd_price as 40.00 (< 42.00 USD) and pick it as
+    # cheapest -- disagreeing with its true, case-insensitively converted USD value of
+    # 43.20. The correctly case-insensitive ranking picks the USD listing (42.00) as
+    # cheapest, and its price_usd_approx agrees with its raw price.
+    assert item["price"] == 42.00
+    assert item["currency"] == "USD"
+    assert item["price_usd_approx"] == 42.00
+
+
 def test_list_wines_item_includes_currency_and_price_usd_approx(client, mixed_currency_wines):
     response = client.get("/api/wines", params={"q": "Bordeaux Blend EUR"})
     body = response.json()
@@ -121,6 +160,44 @@ def test_get_wine_detail_listing_includes_price_usd_approx(client, mixed_currenc
     response = client.get(f"/api/wines/{mixed_currency_wines['wine_eur']}")
     body = response.json()
     assert body["listings"][0]["price_usd_approx"] == 54.00
+
+
+@pytest.fixture
+def wine_with_cross_currency_listings(db_session):
+    winery = Winery(name="Cross Currency Cellars", country="United States", region="Sonoma")
+    db_session.add(winery)
+    db_session.flush()
+
+    retailer_a = Retailer(name="Retailer A")
+    retailer_b = Retailer(name="Retailer B")
+    db_session.add_all([retailer_a, retailer_b])
+    db_session.flush()
+
+    wine = Wine(winery=winery, name="Cross Currency Red", vintage=2020, type="red", country="United States")
+    # USD listing: raw 60.00 -> usd equiv 60.00.
+    wine.listings.append(RetailerListing(retailer=retailer_a, price=60.00, currency="USD"))
+    # GBP listing: raw 50.00 -> usd equiv 50.00 * 1.27 (GBP rate) = 63.50.
+    # Numerically the LOWER raw price, but more expensive once converted to USD --
+    # a raw-number MIN would wrongly pick this one.
+    wine.listings.append(RetailerListing(retailer=retailer_b, price=50.00, currency="GBP"))
+    db_session.add(wine)
+    db_session.commit()
+
+    return wine.id
+
+
+def test_list_wines_cheapest_listing_within_same_wine_picked_by_usd_equivalent(
+    client, wine_with_cross_currency_listings
+):
+    response = client.get("/api/wines", params={"q": "Cross Currency Red"})
+    body = response.json()
+    item = body["items"][0]
+    # USD 60.00 (usd equiv 60.00) beats GBP 50.00 (usd equiv 63.50) even though GBP
+    # has the numerically lower raw price -- proves the ROW_NUMBER() OVER (PARTITION
+    # BY wine_id ORDER BY usd_price) inside _cheapest_listing_subquery() ranks listings
+    # within a single wine by USD-equivalent value, not by raw number.
+    assert item["price"] == 60.00
+    assert item["currency"] == "USD"
 
 
 def test_list_wines_no_filters_returns_all_with_total(client, seeded_wines):

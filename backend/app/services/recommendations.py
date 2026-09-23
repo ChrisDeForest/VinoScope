@@ -159,9 +159,9 @@ def get_recommendations(
     if country is not None:
         stmt = stmt.where(func.lower(Wine.country) == country.lower())
     if min_price is not None:
-        stmt = stmt.where(price_sq.c.price >= min_price)
+        stmt = stmt.where(price_sq.c.usd_price >= min_price)
     if max_price is not None:
-        stmt = stmt.where(price_sq.c.price <= max_price)
+        stmt = stmt.where(price_sq.c.usd_price <= max_price)
 
     rows = db.execute(stmt).all()
 

@@ -8,6 +8,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   JPY: "¥",
   ZAR: "R",
   HUF: "Ft ",
+  NZD: "NZ$",
 };
 
 export function formatPrice(price: number | null, currency: string | null): string {
