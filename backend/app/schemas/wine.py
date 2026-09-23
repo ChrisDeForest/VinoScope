@@ -1,6 +1,37 @@
-from typing import Optional
+from typing import Annotated, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+
+VALID_TYPES = {"red", "white", "rosé", "sparkling", "dessert", "fortified"}
+RatingLevel = Annotated[int, Field(ge=1, le=5)]
+
+
+class WineUpdate(BaseModel):
+    name: Optional[str] = None
+    winery: Optional[str] = None
+    vintage: Optional[int] = None
+    type: Optional[str] = None
+    country: Optional[str] = None
+    region: Optional[str] = None
+    subregion: Optional[str] = None
+    abv: Optional[Annotated[float, Field(ge=0, le=100)]] = None
+    sweetness: Optional[RatingLevel] = None
+    acidity: Optional[RatingLevel] = None
+    tannin: Optional[RatingLevel] = None
+    body: Optional[RatingLevel] = None
+    fruitiness: Optional[RatingLevel] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+
+    @field_validator("type")
+    @classmethod
+    def _validate_type(cls, value):
+        if value is None:
+            return value
+        normalized = value.lower()
+        if normalized not in VALID_TYPES:
+            raise ValueError(f"invalid type {value!r}")
+        return normalized
 
 
 class GrapeOut(BaseModel):

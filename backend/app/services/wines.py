@@ -189,3 +189,17 @@ def get_wine(db: Session, wine_id: int) -> Optional[dict]:
         for listing, retailer_name in listing_rows
     ]
     return data
+
+
+def get_winery_by_name(db: Session, name: str) -> Optional[Winery]:
+    return db.query(Winery).filter_by(name=name).one_or_none()
+
+
+def update_wine(db: Session, wine_id: int, updates: dict) -> Optional[dict]:
+    wine = db.get(Wine, wine_id)
+    if wine is None:
+        return None
+    for field, value in updates.items():
+        setattr(wine, field, value)
+    db.commit()
+    return get_wine(db, wine_id)

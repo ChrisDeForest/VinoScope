@@ -65,6 +65,84 @@ def wine_with_all_null_percentage_grapes(db_session):
 
 
 @pytest.fixture
+def admin_headers(monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "test-admin-key")
+    return {"X-Admin-Key": "test-admin-key"}
+
+
+def test_update_wine_changes_single_field_leaves_others(client, admin_headers, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"abv": 14.9}, headers=admin_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["abv"] == 14.9
+    assert body["name"] == "Caymus Cabernet Sauvignon"
+
+
+def test_update_wine_null_clears_nullable_field(client, admin_headers, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"vintage": None}, headers=admin_headers)
+    assert response.status_code == 200
+    assert response.json()["vintage"] is None
+
+
+def test_update_wine_unknown_id_returns_404(client, admin_headers):
+    response = client.patch("/api/wines/999999", json={"abv": 14.0}, headers=admin_headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Wine not found"
+
+
+def test_update_wine_invalid_type_returns_422(client, admin_headers, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"type": "bogus"}, headers=admin_headers)
+    assert response.status_code == 422
+
+
+def test_update_wine_type_normalized_to_lowercase(client, admin_headers, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"type": "WHITE"}, headers=admin_headers)
+    assert response.status_code == 200
+    assert response.json()["type"] == "white"
+
+
+def test_update_wine_rating_out_of_range_returns_422(client, admin_headers, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"sweetness": 6}, headers=admin_headers)
+    assert response.status_code == 422
+
+
+def test_update_wine_abv_out_of_range_returns_422(client, admin_headers, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"abv": 101}, headers=admin_headers)
+    assert response.status_code == 422
+
+
+def test_update_wine_reassigns_winery_by_name(client, admin_headers, seeded_wines):
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine1']}", json={"winery": "Château Margaux"}, headers=admin_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["winery"] == "Château Margaux"
+
+
+def test_update_wine_unknown_winery_name_returns_404_and_does_not_create_one(
+    client, admin_headers, seeded_wines, db_session
+):
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine1']}", json={"winery": "Nonexistent Winery"}, headers=admin_headers
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Winery not found"
+    assert db_session.query(Winery).filter_by(name="Nonexistent Winery").one_or_none() is None
+
+
+def test_update_wine_missing_admin_key_returns_401(client, seeded_wines):
+    response = client.patch(f"/api/wines/{seeded_wines['wine1']}", json={"abv": 14.0})
+    assert response.status_code == 401
+
+
+def test_update_wine_wrong_admin_key_returns_401(client, admin_headers, seeded_wines):
+    response = client.patch(
+        f"/api/wines/{seeded_wines['wine1']}", json={"abv": 14.0}, headers={"X-Admin-Key": "wrong-key"}
+    )
+    assert response.status_code == 401
+
+
+@pytest.fixture
 def mixed_currency_wines(db_session):
     winery = Winery(name="Global Cellars", country="France", region="Bordeaux")
     db_session.add(winery)

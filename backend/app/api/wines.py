@@ -3,8 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
-from app.schemas.wine import WineDetail, WineListResponse
+from app.api.deps import get_db, require_admin_key
+from app.schemas.wine import WineDetail, WineListResponse, WineUpdate
 from app.services import wines as wines_service
 from app.services.wines import SortOption
 
@@ -45,3 +45,20 @@ def get_wine(wine_id: int, db: Session = Depends(get_db)) -> WineDetail:
     if wine is None:
         raise HTTPException(status_code=404, detail="Wine not found")
     return WineDetail(**wine)
+
+
+@router.patch("/wines/{wine_id}", response_model=WineDetail, dependencies=[Depends(require_admin_key)])
+def update_wine(wine_id: int, body: WineUpdate, db: Session = Depends(get_db)) -> WineDetail:
+    updates = body.model_dump(exclude_unset=True)
+
+    if "winery" in updates:
+        winery_name = updates.pop("winery")
+        winery = wines_service.get_winery_by_name(db, winery_name)
+        if winery is None:
+            raise HTTPException(status_code=404, detail="Winery not found")
+        updates["winery_id"] = winery.id
+
+    result = wines_service.update_wine(db, wine_id, updates)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Wine not found")
+    return WineDetail(**result)
