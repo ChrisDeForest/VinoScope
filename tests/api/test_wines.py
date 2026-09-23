@@ -64,6 +64,65 @@ def wine_with_all_null_percentage_grapes(db_session):
     return wine.id
 
 
+@pytest.fixture
+def mixed_currency_wines(db_session):
+    winery = Winery(name="Global Cellars", country="France", region="Bordeaux")
+    db_session.add(winery)
+    db_session.flush()
+
+    grape = Grape(name="Merlot")
+    db_session.add(grape)
+    db_session.flush()
+
+    retailer = Retailer(name="Euro Wines")
+    db_session.add(retailer)
+    db_session.flush()
+
+    # Raw price 50.00 EUR ~= $54.00 USD (rate 1.08) -- pricier in USD terms.
+    wine_eur = Wine(winery=winery, name="Bordeaux Blend EUR", vintage=2020, type="red", country="France")
+    wine_eur.grapes.append(WineGrape(grape=grape, percentage=100))
+    wine_eur.listings.append(RetailerListing(retailer=retailer, price=50.00, currency="EUR"))
+
+    # Raw price 52.00 USD -- cheaper in USD terms than the EUR wine above, despite the higher raw number.
+    wine_usd = Wine(winery=winery, name="Bordeaux Blend USD", vintage=2020, type="red", country="France")
+    wine_usd.grapes.append(WineGrape(grape=grape, percentage=100))
+    wine_usd.listings.append(RetailerListing(retailer=retailer, price=52.00, currency="USD"))
+
+    db_session.add_all([wine_eur, wine_usd])
+    db_session.commit()
+
+    return {"wine_eur": wine_eur.id, "wine_usd": wine_usd.id}
+
+
+def test_list_wines_item_includes_currency_and_price_usd_approx(client, mixed_currency_wines):
+    response = client.get("/api/wines", params={"q": "Bordeaux Blend EUR"})
+    body = response.json()
+    item = body["items"][0]
+    assert item["price"] == 50.00
+    assert item["currency"] == "EUR"
+    assert item["price_usd_approx"] == 54.00
+
+
+def test_list_wines_sort_price_asc_uses_usd_equivalent_not_raw_number(client, mixed_currency_wines):
+    response = client.get("/api/wines", params={"sort": "price_asc"})
+    body = response.json()
+    ids = [item["id"] for item in body["items"]]
+    assert ids == [mixed_currency_wines["wine_usd"], mixed_currency_wines["wine_eur"]]
+
+
+def test_list_wines_price_filter_uses_usd_equivalent_not_raw_number(client, mixed_currency_wines):
+    response = client.get("/api/wines", params={"min_price": 53})
+    body = response.json()
+    ids = {item["id"] for item in body["items"]}
+    assert ids == {mixed_currency_wines["wine_eur"]}
+
+
+def test_get_wine_detail_listing_includes_price_usd_approx(client, mixed_currency_wines):
+    response = client.get(f"/api/wines/{mixed_currency_wines['wine_eur']}")
+    body = response.json()
+    assert body["listings"][0]["price_usd_approx"] == 54.00
+
+
 def test_list_wines_no_filters_returns_all_with_total(client, seeded_wines):
     response = client.get("/api/wines")
     assert response.status_code == 200

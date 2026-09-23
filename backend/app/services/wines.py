@@ -1,22 +1,38 @@
 from typing import Literal, Optional
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Grape, Retailer, RetailerListing, Wine, WineGrape, Winery
+from app.services.currency import CURRENCY_RATES, approx_usd
 
 SortOption = Literal["price_asc", "price_desc", "vintage", "winery"]
 
 
-def _min_price_subquery():
-    return (
+def _rate_case():
+    return case(
+        {code: rate for code, rate in CURRENCY_RATES.items()},
+        value=RetailerListing.currency,
+        else_=1.0,
+    )
+
+
+def _cheapest_listing_subquery():
+    usd_price = (RetailerListing.price * _rate_case()).label("usd_price")
+    ranked = (
         select(
             RetailerListing.wine_id.label("wine_id"),
-            func.min(RetailerListing.price).label("min_price"),
+            RetailerListing.price.label("price"),
+            RetailerListing.currency.label("currency"),
+            usd_price,
+            func.row_number()
+            .over(partition_by=RetailerListing.wine_id, order_by=usd_price.asc())
+            .label("rn"),
         )
-        .group_by(RetailerListing.wine_id)
+        .where(RetailerListing.price.isnot(None))
         .subquery()
     )
+    return select(ranked).where(ranked.c.rn == 1).subquery()
 
 
 def _escape_like(value: str) -> str:
@@ -50,7 +66,9 @@ def _grapes_for_wines(db: Session, wine_ids: list[int]) -> dict[int, list[dict]]
     return result
 
 
-def _row_to_dict(wine: Wine, winery_name: str, min_price: Optional[float], grapes: list[dict]) -> dict:
+def _row_to_dict(
+    wine: Wine, winery_name: str, price: Optional[float], currency: Optional[str], grapes: list[dict]
+) -> dict:
     return {
         "id": wine.id,
         "name": wine.name,
@@ -60,7 +78,9 @@ def _row_to_dict(wine: Wine, winery_name: str, min_price: Optional[float], grape
         "country": wine.country,
         "region": wine.region,
         "grapes": grapes,
-        "price": min_price,
+        "price": price,
+        "currency": currency,
+        "price_usd_approx": approx_usd(price, currency),
         "image_url": wine.image_url,
         "sweetness": wine.sweetness,
         "acidity": wine.acidity,
@@ -83,10 +103,10 @@ def list_wines(
     limit: int = 20,
     offset: int = 0,
 ) -> tuple[int, list[dict]]:
-    price_sq = _min_price_subquery()
+    price_sq = _cheapest_listing_subquery()
 
     stmt = (
-        select(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
+        select(Wine, Winery.name.label("winery_name"), price_sq.c.price, price_sq.c.currency)
         .join(Winery, Wine.winery_id == Winery.id)
         .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
     )
@@ -107,35 +127,35 @@ def list_wines(
         pattern = f"%{_escape_like(q)}%"
         stmt = stmt.where(or_(Wine.name.ilike(pattern, escape="\\"), Winery.name.ilike(pattern, escape="\\")))
     if min_price is not None:
-        stmt = stmt.where(price_sq.c.min_price >= min_price)
+        stmt = stmt.where(price_sq.c.usd_price >= min_price)
     if max_price is not None:
-        stmt = stmt.where(price_sq.c.min_price <= max_price)
+        stmt = stmt.where(price_sq.c.usd_price <= max_price)
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
 
     if sort == "price_asc":
-        stmt = stmt.order_by(price_sq.c.min_price.asc().nulls_last(), Wine.id)
+        stmt = stmt.order_by(price_sq.c.usd_price.asc().nulls_last(), Wine.id)
     elif sort == "price_desc":
-        stmt = stmt.order_by(price_sq.c.min_price.desc().nulls_last(), Wine.id)
+        stmt = stmt.order_by(price_sq.c.usd_price.desc().nulls_last(), Wine.id)
     elif sort == "vintage":
         stmt = stmt.order_by(Wine.vintage.asc().nulls_last(), Wine.id)
     else:
         stmt = stmt.order_by(Winery.name.asc(), Wine.id)
 
     rows = db.execute(stmt.offset(offset).limit(limit)).all()
-    wine_ids = [wine.id for wine, _, _ in rows]
+    wine_ids = [wine.id for wine, _, _, _ in rows]
     grapes_by_wine = _grapes_for_wines(db, wine_ids)
     items = [
-        _row_to_dict(wine, winery_name, min_price_val, grapes_by_wine.get(wine.id, []))
-        for wine, winery_name, min_price_val in rows
+        _row_to_dict(wine, winery_name, price, currency, grapes_by_wine.get(wine.id, []))
+        for wine, winery_name, price, currency in rows
     ]
     return total, items
 
 
 def get_wine(db: Session, wine_id: int) -> Optional[dict]:
-    price_sq = _min_price_subquery()
+    price_sq = _cheapest_listing_subquery()
     stmt = (
-        select(Wine, Winery.name.label("winery_name"), price_sq.c.min_price)
+        select(Wine, Winery.name.label("winery_name"), price_sq.c.price, price_sq.c.currency)
         .join(Winery, Wine.winery_id == Winery.id)
         .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
         .where(Wine.id == wine_id)
@@ -143,7 +163,7 @@ def get_wine(db: Session, wine_id: int) -> Optional[dict]:
     row = db.execute(stmt).one_or_none()
     if row is None:
         return None
-    wine, winery_name, min_price_val = row
+    wine, winery_name, price, currency = row
 
     listing_stmt = (
         select(RetailerListing, Retailer.name.label("retailer_name"))
@@ -153,7 +173,7 @@ def get_wine(db: Session, wine_id: int) -> Optional[dict]:
     listing_rows = db.execute(listing_stmt).all()
 
     grapes = _grapes_for_wine(db, wine_id)
-    data = _row_to_dict(wine, winery_name, min_price_val, grapes)
+    data = _row_to_dict(wine, winery_name, price, currency, grapes)
     data["subregion"] = wine.subregion
     data["abv"] = wine.abv
     data["description"] = wine.description
@@ -162,6 +182,7 @@ def get_wine(db: Session, wine_id: int) -> Optional[dict]:
             "retailer": retailer_name,
             "price": listing.price,
             "currency": listing.currency,
+            "price_usd_approx": approx_usd(listing.price, listing.currency),
             "product_url": listing.product_url,
             "availability": listing.availability,
         }
