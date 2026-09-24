@@ -16,8 +16,6 @@ const SERIES: { color: string; dash?: string }[] = [
   { color: "#9085e9", dash: "8 3 2 3" },
 ];
 
-const NEUTRAL_CHROME_COLOR = "#8a8a8e";
-
 const TOOLTIP_STYLE = {
   backgroundColor: "#231416",
   border: "1px solid #4a262b",
@@ -47,8 +45,8 @@ export function CompareRadarChart({ wines }: { wines: WineDetail[] }) {
   return (
     <div className="flex flex-col items-center gap-2 text-ink">
       <RadarChart width={320} height={320} data={data} outerRadius="70%">
-        <PolarGrid stroke={NEUTRAL_CHROME_COLOR} />
-        <PolarAngleAxis dataKey="characteristic" tick={{ fill: NEUTRAL_CHROME_COLOR, fontSize: 11 }} />
+        <PolarGrid stroke="currentColor" strokeOpacity={0.3} />
+        <PolarAngleAxis dataKey="characteristic" tick={{ fill: "currentColor", fontSize: 11 }} />
         <PolarRadiusAxis angle={90} domain={[0, 5]} tick={false} axisLine={false} />
         {wines.map((wine, index) => {
           const series = SERIES[index];

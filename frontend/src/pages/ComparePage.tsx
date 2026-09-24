@@ -10,11 +10,10 @@ import type { WineDetail } from "../types/wine";
 
 const MAX_SLOTS = 4;
 
-interface SlotState {
-  status: "loading" | "error" | "loaded";
-  wine?: WineDetail;
-  error?: string;
-}
+type SlotState =
+  | { status: "loading" }
+  | { status: "error"; error: string }
+  | { status: "loaded"; wine: WineDetail };
 
 export function ComparePage() {
   const { selectedIds, addWine, removeWine } = useCompareSelection();
@@ -42,7 +41,7 @@ export function ComparePage() {
     for (const idStr of Object.keys(wineStates)) {
       const id = Number(idStr);
       if (selectedIds.includes(id)) continue;
-      delete requestIdsRef.current[id];
+      requestIdsRef.current[id] = (requestIdsRef.current[id] ?? 0) + 1;
       setWineStates((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -54,7 +53,7 @@ export function ComparePage() {
 
   const loadedWines = selectedIds
     .map((id) => wineStates[id])
-    .filter((state): state is SlotState & { wine: WineDetail } => state?.status === "loaded" && !!state.wine)
+    .filter((state): state is Extract<SlotState, { status: "loaded" }> => state?.status === "loaded")
     .map((state) => state.wine);
 
   return (
@@ -77,7 +76,7 @@ export function ComparePage() {
               </div>
             );
           }
-          return <CompareSlot key={id} wine={state.wine as WineDetail} onRemove={() => removeWine(id)} />;
+          return <CompareSlot key={id} wine={state.wine} onRemove={() => removeWine(id)} />;
         })}
         {selectedIds.length < MAX_SLOTS ? (
           <WineSearchPicker key={selectedIds.length} excludeIds={selectedIds} onSelect={addWine} />

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { ComparePage } from "./ComparePage";
+import { useCompareSelection } from "../hooks/useCompareSelection";
 import * as api from "../services/api";
 import { ApiError } from "../services/api";
 import type { WineDetail, WineListResponse } from "../types/wine";
@@ -45,6 +46,32 @@ function makeWine(id: number, overrides: Partial<WineDetail> = {}): WineDetail {
 function renderPage(initialEntries: string[]) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
+      <ComparePage />
+    </MemoryRouter>
+  );
+}
+
+// Test-only sibling that shares the same useSearchParams-backed selection state as
+// ComparePage, so tests can drive addWine/removeWine directly (e.g. while a wine is
+// still "loading" and has no Remove control in the UI yet).
+function SelectionControls() {
+  const { removeWine, addWine } = useCompareSelection();
+  return (
+    <div>
+      <button type="button" onClick={() => removeWine(1)}>
+        test-remove-wine-1
+      </button>
+      <button type="button" onClick={() => addWine(1)}>
+        test-add-wine-1
+      </button>
+    </div>
+  );
+}
+
+function renderPageWithControls(initialEntries: string[]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <SelectionControls />
       <ComparePage />
     </MemoryRouter>
   );
@@ -109,6 +136,33 @@ describe("ComparePage", () => {
 
     await waitFor(() => expect(screen.getByText("Wine not found")).toBeInTheDocument());
     expect(screen.getAllByText("Wine 2").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the fresh fetch's result when a removed-then-re-added wine's stale request settles later", async () => {
+    const pendingCalls: { resolve: (wine: WineDetail) => void; reject: (err: unknown) => void }[] = [];
+    getWineMock.mockImplementation((id: number) => {
+      if (id !== 1) return Promise.resolve(makeWine(id));
+      return new Promise<WineDetail>((resolve, reject) => {
+        pendingCalls.push({ resolve, reject });
+      });
+    });
+
+    renderPageWithControls(["/compare?wines=1"]);
+    await waitFor(() => expect(pendingCalls.length).toBe(1));
+
+    const user = userEvent.setup();
+    // Remove wine 1 while its fetch (call #1, the "stale" one) is still pending.
+    await user.click(screen.getByText("test-remove-wine-1"));
+    // Re-add the same wine ID before the stale fetch settles, kicking off call #2 (the "fresh" one).
+    await user.click(screen.getByText("test-add-wine-1"));
+    await waitFor(() => expect(pendingCalls.length).toBe(2));
+
+    // Settle the stale request (call #1) as a rejection, then the fresh request (call #2) as a success.
+    pendingCalls[0].reject(new ApiError(500, "stale failure"));
+    pendingCalls[1].resolve(makeWine(1));
+
+    await waitFor(() => expect(screen.getAllByText("Wine 1").length).toBeGreaterThan(0));
+    expect(screen.queryByText("stale failure")).not.toBeInTheDocument();
   });
 
   it("always shows 4 slots total: filled, the picker, and inert placeholders", async () => {
