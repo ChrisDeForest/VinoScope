@@ -120,7 +120,7 @@ Visually hidden until focused (`sr-only focus:not-sr-only` pattern), styled with
   Redraw only when the frame index changes, at most once per animation frame.
 - Frame set: `frameSetForWidth(window.innerWidth)` — `desktop` above 768px, `mobile` otherwise.
   Chosen on mount (not re-chosen on resize, to avoid re-downloading).
-- Loading: poster `<img>` is visible immediately (eager, `fetchpriority="high"`). Frames preload in
+- Loading: poster `<img>` is visible immediately (eager; it is the first image on the page). Frames preload in
   the background after first paint (`new Image()` per frame, sequential-ish in batches of 8). The
   canvas replaces the poster once frame 1 has decoded. If the target frame isn't loaded yet, draw
   `nearestLoadedFrame(...)`.
