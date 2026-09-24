@@ -11,7 +11,10 @@ def test_nearest_selected_level_and_equal_dimension_weights():
     assert _distance({"sweetness": [2, 4]}, Wine(sweetness=3)) == 1
     assert _distance({"sweetness": [2, 4], "body": [5]}, Wine(sweetness=3, body=3)) == pytest.approx(2.5 ** 0.5)
     assert _distance({"sweetness": []}, Wine(sweetness=3)) == 0
-    assert _distance({"sweetness": [2, 4]}, Wine()) == 0
+    # User asked for something, but the wine has no data on any dimension asked
+    # about: unscoreable, so it must rank worse than every real comparison,
+    # not tie with a perfect match.
+    assert _distance({"sweetness": [2, 4]}, Wine()) == float("inf")
     assert _distance({"sweetness": 2}, Wine(sweetness=3)) == 1
 
 
@@ -24,6 +27,6 @@ def test_request_validation():
 
 
 def test_profile_and_explanations_use_all_selected_levels():
-    assert build_profile({"sweetness": [2, 4]}, None, None, None) == ["Dry or Sweet"]
+    assert build_profile({"sweetness": [2, 4]}, None, None, None) == ["Dry to Sweet"]
     assert build_explanation({"sweetness": [1, 5]}, Wine(sweetness=5), None, None, None, None) == ["Very sweet"]
     assert build_explanation({"sweetness": [1, 5]}, Wine(sweetness=3), None, None, None, None) == []

@@ -11,7 +11,7 @@ def test_multiple_preferences_rank_each_selected_level_as_a_match(client, recomm
     assert scores["Alpha Bold Red"] == 1
     assert scores["Alpha Light Red"] == 1
     assert scores["Beta White"] < 1
-    assert "Light-bodied or Very full-bodied" in result["profile"]["description"]
+    assert "Light-bodied to Very full-bodied" in result["profile"]["description"]
 
 
 @pytest.fixture
@@ -194,16 +194,20 @@ def test_recommendations_wine_side_missing_dimension_excluded_for_that_wine_only
     assert bold["match_score"] == pytest.approx(1 / (1 + (2 ** 0.5)))
 
 
-def test_recommendations_wine_with_zero_overlap_gets_neutral_score(client, recommendation_wines):
+def test_recommendations_wine_with_zero_overlap_gets_worst_score(client, recommendation_wines):
     response = client.post(
         "/api/recommendations",
         json={"type": "red", "sweetness": 1, "acidity": 3, "tannin": 5, "body": 5, "fruitiness": 3},
     )
     body = response.json()
     items_by_id = {item["id"]: item for item in body["items"]}
+    # no_data_red has no value on any dimension the user asked about, so it can't
+    # be scored -- it must not be rewarded as if it were a perfect match.
     assert recommendation_wines["no_data_red"] in items_by_id
-    assert items_by_id[recommendation_wines["no_data_red"]]["match_score"] == 1.0
+    assert items_by_id[recommendation_wines["no_data_red"]]["match_score"] == 0.0
     assert items_by_id[recommendation_wines["bold_red"]]["match_score"] == 1.0
+    ids = [item["id"] for item in body["items"]]
+    assert ids.index(recommendation_wines["bold_red"]) < ids.index(recommendation_wines["no_data_red"])
 
 
 def test_recommendations_empty_request_returns_all_wines_equal_score_sorted_by_winery(client, recommendation_wines):

@@ -56,7 +56,13 @@ def _distance(user_values: dict[str, int | list[int] | None], wine: Wine) -> flo
         total_weighted_sq += min((level - wine_val) ** 2 for level in user_val)
         total_weight += 1
     if total_weight == 0:
-        return 0.0
+        # Two different situations both land here: the user asked for nothing at
+        # all (every wine ties at a neutral score), or the user asked about some
+        # dimensions but this particular wine has no data on any of them (it
+        # can't be scored, so it must rank worse than every real comparison --
+        # not tie with a perfect match).
+        user_asked_anything = any(_levels(user_values.get(dim)) for dim in DIMENSIONS)
+        return float("inf") if user_asked_anything else 0.0
     return (total_weighted_sq / total_weight) ** 0.5
 
 
@@ -94,7 +100,11 @@ def build_profile(
     for dim in DIMENSIONS:
         val = _levels(user_values.get(dim))
         if val:
-            description.append(" or ".join(LABELS[dim][level] for level in sorted(set(val))))
+            levels = sorted(set(val))
+            if len(levels) == 1:
+                description.append(LABELS[dim][levels[0]])
+            else:
+                description.append(f"{LABELS[dim][levels[0]]} to {LABELS[dim][levels[-1]]}")
     if type is not None:
         description.append(f"Primarily {type} wines")
     price_phrase = _price_phrase(min_price, max_price)
