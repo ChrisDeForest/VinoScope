@@ -60,6 +60,26 @@ def test_get_admin_stats_numeric_aggregates(client, admin_headers, stats_wines):
     assert body["numeric"]["price"] == {"count": 1, "null_count": 1, "min": 50.0, "max": 50.0, "avg": 50.0}
 
 
+def test_get_admin_stats_price_reflects_usd_conversion_not_raw_currency(client, admin_headers, db_session):
+    winery = Winery(name="Mixed Currency Cellars", country="United States", region="Somewhere")
+    db_session.add(winery)
+    db_session.flush()
+    retailer = Retailer(name="Mixed Currency Retailer")
+    db_session.add(retailer)
+    db_session.flush()
+
+    # 50.00 EUR ~= $54.00 USD (rate 1.08) -- raw price and USD-equivalent price differ.
+    wine = Wine(winery=winery, name="Euro Wine", vintage=2021, type="red", country="France")
+    wine.listings.append(RetailerListing(retailer=retailer, price=50.0, currency="EUR"))
+    db_session.add(wine)
+    db_session.commit()
+
+    response = client.get("/api/admin/stats", headers=admin_headers)
+    body = response.json()
+    assert "price_usd_approx" not in body["numeric"]
+    assert body["numeric"]["price"] == {"count": 1, "null_count": 0, "min": 54.0, "max": 54.0, "avg": 54.0}
+
+
 def test_get_admin_stats_categorical_counts(client, admin_headers, stats_wines):
     response = client.get("/api/admin/stats", headers=admin_headers)
     body = response.json()

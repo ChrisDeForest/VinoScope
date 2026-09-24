@@ -49,8 +49,11 @@ def get_stats(db: Session) -> dict:
         "tannin": _numeric_stats(db, wines_count, Wine.tannin),
         "body": _numeric_stats(db, wines_count, Wine.body),
         "fruitiness": _numeric_stats(db, wines_count, Wine.fruitiness),
-        "price": _numeric_stats(db, listings_count, RetailerListing.price),
-        "price_usd_approx": _numeric_stats(db, listings_count, usd_price),
+        # Raw RetailerListing.price is deliberately not reported on its own: aggregating
+        # a price column across mixed currencies (USD, EUR, ZAR, ...) without conversion
+        # produces a skewed, meaningless min/max/avg. Only the USD-normalized value is
+        # statistically useful here.
+        "price": _numeric_stats(db, listings_count, usd_price),
     }
 
     categorical = {
