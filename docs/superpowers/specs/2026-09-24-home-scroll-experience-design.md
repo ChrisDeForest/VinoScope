@@ -36,10 +36,9 @@ bottle lip, bottom fade hides a table seam, oval vignette to black).
 | `hero/mobile/frame-001.webp` … `frame-097.webp` | 540×720 (3:4 crop around the glass) | 1.6 MB |
 | `hero/mobile/poster.webp` | copy of frame 1 | — |
 
-**Required asset change:** the mobile set must be brought under ~1.2 MB — re-export at 8 fps
-(~65 frames) from the treated clip, or lower WebP quality, whichever keeps the pour visibly smooth.
-The frame count per set becomes a constant in code (`HERO_FRAME_COUNT`), and both sets must have the
-same count. The treated source clip lives outside the repo (scratchpad); if it is unavailable,
+**Required asset change:** re-export **both** sets at 8 fps (65 frames each; mobile ≈ 1.1 MB,
+desktop ≈ 1.3 MB) so the mobile set is under ~1.2 MB and both sets share one frame count
+(`HERO_FRAME_COUNT = 65`). The treated source clip lives outside the repo (scratchpad); if it is unavailable,
 subsample the existing mobile frames instead (keep 2 of every 3 frames, 97 → 65).
 
 ## Architecture
@@ -51,6 +50,8 @@ must be full-bleed with the header on top of it, so:
 
 - `PageShell` reads `useLocation()`. When `pathname === "/"`:
   - `<main>` renders without the width/padding container (`flex-1 w-full`).
+  - A "Skip to all features" link (→ `#all-features`) is rendered *before* the header, so it is
+    the first focusable element on the page.
   - `<Header overlay />` is rendered.
 - `HomePage` wraps everything below the hero in its own `max-w-6xl mx-auto px-4` container.
 - `Header` gains an optional `overlay?: boolean` prop. When true: `absolute inset-x-0 top-0 z-20`,
@@ -100,8 +101,8 @@ pinned screen), each scene ≈ 1.3, finale ≈ 1.
 
 ### Skip link
 
-First focusable element: "Skip to all features" → `#all-features`. Visually hidden until focused
-(`sr-only focus:not-sr-only` pattern), styled with cellar colors while over the hero.
+Rendered by `PageShell` on `/` only, before the header: "Skip to all features" → `#all-features`.
+Visually hidden until focused (`sr-only focus:not-sr-only` pattern), styled with cellar colors.
 
 ### Hero (`HeroPour`)
 
@@ -109,7 +110,9 @@ First focusable element: "Skip to all features" → `#all-features`. Visually hi
   `--color-cellar-bg`, full-bleed.
 - Inner stage: `position: sticky; top: 0; height: 100vh`. Contains the canvas (covering the stage,
   `object-fit: cover` behavior computed in draw) and the copy.
-- Copy sits in the empty left third on desktop, bottom-aligned over a dark gradient on mobile:
+- Frame placement: desktop frames are drawn `cover` (cropped to fill). Mobile frames are fitted to
+  the screen width and anchored to the bottom, leaving dark cellar space above.
+- Copy sits in the empty left third on desktop, and in the dark space at the top on mobile:
   `<h1>`"Find a wine you'll actually enjoy."`</h1>`, one supporting line, primary CTA
   **Explore Wines → `/explore`** (accent-filled), plus a small "Scroll" cue that fades out once
   progress > 0.05.
@@ -123,8 +126,8 @@ First focusable element: "Skip to all features" → `#all-features`. Visually hi
   `nearestLoadedFrame(...)`.
 - Bottom of the outer section: a 30vh gradient from `--color-cellar-bg` to `--color-surface`
   ("stepping out of the cellar into the tasting room").
-- Canvas is `aria-hidden`; the stage has `role="img"` with `aria-label="Red wine being poured into a
-  glass"` (only the visual; the copy stays readable text).
+- The media layer (poster + canvas wrapper, not the copy) has `role="img"` with
+  `aria-label="Red wine being poured into a glass"`; the copy stays ordinary readable text.
 
 ### Scenes
 
@@ -221,11 +224,11 @@ Browser API stubs live in the tests that need them (`vi.stubGlobal`), following
   success, fallback copy on rejection (mocked `listWines`).
 - `pages/HomePage.test.tsx` (new; reduced motion stubbed on): renders hero `<h1>`, five scene
   headings, finale; every CTA's `href` (`/explore` ×2+, `/discover`, `/pair`, `/compare`, `/learn`);
-  no `<canvas>`; poster image present; skip link is first focusable and targets `#all-features`.
+  no `<canvas>`; poster image present.
 - `components/layout/Header.test.tsx` (extend): overlay prop applies transparent/absolute classes;
   default render unchanged.
-- `components/layout/PageShell` coverage via `App.test.tsx` or a new `PageShell.test.tsx`: `/`
-  renders overlay header and uncontained main; another route renders the contained main.
+- `components/layout/PageShell.test.tsx` (new): `/` renders the skip link as the first link (targets
+  `#all-features`), the overlay header, and an uncontained main; another route renders none of that.
 
 Not unit-tested: canvas drawing and CSS animation timing (jsdom can't render them).
 
