@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { SortOption } from "../../types/wine";
-import { DEFAULT_FILTERS, type FilterValues } from "./filterTypes";
+import { DEFAULT_FILTERS, SORT_OPTIONS, type FilterValues } from "./filterTypes";
 import { TYPE_OPTIONS, TYPE_LABELS, COUNTRY_OPTIONS } from "../../constants/wineOptions";
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "winery", label: "Winery (A-Z)" },
-  { value: "price_asc", label: "Price: Low to High" },
-  { value: "price_desc", label: "Price: High to Low" },
-  { value: "vintage", label: "Vintage" },
-];
+import { priceRangeError } from "../../utils/priceRange";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -25,6 +19,7 @@ export function FilterDrawer({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<FilterValues>(initialFilters);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
@@ -36,6 +31,7 @@ export function FilterDrawer({
   useEffect(() => {
     if (open) {
       setDraft(initialFilters);
+      setValidationError(null);
     }
   }, [open, initialFilters]);
 
@@ -203,6 +199,7 @@ export function FilterDrawer({
           </select>
         </div>
 
+        {validationError ? <p role="alert" className="text-sm text-ink">{validationError}</p> : null}
         <div className="flex gap-2 mt-2">
           <button
             type="button"
@@ -213,7 +210,11 @@ export function FilterDrawer({
           </button>
           <button
             type="button"
-            onClick={() => onApply(draft)}
+            onClick={() => {
+              const error = priceRangeError(draft.minPrice === "" ? undefined : Number(draft.minPrice), draft.maxPrice === "" ? undefined : Number(draft.maxPrice));
+              setValidationError(error);
+              if (!error) onApply({ ...draft, q: draft.q.trim(), grape: draft.grape.trim() });
+            }}
             className="flex-1 bg-accent text-surface rounded py-2 text-sm font-semibold"
           >
             Apply

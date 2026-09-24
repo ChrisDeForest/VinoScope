@@ -16,6 +16,7 @@ from app.schemas.wine import (
 )
 from app.services import wines as wines_service
 from app.services.wines import SortOption
+from app.validation import PRICE_RANGE_ERROR, price_range_invalid
 
 router = APIRouter()
 
@@ -33,6 +34,8 @@ def list_wines(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> WineListResponse:
+    if price_range_invalid(min_price, max_price):
+        raise HTTPException(status_code=422, detail=PRICE_RANGE_ERROR)
     total, items = wines_service.list_wines(
         db,
         type=type,

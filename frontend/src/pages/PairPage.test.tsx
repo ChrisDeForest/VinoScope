@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PairPage } from "./PairPage";
@@ -62,8 +62,64 @@ async function selectFood(user: ReturnType<typeof userEvent.setup>, label: strin
 }
 
 describe("PairPage", () => {
+  it("keeps the food picker open when an earlier load-more completes", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] })
+      .mockReturnValueOnce(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await selectFood(user, "Steak");
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+    await user.click(screen.getByRole("button", { name: "Choose a different food" }));
+    await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
+    expect(screen.getByText("Steak").closest("button")).toBeEnabled();
+  });
+
+  it("uses the chosen budget and wine type for a specific dish", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText("Wine type"), "white");
+    await user.type(screen.getByLabelText("Max price"), "30");
+    await selectFood(user, "Cream pasta");
+    await screen.findByText("Wine 1");
+    expect(getRecommendationsMock).toHaveBeenLastCalledWith(expect.objectContaining({ type: "white", max_price: 30 }));
+    expect(screen.getByRole("heading", { name: /Pairing with Cream pasta/ })).toBeInTheDocument();
+  });
   beforeEach(() => {
     getRecommendationsMock.mockReset();
+    sessionStorage.clear();
+  });
+
+  it("falls back to the picker instead of crashing when a saved snapshot names an unknown food key", () => {
+    sessionStorage.setItem(
+      "vinoscope-pair-state",
+      JSON.stringify({
+        mode: "results",
+        selectedFood: "pasta",
+        profile: [],
+        items: [makeItem(1)],
+        total: 1,
+      })
+    );
+    renderPage();
+    expect(screen.getByRole("heading", { name: "Pair" })).toBeInTheDocument();
+    expect(screen.getByText(FOOD_PAIRINGS.steak.label)).toBeInTheDocument();
+  });
+
+  it("restores previously loaded results without refetching when remounted", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    const { unmount } = renderPage();
+    const user = userEvent.setup();
+    await selectFood(user, "Steak");
+    await screen.findByText("Wine 1");
+    unmount();
+
+    getRecommendationsMock.mockClear();
+    renderPage();
+    expect(screen.getByText("Wine 1")).toBeInTheDocument();
+    expect(getRecommendationsMock).not.toHaveBeenCalled();
   });
 
   it("starts in picker mode showing all food tiles", () => {

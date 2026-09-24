@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { WineDetailPage } from "./WineDetailPage";
 import * as api from "../services/api";
 import { ApiError } from "../services/api";
+import { invalidateWineCache } from "../services/wineCache";
 import { setAdminKey, clearAdminKey } from "../services/adminAuth";
 import type { WineDetail } from "../types/wine";
 
@@ -61,6 +62,8 @@ function renderDetail(id = "1") {
 
 describe("WineDetailPage", () => {
   beforeEach(() => {
+    invalidateWineCache();
+    localStorage.clear();
     getWineMock.mockReset();
   });
 
@@ -76,6 +79,14 @@ describe("WineDetailPage", () => {
     expect(screen.getByText(/Caymus Vineyards/)).toBeInTheDocument();
     expect(screen.getByText("Total Wine")).toBeInTheDocument();
     expect(screen.getByText(/A bold, structured cabernet/)).toBeInTheDocument();
+  });
+
+  it("adds the displayed wine to the saved comparison", async () => {
+    getWineMock.mockResolvedValue(fullWine);
+    renderDetail();
+    await userEvent.click(await screen.findByRole("button", { name: "Add Caymus Cabernet Sauvignon to compare" }));
+    expect(screen.getByRole("button", { name: "Caymus Cabernet Sauvignon is in comparison" })).toBeDisabled();
+    expect(localStorage.getItem("vinoscope.compare.wines")).toBe("1");
   });
 
   it("never flashes the error view while the successful response settles", async () => {

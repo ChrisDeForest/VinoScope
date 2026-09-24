@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { DiscoverPage } from "./DiscoverPage";
@@ -58,8 +58,36 @@ function deferred<T>() {
 }
 
 describe("DiscoverPage", () => {
+  it("keeps preference editing open when an earlier load-more completes", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] })
+      .mockReturnValueOnce(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+    await user.click(screen.getByRole("button", { name: "Edit preferences" }));
+    await user.selectOptions(screen.getByLabelText("Wine type"), "white");
+    await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
+    expect(screen.getByLabelText("Wine type")).toHaveValue("white");
+  });
+
+  it("rejects an inverted budget and lets the user reset saved preferences", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Min price"), "50");
+    await user.type(screen.getByLabelText("Max price"), "20");
+    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/minimum.*maximum/i);
+    expect(getRecommendationsMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Reset preferences" }));
+    expect(screen.getByLabelText("Min price")).toHaveValue(null);
+    expect(localStorage.getItem("vinoscope-discover-profile")).toBeNull();
+  });
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     getRecommendationsMock.mockReset();
   });
 
@@ -84,7 +112,7 @@ describe("DiscoverPage", () => {
     expect(screen.getByRole("button", { name: "Edit preferences" })).toBeInTheDocument();
   });
 
-  it("persists submitted answers to localStorage and loads results immediately on the next mount", async () => {
+  it("persists submitted answers to localStorage and restores results without refetching on the next mount", async () => {
     getRecommendationsMock.mockResolvedValue({
       profile: { description: ["Dry"] },
       total: 1,
@@ -98,15 +126,27 @@ describe("DiscoverPage", () => {
     first.unmount();
 
     getRecommendationsMock.mockClear();
-    getRecommendationsMock.mockResolvedValue({
-      profile: { description: ["Dry"] },
-      total: 1,
-      items: [makeItem(2)],
-    });
 
     renderPage();
+    expect(screen.getByText("Wine 2")).toBeInTheDocument();
+    expect(getRecommendationsMock).not.toHaveBeenCalled();
+  });
+
+  it("refetches instead of using a stale cache when the stored profile no longer matches it", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: ["Dry"] }, total: 1, items: [makeItem(2)] });
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
     await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
-    expect(getRecommendationsMock).toHaveBeenCalledWith(expect.objectContaining({ type: "red" }));
+    first.unmount();
+
+    localStorage.setItem("vinoscope-discover-profile", JSON.stringify({ type: "white" }));
+    getRecommendationsMock.mockClear();
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(3)] });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Wine 3")).toBeInTheDocument());
+    expect(getRecommendationsMock).toHaveBeenCalledWith(expect.objectContaining({ type: "white" }));
   });
 
   it("clicking Edit preferences returns to the form pre-filled with the last answers", async () => {

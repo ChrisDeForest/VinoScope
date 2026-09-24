@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { AddToCompareButton } from "../compare/AddToCompareButton";
 import type { WineListItem } from "../../types/wine";
 import { formatPrice, formatVintage, primaryGrapeLabel, formatApproxUsd, hasApproxUsdConversion } from "../../utils/format";
 
@@ -9,20 +10,34 @@ export function WineCard({
   wine,
   matchScore,
   explanation,
+  factorsCompared,
+  factorsRequested,
+  eagerImage = false,
 }: {
   wine: WineListItem;
   matchScore?: number;
   explanation?: string[];
+  factorsCompared?: number;
+  factorsRequested?: number;
+  eagerImage?: boolean;
 }) {
   return (
+    <div className="flex flex-col border border-surface-border rounded overflow-hidden hover:border-accent">
     <Link
       to={`/wines/${wine.id}`}
-      className="block border border-surface-border rounded overflow-hidden hover:border-accent"
+      className="block flex-1"
     >
       <div className="relative">
         <img
           src={wine.image_url ?? PLACEHOLDER_IMAGE}
           alt={wine.name}
+          loading={eagerImage ? "eager" : "lazy"}
+          decoding="async"
+          width={400}
+          height={384}
+          onError={(event) => {
+            if (event.currentTarget.src !== PLACEHOLDER_IMAGE) event.currentTarget.src = PLACEHOLDER_IMAGE;
+          }}
           className="w-full h-48 object-cover bg-surface-raised"
         />
         {matchScore !== undefined ? (
@@ -32,6 +47,11 @@ export function WineCard({
         ) : null}
       </div>
       <div className="p-3">
+        {matchScore !== undefined && factorsCompared !== undefined ? (
+          <p className="text-xs text-ink-muted mb-2">
+            {factorsRequested === 0 ? "No taste factors selected" : `Based on ${factorsCompared} of ${factorsRequested ?? 5} taste factors`}
+          </p>
+        ) : null}
         <span className="inline-block text-xs uppercase tracking-wide text-accent mb-1">{wine.type}</span>
         <h3 className="font-serif text-base text-ink">{wine.name}</h3>
         <p className="text-sm text-ink-muted">
@@ -48,5 +68,7 @@ export function WineCard({
         ) : null}
       </div>
     </Link>
+    <div className="px-3 pb-3"><AddToCompareButton id={wine.id} name={wine.name} /></div>
+    </div>
   );
 }

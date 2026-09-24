@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getWine, ApiError } from "../services/api";
+import { ApiError } from "../services/api";
+import { getCachedWine } from "../services/wineCache";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { CharacteristicBar } from "../components/wine/CharacteristicBar";
 import { RetailerListingRow } from "../components/wine/RetailerListingRow";
@@ -9,6 +10,7 @@ import { Skeleton } from "../components/common/Skeleton";
 import { formatVintage } from "../utils/format";
 import { getAdminKey } from "../services/adminAuth";
 import { WineEditPanel } from "../components/admin/WineEditPanel";
+import { AddToCompareButton } from "../components/compare/AddToCompareButton";
 import type { WineDetail } from "../types/wine";
 
 const PLACEHOLDER_IMAGE =
@@ -18,7 +20,7 @@ export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
   const wineId = Number(id);
 
-  const { data, loading, error } = useApiQuery(() => getWine(wineId), [wineId]);
+  const { data, loading, error } = useApiQuery(() => getCachedWine(wineId), [wineId]);
   const [edited, setEdited] = useState<WineDetail | null>(null);
   const [editing, setEditing] = useState(false);
 
@@ -85,6 +87,7 @@ export function WineDetailPage() {
         </div>
 
         {editing ? <WineEditPanel wine={wine} onUpdated={setEdited} /> : null}
+        <div><AddToCompareButton id={wine.id} name={wine.name} /></div>
 
         <div className="flex flex-col gap-2">
           <CharacteristicBar label="Sweetness" value={wine.sweetness} />

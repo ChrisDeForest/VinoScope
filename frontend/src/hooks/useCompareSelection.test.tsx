@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useCompareSelection } from "./useCompareSelection";
 
@@ -11,6 +11,54 @@ function makeWrapper(initialEntries: string[]) {
 }
 
 describe("useCompareSelection", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("adds from Explore without altering its filters or URL and synchronizes subscribers", () => {
+    const { result } = renderHook(() => ({
+      first: useCompareSelection(), second: useCompareSelection(), location: useLocation(),
+    }), { wrapper: makeWrapper(["/explore?q=cabernet&type=red"]) });
+    act(() => result.current.first.addWine(8));
+    expect(result.current.second.selectedIds).toEqual([8]);
+    expect(result.current.location.pathname + result.current.location.search).toBe("/explore?q=cabernet&type=red");
+  });
+
+  it("honors shared comparison links with a trailing slash", () => {
+    localStorage.setItem("vinoscope.compare.wines", "1,2");
+    const { result } = renderHook(() => ({ selection: useCompareSelection(), location: useLocation() }), {
+      wrapper: makeWrapper(["/compare/?wines=3,4"]),
+    });
+    expect(result.current.selection.selectedIds).toEqual([3, 4]);
+    act(() => result.current.selection.addWine(5));
+    expect(new URLSearchParams(result.current.location.search).get("wines")).toBe("3,4,5");
+  });
+
+  it("restores selections after leaving and returning without query parameters", () => {
+    const first = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare?wines=1,2"]) });
+    first.unmount();
+    const next = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare"]) });
+    expect(next.result.current.selectedIds).toEqual([1, 2]);
+  });
+
+  it("persists reordered wines and respects explicit shared links", () => {
+    const first = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare?wines=1,2,3"]) });
+    act(() => first.result.current.moveWine(1, 3));
+    expect(first.result.current.selectedIds).toEqual([2, 3, 1]);
+    first.unmount();
+    const next = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare"]) });
+    expect(next.result.current.selectedIds).toEqual([2, 3, 1]);
+    next.unmount();
+    const shared = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare?wines=4,5"]) });
+    expect(shared.result.current.selectedIds).toEqual([4, 5]);
+  });
+
+  it("does not restore wines after the last one is removed", () => {
+    const first = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare?wines=1"]) });
+    act(() => first.result.current.removeWine(1));
+    expect(first.result.current.selectedIds).toEqual([]);
+    first.unmount();
+    const next = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare"]) });
+    expect(next.result.current.selectedIds).toEqual([]);
+  });
   it("starts empty when there is no wines param", () => {
     const { result } = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/compare"]) });
     expect(result.current.selectedIds).toEqual([]);

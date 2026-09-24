@@ -1,22 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { ApiError, getWine } from "../services/api";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { ApiError } from "../services/api";
+import { getCachedWine } from "../services/wineCache";
 import { useCompareSelection } from "../hooks/useCompareSelection";
-import { WineSearchPicker } from "../components/compare/WineSearchPicker";
-import { CompareSlot } from "../components/compare/CompareSlot";
 import { CompareTable } from "../components/compare/CompareTable";
-import { CompareRadarChart } from "../components/compare/CompareRadarChart";
+import { CompareTiles, type SlotState } from "../components/compare/CompareTiles";
 import { Skeleton } from "../components/common/Skeleton";
-import type { WineDetail } from "../types/wine";
 
-const MAX_SLOTS = 4;
-
-type SlotState =
-  | { status: "loading" }
-  | { status: "error"; error: string }
-  | { status: "loaded"; wine: WineDetail };
+const CompareRadarChart = lazy(() => import("../components/compare/CompareRadarChart").then((module) => ({ default: module.CompareRadarChart })));
 
 export function ComparePage() {
-  const { selectedIds, addWine, removeWine } = useCompareSelection();
+  const { selectedIds, addWine, removeWine, moveWine } = useCompareSelection();
   const [wineStates, setWineStates] = useState<Record<number, SlotState>>({});
   const requestIdsRef = useRef<Record<number, number>>({});
 
@@ -26,7 +19,7 @@ export function ComparePage() {
       const requestId = (requestIdsRef.current[id] ?? 0) + 1;
       requestIdsRef.current[id] = requestId;
       setWineStates((prev) => ({ ...prev, [id]: { status: "loading" } }));
-      getWine(id)
+      getCachedWine(id)
         .then((wine) => {
           if (requestIdsRef.current[id] !== requestId) return;
           setWineStates((prev) => ({ ...prev, [id]: { status: "loaded", wine } }));
@@ -59,46 +52,16 @@ export function ComparePage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-serif text-2xl text-ink">Compare</h1>
+      <p className="text-sm text-ink-muted">Your wines are saved as you browse. Drag a tile by its handle to reorder, or focus the handle and use the arrow keys.</p>
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        {selectedIds.map((id) => {
-          const state = wineStates[id];
-          if (!state || state.status === "loading") {
-            return <Skeleton key={id} className="w-full h-48" />;
-          }
-          if (state.status === "error") {
-            return (
-              <div key={id} className="border border-surface-border rounded p-3 flex flex-col gap-2">
-                <p className="text-sm text-ink-muted">{state.error}</p>
-                <button type="button" onClick={() => removeWine(id)} className="text-sm text-accent hover:underline">
-                  Remove
-                </button>
-              </div>
-            );
-          }
-          return <CompareSlot key={id} wine={state.wine} onRemove={() => removeWine(id)} />;
-        })}
-        {selectedIds.length < MAX_SLOTS ? (
-          <WineSearchPicker key={selectedIds.length} excludeIds={selectedIds} onSelect={addWine} />
-        ) : null}
-        {Array.from({
-          length: Math.max(0, MAX_SLOTS - selectedIds.length - (selectedIds.length < MAX_SLOTS ? 1 : 0)),
-        }).map((_, index) => (
-          <div
-            key={`empty-${index}`}
-            className="border border-dashed border-surface-border rounded p-3 opacity-50 flex items-center justify-center text-sm text-ink-muted h-48"
-          >
-            Empty slot
-          </div>
-        ))}
-      </div>
+      <CompareTiles selectedIds={selectedIds} wineStates={wineStates} addWine={addWine} removeWine={removeWine} moveWine={moveWine} />
 
       {loadedWines.length < 2 ? (
         <p className="text-ink-muted text-center py-8">Add at least 2 wines to compare.</p>
       ) : (
         <>
           <CompareTable wines={loadedWines} />
-          <CompareRadarChart wines={loadedWines} />
+          <Suspense fallback={<Skeleton className="w-full h-[480px]" />}><CompareRadarChart wines={loadedWines} /></Suspense>
         </>
       )}
     </div>

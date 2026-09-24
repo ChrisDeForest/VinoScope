@@ -1,8 +1,9 @@
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.wine import WineListItem
+from app.validation import PRICE_RANGE_ERROR, price_range_invalid
 
 
 PreferenceLevel = Annotated[int, Field(ge=1, le=5)]
@@ -22,6 +23,12 @@ class RecommendationRequest(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
 
+    @model_validator(mode="after")
+    def _validate_price_range(self):
+        if price_range_invalid(self.min_price, self.max_price):
+            raise ValueError(PRICE_RANGE_ERROR)
+        return self
+
 
 class ProfileOut(BaseModel):
     description: list[str]
@@ -29,6 +36,8 @@ class ProfileOut(BaseModel):
 
 class RecommendationItem(WineListItem):
     match_score: float
+    factors_compared: int
+    factors_requested: int
     explanation: list[str]
 
 

@@ -6,6 +6,13 @@ import { FilterDrawer } from "./FilterDrawer";
 import { DEFAULT_FILTERS } from "./filterTypes";
 
 describe("FilterDrawer", () => {
+  it("does not apply an inverted price range", async () => {
+    const onApply = vi.fn();
+    render(<FilterDrawer open initialFilters={{ ...DEFAULT_FILTERS, minPrice: "50", maxPrice: "20" }} onApply={onApply} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/minimum.*maximum/i);
+    expect(onApply).not.toHaveBeenCalled();
+  });
   it("renders nothing when closed", () => {
     render(<FilterDrawer open={false} initialFilters={DEFAULT_FILTERS} onApply={vi.fn()} onClose={vi.fn()} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

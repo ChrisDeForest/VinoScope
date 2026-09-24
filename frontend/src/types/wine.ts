@@ -78,6 +78,8 @@ export interface RecommendationRequest extends RecommendationAnswers {
 
 export interface RecommendationItem extends WineListItem {
   match_score: number;
+  factors_compared?: number;
+  factors_requested?: number;
   explanation: string[];
 }
 

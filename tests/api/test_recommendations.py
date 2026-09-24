@@ -3,6 +3,46 @@ import pytest
 from app.models import Retailer, RetailerListing, Wine, Winery
 
 
+def test_factor_counts_reflect_requested_dimensions_with_known_values(client, recommendation_wines):
+    result = client.post("/api/recommendations", json={"sweetness": [1], "acidity": [3]}).json()
+    items = {item["name"]: item for item in result["items"]}
+    assert items["Alpha Partial Red"]["factors_compared"] == 1
+    assert items["Alpha Partial Red"]["factors_requested"] == 2
+    assert items["Alpha Bold Red"]["factors_compared"] == 2
+    assert items["Beta No Data Red"]["factors_compared"] == 0
+
+
+def test_inverted_recommendation_budget_is_rejected(client):
+    assert client.post("/api/recommendations", json={"min_price": 50, "max_price": 20}).status_code == 422
+
+
+def test_inverted_explore_budget_is_rejected(client):
+    assert client.get("/api/wines?min_price=50&max_price=20").status_code == 422
+
+
+def test_paging_reuses_ranking_and_catalog_edits_invalidate_it(client, recommendation_wines, db_session, monkeypatch):
+    from app.services import recommendations
+    calls = []
+    distance = recommendations._distance
+    def tracked(values, wine):
+        calls.append(wine.id)
+        return distance(values, wine)
+    monkeypatch.setattr(recommendations, "_distance", tracked)
+    first = client.post("/api/recommendations", json={"body": 5, "limit": 2}).json()
+    count = len(calls)
+    second = client.post("/api/recommendations", json={"body": 5, "limit": 2, "offset": 2}).json()
+    assert count > 0
+    assert len(calls) == count
+    assert not {item["id"] for item in first["items"]} & {item["id"] for item in second["items"]}
+    wine = db_session.get(Wine, recommendation_wines["bold_red"])
+    wine.body = 1
+    db_session.commit()
+    updated = client.post("/api/recommendations", json={"body": 5}).json()
+    assert len(calls) > count
+    changed = next(item for item in updated["items"] if item["id"] == wine.id)
+    assert changed["match_score"] == 0.2
+
+
 def test_multiple_preferences_rank_each_selected_level_as_a_match(client, recommendation_wines):
     response = client.post("/api/recommendations", json={"body": [2, 5], "sweetness": [1]})
     assert response.status_code == 200

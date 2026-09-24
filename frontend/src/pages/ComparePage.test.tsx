@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { ComparePage } from "./ComparePage";
 import { useCompareSelection } from "../hooks/useCompareSelection";
 import * as api from "../services/api";
 import { ApiError } from "../services/api";
+import { getCachedWine, invalidateWineCache } from "../services/wineCache";
 import type { WineDetail, WineListResponse } from "../types/wine";
 
 vi.mock("../services/api", async () => {
@@ -79,13 +80,65 @@ function renderPageWithControls(initialEntries: string[]) {
 
 describe("ComparePage", () => {
   beforeEach(() => {
+    invalidateWineCache();
+    localStorage.clear();
     getWineMock.mockReset();
     listWinesMock.mockReset();
+  });
+
+  it("reorders tiles and the comparison on drop", async () => {
+    getWineMock.mockImplementation((id: number) => Promise.resolve(makeWine(id)));
+    renderPage(["/compare?wines=1,2,3"]);
+    const handle = await screen.findByRole("button", { name: /Reorder Wine 1/ });
+    const target = screen.getByRole("button", { name: /Reorder Wine 3/ });
+    fireEvent.dragStart(handle);
+    fireEvent.dragOver(target);
+    fireEvent.drop(target);
+    expect(screen.getAllByRole("heading", { level: 3 }).map((el) => el.textContent)).toEqual(["Wine 2", "Wine 3", "Wine 1"]);
+    expect(screen.getAllByRole("columnheader").slice(1).map((el) => el.textContent)).toEqual(["Wine 2", "Wine 3", "Wine 1"]);
   });
 
   it("shows a prompt instead of the table when fewer than 2 wines are selected", () => {
     renderPage(["/compare"]);
     expect(screen.getByText("Add at least 2 wines to compare.")).toBeInTheDocument();
+  });
+
+  it("reuses recently loaded details when returning to Compare", async () => {
+    getWineMock.mockResolvedValue(makeWine(12));
+    const first = renderPage(["/compare?wines=12"]);
+    await screen.findByRole("heading", { name: "Wine 12" });
+    first.unmount();
+    renderPage(["/compare"]);
+    await screen.findByRole("heading", { name: "Wine 12" });
+    expect(getWineMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes expired wine details and does not cache failures", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1000);
+    try {
+      getWineMock.mockResolvedValueOnce(makeWine(12));
+      expect((await getCachedWine(12)).name).toBe("Wine 12");
+      now.mockReturnValue(62000);
+      getWineMock.mockRejectedValueOnce(new ApiError(500, "Temporary failure"));
+      await expect(getCachedWine(12)).rejects.toThrow("Temporary failure");
+      getWineMock.mockResolvedValueOnce(makeWine(12, { name: "Updated wine" }));
+      expect((await getCachedWine(12)).name).toBe("Updated wine");
+      expect(getWineMock).toHaveBeenCalledTimes(3);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("does not let an invalidated pending response replace fresher cache data", async () => {
+    let resolveOld!: (wine: WineDetail) => void;
+    getWineMock.mockImplementationOnce(() => new Promise<WineDetail>((resolve) => { resolveOld = resolve; }));
+    const oldRequest = getCachedWine(12);
+    invalidateWineCache(12);
+    getWineMock.mockResolvedValueOnce(makeWine(12, { name: "Fresh wine" }));
+    await getCachedWine(12);
+    resolveOld(makeWine(12, { name: "Stale wine" }));
+    await oldRequest;
+    expect((await getCachedWine(12)).name).toBe("Fresh wine");
   });
 
   it("loads wines from the URL and renders the table once 2+ are loaded", async () => {
@@ -114,6 +167,7 @@ describe("ComparePage", () => {
     await user.click(screen.getByText("Wine 9"));
 
     await waitFor(() => expect(getWineMock).toHaveBeenCalledWith(9));
+    expect(screen.getByLabelText("Search wines to compare")).toHaveValue("wine");
   });
 
   it("removing a wine drops it from the comparison", async () => {

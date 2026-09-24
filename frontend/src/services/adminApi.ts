@@ -9,6 +9,7 @@ import type {
 } from "../types/wine";
 import { getAdminKey } from "./adminAuth";
 import { ApiError } from "./api";
+import { invalidateWineCache } from "./wineCache";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -45,6 +46,7 @@ export async function updateWine(id: number, payload: WineUpdatePayload): Promis
   if (!response.ok) {
     await throwApiError(response, `Failed to update wine (${response.status})`);
   }
+  invalidateWineCache(id);
   return response.json();
 }
 
@@ -57,6 +59,7 @@ export async function updateGrapes(id: number, grapes: GrapeInput[]): Promise<Wi
   if (!response.ok) {
     await throwApiError(response, `Failed to update grapes (${response.status})`);
   }
+  invalidateWineCache(id);
   return response.json();
 }
 
@@ -69,6 +72,7 @@ export async function createListing(wineId: number, payload: ListingCreatePayloa
   if (!response.ok) {
     await throwApiError(response, `Failed to create listing (${response.status})`);
   }
+  invalidateWineCache(wineId);
   return response.json();
 }
 
@@ -85,6 +89,7 @@ export async function updateListing(
   if (!response.ok) {
     await throwApiError(response, `Failed to update listing (${response.status})`);
   }
+  invalidateWineCache(wineId);
   return response.json();
 }
 
@@ -96,4 +101,5 @@ export async function deleteListing(wineId: number, listingId: number): Promise<
   if (!response.ok) {
     await throwApiError(response, `Failed to delete listing (${response.status})`);
   }
+  invalidateWineCache(wineId);
 }

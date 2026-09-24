@@ -6,10 +6,12 @@ export type FoodKey =
   | "chicken"
   | "salmon"
   | "shellfish"
-  | "pasta"
+  | "tomato_pasta"
+  | "cream_pasta"
   | "pizza"
   | "spicy"
-  | "cheese"
+  | "soft_cheese"
+  | "aged_cheese"
   | "chocolate"
   | "dessert";
 
@@ -39,10 +41,12 @@ export const FOOD_OPTIONS: FoodKey[] = [
   "chicken",
   "salmon",
   "shellfish",
-  "pasta",
+  "tomato_pasta",
+  "cream_pasta",
   "pizza",
   "spicy",
-  "cheese",
+  "soft_cheese",
+  "aged_cheese",
   "chocolate",
   "dessert",
 ];
@@ -73,10 +77,15 @@ export const FOOD_PAIRINGS: Record<FoodKey, FoodPairing> = {
     blurb: "Crisp, delicate, high-acid whites that don't overpower.",
     vector: { sweetness: range(1, 1), acidity: range(4, 5), tannin: range(1, 1), body: range(1, 2), fruitiness: range(1, 2) },
   },
-  pasta: {
-    label: "Pasta",
+  tomato_pasta: {
+    label: "Tomato pasta",
     blurb: "High acidity stands up to tomato-based sauces.",
     vector: { sweetness: range(1, 2), acidity: range(4, 5), tannin: range(2, 4), body: range(2, 4), fruitiness: range(2, 4) },
+  },
+  cream_pasta: {
+    label: "Cream pasta",
+    blurb: "Rich, buttery sauces call for fuller-bodied whites or soft, low-tannin reds.",
+    vector: { sweetness: range(1, 2), acidity: range(2, 3), tannin: range(1, 2), body: range(3, 4), fruitiness: range(2, 3) },
   },
   pizza: {
     label: "Pizza",
@@ -88,10 +97,15 @@ export const FOOD_PAIRINGS: Record<FoodKey, FoodPairing> = {
     blurb: "A touch of sweetness cools the heat; low tannin avoids amplifying it.",
     vector: { sweetness: range(2, 3), acidity: range(3, 4), tannin: range(1, 2), body: range(1, 3), fruitiness: range(3, 5) },
   },
-  cheese: {
-    label: "Cheese",
-    blurb: "Broad range reflecting how differently soft vs. aged cheeses pair.",
-    vector: { sweetness: range(1, 3), acidity: range(2, 4), tannin: range(2, 4), body: range(3, 5), fruitiness: range(2, 4) },
+  soft_cheese: {
+    label: "Soft cheese",
+    blurb: "Crisp, high-acid whites cut through creamy, mild cheeses without overpowering them.",
+    vector: { sweetness: range(1, 2), acidity: range(4, 5), tannin: range(1, 1), body: range(1, 3), fruitiness: range(2, 3) },
+  },
+  aged_cheese: {
+    label: "Aged cheese",
+    blurb: "Bold, tannic reds stand up to sharp, salty, aged cheeses.",
+    vector: { sweetness: range(1, 3), acidity: range(2, 3), tannin: range(3, 5), body: range(4, 5), fruitiness: range(2, 4) },
   },
   chocolate: {
     label: "Chocolate",

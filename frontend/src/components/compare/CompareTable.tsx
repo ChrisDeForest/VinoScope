@@ -27,7 +27,7 @@ function CharacteristicCell({ value }: { value: number | null }) {
       <div className="flex-1 h-1.5 bg-surface-raised rounded-full overflow-hidden">
         <div className="h-full bg-accent rounded-full" style={{ width: `${percent}%` }} />
       </div>
-      <span className="text-xs text-ink-muted w-16 text-right">{value === null ? "Not rated" : `${value}/5`}</span>
+      <span className="text-xs text-ink-muted w-16 shrink-0 text-right">{value === null ? "Not rated" : `${value}/5`}</span>
     </div>
   );
 }
@@ -38,7 +38,11 @@ const CELL_CLASS = "p-2 text-ink align-top";
 export function CompareTable({ wines }: { wines: WineDetail[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[480px] text-sm border-collapse">
+      <table className="w-full table-fixed text-sm border-collapse break-words" style={{ minWidth: 112 + wines.length * 180 }}>
+        <colgroup>
+          <col style={{ width: 112 }} />
+          {wines.map((wine) => <col key={wine.id} />)}
+        </colgroup>
         <thead>
           <tr>
             <th className={ROW_LABEL_CLASS}>Field</th>

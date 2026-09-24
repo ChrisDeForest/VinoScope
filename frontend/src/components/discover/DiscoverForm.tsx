@@ -4,17 +4,21 @@ import { TYPE_OPTIONS, TYPE_LABELS, COUNTRY_OPTIONS } from "../../constants/wine
 import { DIMENSIONS } from "../../utils/dimensionLabels";
 import { PriceField } from "./PriceField";
 import { DimensionField } from "./DimensionField";
+import { priceRangeError } from "../../utils/priceRange";
 
 export function DiscoverForm({
   initialAnswers,
   onSubmit,
   submitting = false,
+  onReset,
 }: {
   initialAnswers: RecommendationAnswers;
   onSubmit: (answers: RecommendationAnswers) => void;
   submitting?: boolean;
+  onReset?: () => void;
 }) {
   const [draft, setDraft] = useState<RecommendationAnswers>(initialAnswers);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   function update<K extends keyof RecommendationAnswers>(key: K, value: RecommendationAnswers[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -22,6 +26,9 @@ export function DiscoverForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const error = priceRangeError(draft.min_price, draft.max_price);
+    setValidationError(error);
+    if (error) return;
     onSubmit(draft);
   }
 
@@ -77,6 +84,7 @@ export function DiscoverForm({
         />
       ))}
 
+      {validationError ? <p role="alert" className="text-sm text-ink">{validationError}</p> : null}
       <button
         type="submit"
         disabled={submitting}
@@ -84,6 +92,11 @@ export function DiscoverForm({
       >
         {submitting ? "Finding wines…" : "See My Recommendations"}
       </button>
+      <button type="button" className="text-sm text-accent self-start hover:underline" onClick={() => {
+        setDraft({});
+        setValidationError(null);
+        onReset?.();
+      }}>Reset preferences</button>
     </form>
   );
 }

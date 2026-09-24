@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, beforeEach } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { WineCard } from "./WineCard";
 import type { WineListItem } from "../../types/wine";
@@ -33,6 +34,27 @@ function renderCard(wine: WineListItem, extra: { matchScore?: number; explanatio
 }
 
 describe("WineCard", () => {
+  it("replaces a broken remote image with a local placeholder", () => {
+    renderCard(baseWine);
+    fireEvent.error(screen.getByRole("img"));
+    expect(screen.getByRole("img").getAttribute("src")).toMatch(/^data:image/);
+  });
+  beforeEach(() => localStorage.clear());
+
+  it("adds a wine without following its detail link and updates other cards", async () => {
+    render(<MemoryRouter><WineCard wine={baseWine} /><WineCard wine={{ ...baseWine, id: 2, name: "Second wine" }} /></MemoryRouter>);
+    await userEvent.click(screen.getByRole("button", { name: "Add Caymus Cabernet Sauvignon to compare" }));
+    expect(screen.getByRole("button", { name: "Caymus Cabernet Sauvignon is in comparison" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Second wine to compare" })).toBeEnabled();
+    expect(localStorage.getItem("vinoscope.compare.wines")).toBe("1");
+    expect(screen.getAllByRole("heading")).toHaveLength(2);
+  });
+
+  it("explains the four-wine limit", () => {
+    localStorage.setItem("vinoscope.compare.wines", "2,3,4,5");
+    renderCard(baseWine);
+    expect(screen.getByRole("button", { name: /Comparison full/ })).toBeDisabled();
+  });
   it("renders the wine's name, winery, vintage, and price", () => {
     renderCard(baseWine);
     expect(screen.getByText("Caymus Cabernet Sauvignon")).toBeInTheDocument();

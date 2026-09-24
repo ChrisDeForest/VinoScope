@@ -28,5 +28,5 @@ def test_request_validation():
 
 def test_profile_and_explanations_use_all_selected_levels():
     assert build_profile({"sweetness": [2, 4]}, None, None, None) == ["Dry to Sweet"]
-    assert build_explanation({"sweetness": [1, 5]}, Wine(sweetness=5), None, None, None, None) == ["Very sweet"]
-    assert build_explanation({"sweetness": [1, 5]}, Wine(sweetness=3), None, None, None, None) == []
+    assert build_explanation({"sweetness": [1, 5]}, {"sweetness": 5}, None, None, None, None) == ["Very sweet"]
+    assert build_explanation({"sweetness": [1, 5]}, {"sweetness": 3}, None, None, None, None) == []

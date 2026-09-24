@@ -39,11 +39,23 @@ describe("CompareRadarChart", () => {
 
   it("does not show the missing-value caption when every wine has all five characteristics", () => {
     render(<CompareRadarChart wines={[makeWine(1), makeWine(2)]} />);
-    expect(screen.queryByText(/plotted as 0/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Not plotted/)).not.toBeInTheDocument();
   });
 
   it("shows the missing-value caption when a wine is missing a characteristic", () => {
     render(<CompareRadarChart wines={[makeWine(1, { tannin: null }), makeWine(2)]} />);
-    expect(screen.getByText(/plotted as 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Not plotted: missing Tannin/)).toBeInTheDocument();
+    expect(screen.queryByText(/plotted as 0/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the same legend color and dash for each wine after reordering", () => {
+    const wines = [makeWine(1), makeWine(2), makeWine(3)];
+    const { rerender } = render(<CompareRadarChart wines={wines} />);
+    const swatch = () => screen.getByText("Wine 1").closest("li")!.querySelector("line")!;
+    const color = swatch().getAttribute("stroke");
+    const dash = swatch().getAttribute("stroke-dasharray");
+    rerender(<CompareRadarChart wines={[wines[1], wines[2], wines[0]]} />);
+    expect(swatch().getAttribute("stroke")).toBe(color);
+    expect(swatch().getAttribute("stroke-dasharray")).toBe(dash);
   });
 });
