@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { formatPrice, formatApproxUsd, hasApproxUsdConversion, formatVintage, primaryGrapeLabel } from "./format";
+import {
+  formatPrice,
+  formatApproxUsd,
+  hasApproxUsdConversion,
+  formatVintage,
+  primaryGrapeLabel,
+  formatGrapeBreakdown,
+} from "./format";
 
 describe("formatPrice", () => {
   it("formats USD with a dollar sign", () => {
@@ -93,5 +100,28 @@ describe("primaryGrapeLabel", () => {
         { name: "Merlot", percentage: 40 },
       ])
     ).toBe("Blend");
+  });
+});
+
+describe("formatGrapeBreakdown", () => {
+  it("returns 'Not specified' for an empty list", () => {
+    expect(formatGrapeBreakdown([])).toBe("Not specified");
+  });
+
+  it("returns the bare name when percentage is null", () => {
+    expect(formatGrapeBreakdown([{ name: "Chardonnay", percentage: null }])).toBe("Chardonnay");
+  });
+
+  it("includes the percentage in parentheses when present", () => {
+    expect(formatGrapeBreakdown([{ name: "Chardonnay", percentage: 100 }])).toBe("Chardonnay (100%)");
+  });
+
+  it("joins a multi-grape blend with commas", () => {
+    expect(
+      formatGrapeBreakdown([
+        { name: "Cabernet Sauvignon", percentage: 80 },
+        { name: "Merlot", percentage: 20 },
+      ])
+    ).toBe("Cabernet Sauvignon (80%), Merlot (20%)");
   });
 });

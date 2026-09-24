@@ -1,3 +1,5 @@
+import type { Grape } from "../types/wine";
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$",
   EUR: "€",
@@ -35,4 +37,9 @@ export function primaryGrapeLabel(grapes: { name: string; percentage: number | n
   if (grapes.length === 0) return "Blend unknown";
   if (grapes.length === 1) return grapes[0].name;
   return "Blend";
+}
+
+export function formatGrapeBreakdown(grapes: Grape[]): string {
+  if (grapes.length === 0) return "Not specified";
+  return grapes.map((g) => (g.percentage === null ? g.name : `${g.name} (${g.percentage}%)`)).join(", ");
 }
