@@ -1,14 +1,5 @@
 import { StubPage } from "../components/common/StubPage";
 
-export function PairPage() {
-  return (
-    <StubPage
-      title="Pair"
-      description="Pair will help you find a wine for a specific dish — steak, seafood, pasta, dessert, and more — by turning the food into the same kind of preference vector Discover uses, then matching it against the catalog. This page doesn't have working pairing search yet."
-    />
-  );
-}
-
 export function ComparePage() {
   return (
     <StubPage
