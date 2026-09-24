@@ -38,7 +38,7 @@ Single page, no mode switch (unlike Pair's picker/results split — Compare's pi
 - New hook `hooks/useCompareSelection.ts`: wraps `useSearchParams`, exposing `selectedIds: number[]`, `addWine(id: number)`, `removeWine(id: number)`. Parses the `wines` param on read: splits on comma, drops non-numeric entries, dedupes, and keeps only the first 4 (any extra IDs in a hand-edited or old URL are silently dropped); writes back a clean comma-joined list on every change. This keeps `ComparePage` free of URL-string mechanics.
 - `ComparePage` fetches each `selectedIds` entry via `getWine`, tracked per-ID (`Map<id, { status: "loading" | "error" | "loaded"; wine?: WineDetail }>`) rather than one page-level loading flag, since one slot's fetch shouldn't block or fail the others. Uses the same request-id-guard pattern already used in `PairPage`/`ExplorePage`, keyed per wine ID, so a fast add/remove doesn't let a stale response land.
 - `WineSearchPicker` holds its own local `draft` (input value) and `submittedQuery` state; submitting (Enter or a Search button, matching `FilterDrawer`'s search field) calls `listWines({ q: submittedQuery, limit: 8 })` via `useApiQuery`. Results already in `selectedIds` are filtered out of the list so the same wine can't be added twice.
-- `utils/format.ts` gains `formatGrapeBreakdown(grapes: Grape[]): string`, returning e.g. `"Cabernet Sauvignon 80%, Merlot 20%"` (or just the name if percentage is null, or `"Blend unknown"` for an empty list) — the table needs the full blend, unlike `WineCard`'s one-word `primaryGrapeLabel`.
+- `utils/format.ts` gains `formatGrapeBreakdown(grapes: Grape[]): string`, returning e.g. `"Cabernet Sauvignon (80%), Merlot (20%)"` — same `name (percentage%)` convention `WineDetailPage` already uses inline for its own grapes section — with a bare name when percentage is null, or `"Not specified"` for an empty list (matching `WineDetailPage`'s existing empty-grapes copy). The table needs the full blend, unlike `WineCard`'s one-word `primaryGrapeLabel`.
 
 ## Component Architecture
 
@@ -74,7 +74,7 @@ frontend/src/
 Same Vitest + React Testing Library conventions as the rest of the frontend, API layer mocked at `services/api.ts`:
 
 - `useCompareSelection`: parses a `wines` param into `selectedIds`; dedupes repeated IDs; caps at 4; `addWine`/`removeWine` update the param correctly, including the no-gaps behavior on removal
-- `formatGrapeBreakdown`: single grape with/without percentage, multi-grape blend, empty list
+- `formatGrapeBreakdown`: single grape with percentage, single grape without percentage, multi-grape blend, empty list renders "Not specified"
 - `WineSearchPicker`: submitting a query fetches and lists results; already-selected wine IDs are excluded from results; selecting a result calls `onSelect` with the right ID
 - `CompareSlot`: renders wine summary; clicking remove calls `onRemove`
 - `CompareTable`: renders one column per wine with correct formatted values; a `null` characteristic renders as "Not rated" (matching `CharacteristicBar`'s existing convention)
