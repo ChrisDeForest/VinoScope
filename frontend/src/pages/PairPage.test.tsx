@@ -186,8 +186,21 @@ describe("PairPage", () => {
     const user = userEvent.setup();
     await selectFood(user, FOOD_PAIRINGS.steak.label);
 
-    await waitFor(() => expect(screen.getByText(/no wines match this pairing/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/no wines available to pair right now/i)).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: "Choose a different food" }));
     expect(screen.getByText(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
+  });
+
+  it("shows a status line naming the food while a request is in flight", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock.mockReturnValue(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await selectFood(user, FOOD_PAIRINGS.steak.label);
+
+    expect(screen.getByText(/finding wines for steak/i)).toBeInTheDocument();
+
+    pending.resolve({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
   });
 });

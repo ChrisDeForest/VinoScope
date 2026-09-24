@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, getRecommendations } from "../services/api";
 import type { RecommendationItem } from "../types/wine";
 import { WineGrid } from "../components/wine/WineGrid";
@@ -21,6 +21,12 @@ export function PairPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, []);
 
   async function fetchRecommendations(food: FoodKey, offset: number, append: boolean) {
     const requestId = ++requestIdRef.current;
@@ -79,6 +85,11 @@ export function PairPage() {
       <div className="flex flex-col gap-6">
         <h1 className="font-serif text-2xl text-ink">Pair</h1>
         {error ? <ErrorMessage message={error} onRetry={handleRetry} /> : null}
+        {loading && selectedFood ? (
+          <p className="text-sm text-ink-muted" aria-live="polite">
+            Finding wines for {FOOD_PAIRINGS[selectedFood].label}…
+          </p>
+        ) : null}
         <FoodPicker onSelect={handleSelectFood} loading={loading} />
       </div>
     );
@@ -94,13 +105,9 @@ export function PairPage() {
           Choose a different food
         </button>
       </div>
-      {loading ? (
-        <WineGrid wines={[]} skeletonCount={PAGE_SIZE} />
-      ) : error ? (
-        <ErrorMessage message={error} onRetry={handleRetry} />
-      ) : items.length === 0 ? (
+      {items.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-ink-muted mb-2">No wines match this pairing.</p>
+          <p className="text-ink-muted">No wines available to pair right now.</p>
         </div>
       ) : (
         <>

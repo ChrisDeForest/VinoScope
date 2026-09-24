@@ -1,3 +1,5 @@
+import type { RecommendationAnswers } from "../types/wine";
+
 export type FoodKey =
   | "steak"
   | "burgers"
@@ -11,13 +13,13 @@ export type FoodKey =
   | "chocolate"
   | "dessert";
 
-interface FoodVector {
-  sweetness: number[];
-  acidity: number[];
-  tannin: number[];
-  body: number[];
-  fruitiness: number[];
-}
+export type Dimension = "sweetness" | "acidity" | "tannin" | "body" | "fruitiness";
+
+// This indexed-access mapped type ties FoodVector's keys directly to
+// RecommendationAnswers's own fields: if a dimension is ever renamed there,
+// this line fails to compile instead of silently sending the old key name
+// to the backend (a plain standalone `interface FoodVector` would not catch that).
+type FoodVector = { [K in Dimension]: Extract<NonNullable<RecommendationAnswers[K]>, number[]> };
 
 interface FoodPairing {
   label: string;

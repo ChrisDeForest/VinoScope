@@ -22,7 +22,7 @@ describe("App routing", () => {
     expect(screen.getByRole("heading", { name: "Discover" })).toBeInTheDocument();
   });
 
-  it("renders the Pair stub page at /pair", () => {
+  it("renders the Pair page at /pair", () => {
     renderAt("/pair");
     expect(screen.getByRole("heading", { name: "Pair" })).toBeInTheDocument();
   });

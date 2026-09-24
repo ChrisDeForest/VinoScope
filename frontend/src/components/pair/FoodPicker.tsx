@@ -8,7 +8,7 @@ export function FoodPicker({
   loading?: boolean;
 }) {
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" aria-busy={loading}>
       {FOOD_OPTIONS.map((food) => {
         const { label, blurb } = FOOD_PAIRINGS[food];
         return (
@@ -19,8 +19,8 @@ export function FoodPicker({
             disabled={loading}
             className="text-left border border-surface-border rounded p-4 hover:border-accent disabled:opacity-50"
           >
-            <h3 className="font-serif text-base text-ink mb-1">{label}</h3>
-            <p className="text-sm text-ink-muted">{blurb}</p>
+            <span className="block font-serif text-base text-ink mb-1">{label}</span>
+            <span className="block text-sm text-ink-muted">{blurb}</span>
           </button>
         );
       })}
