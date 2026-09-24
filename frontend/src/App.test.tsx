@@ -27,7 +27,7 @@ describe("App routing", () => {
     expect(screen.getByRole("heading", { name: "Pair" })).toBeInTheDocument();
   });
 
-  it("renders the Compare stub page at /compare", () => {
+  it("renders the Compare page at /compare", () => {
     renderAt("/compare");
     expect(screen.getByRole("heading", { name: "Compare" })).toBeInTheDocument();
   });

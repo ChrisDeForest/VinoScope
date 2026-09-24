@@ -6,7 +6,8 @@ import { WineDetailPage } from "./pages/WineDetailPage";
 import { DiscoverPage } from "./pages/DiscoverPage";
 import { AdminPage } from "./pages/AdminPage";
 import { PairPage } from "./pages/PairPage";
-import { ComparePage, LearnPage } from "./pages/StubPages";
+import { ComparePage } from "./pages/ComparePage";
+import { LearnPage } from "./pages/StubPages";
 
 export function App() {
   return (
