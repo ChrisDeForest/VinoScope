@@ -1,9 +1,14 @@
+import pytest
+from PIL import Image
 import pandas as pd
 
 from scripts.process_wine_images import (
+    CANVAS_SIZE,
     MANIFEST_COLUMNS,
     build_manifest,
+    fit_on_canvas,
     has_bom,
+    process_image,
     read_wines_csv,
     set_image_urls,
     slugify,
@@ -73,3 +78,47 @@ def test_csv_round_trip_preserves_bom_state_and_blanks(tmp_path):
     assert has_bom(bom_path) is True
     assert has_bom(plain_path) is False
     assert read_wines_csv(plain_path).loc[0, "vintage"] == ""
+
+
+def _bottle_on_transparent():
+    image = Image.new("RGBA", (100, 300), (0, 0, 0, 0))
+    image.paste((150, 20, 40, 255), (25, 50, 75, 250))  # 50x200 opaque "bottle"
+    return image
+
+
+def _white_to_transparent(image):
+    rgba = image.convert("RGBA")
+    rgba.putdata([(r, g, b, 0) if (r, g, b) == (255, 255, 255) else (r, g, b, a) for r, g, b, a in rgba.getdata()])
+    return rgba
+
+
+def test_fit_on_canvas_centres_and_scales_bottle_to_height_limit():
+    result = fit_on_canvas(_bottle_on_transparent())
+    assert result.size == CANVAS_SIZE == (600, 900)
+    assert result.mode == "RGBA"
+    # scale = min(540/50, 860/200) = 4.3 -> 215x860, centred
+    assert result.getchannel("A").getbbox() == (192, 20, 407, 880)
+    assert result.getpixel((0, 0))[3] == 0
+    assert result.getpixel((300, 450))[3] == 255
+
+
+def test_fit_on_canvas_rejects_fully_transparent_image():
+    with pytest.raises(ValueError, match="transparent"):
+        fit_on_canvas(Image.new("RGBA", (10, 10), (0, 0, 0, 0)))
+
+
+def test_process_image_writes_transparent_webp(tmp_path):
+    raw = tmp_path / "bottle.jpg"
+    source = Image.new("RGB", (200, 400), (255, 255, 255))
+    source.paste((90, 10, 30), (70, 40, 130, 360))
+    source.save(raw, "PNG")  # PNG content keeps pure white exact for the stub remover
+    out = tmp_path / "out" / "bottle.webp"
+
+    process_image(raw, out, _white_to_transparent)
+
+    with Image.open(out) as written:
+        assert written.format == "WEBP"
+        assert written.size == (600, 900)
+        assert written.mode == "RGBA"
+        assert written.getpixel((5, 5))[3] == 0
+        assert written.getpixel((300, 450))[3] == 255
