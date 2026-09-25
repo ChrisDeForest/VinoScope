@@ -4,8 +4,10 @@ import sys
 import unicodedata
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from PIL import Image
+from scipy.ndimage import binary_fill_holes
 
 ROOT = Path(__file__).resolve().parent.parent
 CLEANED_CSV = ROOT / "data" / "cleaned" / "wines_combined_200_currency_audited.csv"
@@ -107,9 +109,25 @@ def fit_on_canvas(image):
     return canvas
 
 
+def fill_interior_holes(image):
+    """Opacify fully-enclosed transparent regions (e.g. a glass highlight
+    rembg punched out), leaving RGB untouched. rembg's remove() keeps the
+    original RGB under transparent pixels, so the true colour comes back
+    once alpha is restored. Regions that are still connected to the image
+    border (a notch, not a hole) are left transparent."""
+    rgba = image.convert("RGBA")
+    arr = np.array(rgba)
+    mask = arr[..., 3] > 128
+    filled = binary_fill_holes(mask)
+    holes = filled & ~mask
+    arr[..., 3] = np.where(holes, 255, arr[..., 3])
+    return Image.fromarray(arr, "RGBA")
+
+
 def process_image(raw_path, out_path, remover):
     with Image.open(raw_path) as source:
         cutout = remover(source.convert("RGBA"))
+    cutout = fill_interior_holes(cutout)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fit_on_canvas(cutout).save(out_path, "WEBP", quality=WEBP_QUALITY)
 

@@ -6,6 +6,7 @@ from scripts.process_wine_images import (
     CANVAS_SIZE,
     MANIFEST_COLUMNS,
     build_manifest,
+    fill_interior_holes,
     fit_on_canvas,
     has_bom,
     process_image,
@@ -105,6 +106,39 @@ def test_fit_on_canvas_centres_and_scales_bottle_to_height_limit():
 def test_fit_on_canvas_rejects_fully_transparent_image():
     with pytest.raises(ValueError, match="transparent"):
         fit_on_canvas(Image.new("RGBA", (10, 10), (0, 0, 0, 0)))
+
+
+def test_fit_on_canvas_ignores_faint_noise_pixel_when_centring():
+    # rembg can leave a single near-zero-alpha noise pixel at the image edge;
+    # it must not stretch the bbox and off-centre the real bottle.
+    image = _bottle_on_transparent()
+    image.putpixel((0, 0), (10, 10, 10, 5))
+    result = fit_on_canvas(image)
+    assert result.getchannel("A").getbbox() == (192, 20, 407, 880)
+
+
+def _ring_and_notch():
+    # A closed square ring with a fully-enclosed transparent hole, and a
+    # separate "U"-shaped bracket whose open side connects its interior
+    # pocket straight to the image border (not enclosed).
+    image = Image.new("RGBA", (140, 60), (0, 0, 0, 0))
+    color = (150, 20, 40, 255)
+    image.paste(color, (10, 10, 40, 40))  # opaque 30x30 frame
+    image.paste((245, 245, 230, 0), (16, 16, 34, 34))  # fully enclosed transparent hole
+    image.paste(color, (70, 5, 100, 10))  # bracket top bar
+    image.paste(color, (70, 5, 75, 60))  # bracket left bar, open bottom
+    image.paste(color, (95, 5, 100, 60))  # bracket right bar, open bottom
+    return image
+
+
+def test_fill_interior_holes_fills_fully_enclosed_transparent_region():
+    filled = fill_interior_holes(_ring_and_notch())
+    assert filled.getpixel((25, 25)) == (245, 245, 230, 255)
+
+
+def test_fill_interior_holes_leaves_notch_open_to_the_border_transparent():
+    filled = fill_interior_holes(_ring_and_notch())
+    assert filled.getpixel((85, 30))[3] == 0
 
 
 def test_process_image_writes_transparent_webp(tmp_path):
