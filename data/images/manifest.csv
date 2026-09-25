@@ -1,5 +1,5 @@
 slug,winery,name,vintage,type,source,source_url,notes
-caymus-vineyards-caymus-napa-valley-cabernet-sauvignon-2023,Caymus Vineyards,Caymus Napa Valley Cabernet Sauvignon,2023,red,,,
+caymus-vineyards-caymus-napa-valley-cabernet-sauvignon-2023,Caymus Vineyards,Caymus Napa Valley Cabernet Sauvignon,2023,red,real,https://cityhive-production-cdn.cityhive.net/product_details/698edfa3053d7f266e55e3d0/primary_image/large.png,Gary's Wine & Marketplace product photo (CityHive CDN); label matches 2023 vintage exactly.
 stag-s-leap-wine-cellars-stag-s-leap-wine-cellars-artemis-cabernet-sauvignon-2021,Stag's Leap Wine Cellars,Stag's Leap Wine Cellars Artemis Cabernet Sauvignon,2021,red,,,
 duckhorn-vineyards-duckhorn-napa-valley-cabernet-sauvignon-2022,Duckhorn Vineyards,Duckhorn Napa Valley Cabernet Sauvignon,2022,red,,,
 decoy-decoy-california-cabernet-sauvignon-2022,Decoy,Decoy California Cabernet Sauvignon,2022,red,,,
@@ -57,7 +57,7 @@ chateau-lanessan-chateau-lanessan-haut-medoc-2019,Château Lanessan,Château Lan
 maison-trimbach-trimbach-riesling-2022,Maison Trimbach,Trimbach Riesling,2022,white,,,
 hugel-hugel-classic-gewurztraminer-2022,Hugel,Hugel Classic Gewürztraminer,2022,white,,,
 lucien-albrecht-lucien-albrecht-cremant-d-alsace-brut-2022,Lucien Albrecht,Lucien Albrecht Crémant d'Alsace Brut,2022,sparkling,,,
-veuve-clicquot-veuve-clicquot-yellow-label-brut-2025,Veuve Clicquot,Veuve Clicquot Yellow Label Brut,2025,sparkling,,,
+veuve-clicquot-veuve-clicquot-yellow-label-brut-2025,Veuve Clicquot,Veuve Clicquot Yellow Label Brut,2025,sparkling,real,https://www.veuveclicquot.com/on/demandware.static/-/Sites-mh-master/default/dw3c43f571/images/large/veuve_clicquot/packshots/111111691-yellow-label-new-identity.png,"Official veuveclicquot.com product photo; NV Champagne (no vintage printed on label), manifest vintage field is not label-accurate for this NV wine."
 moet-chandon-moet-chandon-imperial-brut-2025,Moët & Chandon,Moët & Chandon Impérial Brut,2025,sparkling,,,
 marchesi-antinori-marchesi-antinori-tignanello-2021,Marchesi Antinori,Marchesi Antinori Tignanello,2021,red,,,
 marchesi-antinori-antinori-peppoli-chianti-classico-2022,Marchesi Antinori,Antinori Peppoli Chianti Classico,2022,red,,,
@@ -119,7 +119,7 @@ medici-ermete-medici-ermete-quintessenza-malvasia-spumante-sweet-nv,Medici Ermet
 riunite-riunite-lambrusco-emilia-igt-nv,Riunite,Riunite Lambrusco Emilia IGT,,sparkling,,,
 riunite-riunite-lambrusco-rose-emilia-igt-nv,Riunite,Riunite Lambrusco Rosé Emilia IGT,,sparkling,,,
 bartenura-bartenura-malvasia-nv,Bartenura,Bartenura Malvasia,,red,,,
-schloss-johannisberg-schloss-johannisberg-gelblack-riesling-feinherb-2025,Schloss Johannisberg,Schloss Johannisberg Gelblack Riesling Feinherb,2025,white,,,
+schloss-johannisberg-schloss-johannisberg-gelblack-riesling-feinherb-2025,Schloss Johannisberg,Schloss Johannisberg Gelblack Riesling Feinherb,2025,white,real,https://schloss-johannisberg.de/app/uploads/2025-Gelblack-fh_Longcap.png,"Official schloss-johannisberg.de product photo, standard 0.75L Feinherb bottle (full-size, stripped -150x415 WordPress thumbnail suffix); label shows 2025 vintage, matches."
 schloss-johannisberg-schloss-johannisberg-rotlack-riesling-kabinett-2024,Schloss Johannisberg,Schloss Johannisberg Rotlack Riesling Kabinett,2024,white,,,
 schloss-johannisberg-schloss-johannisberg-grunlack-riesling-spatlese-2023,Schloss Johannisberg,Schloss Johannisberg Grünlack Riesling Spätlese,2023,white,,,
 schloss-johannisberg-schloss-johannisberg-rosalack-riesling-auslese-2023,Schloss Johannisberg,Schloss Johannisberg Rosalack Riesling Auslese,2023,dessert,,,
@@ -139,7 +139,7 @@ willi-schaefer-willi-schaefer-graacher-himmelreich-riesling-kabinett-2025,Willi 
 willi-schaefer-willi-schaefer-graacher-domprobst-riesling-kabinett-03-2025,Willi Schaefer,Willi Schaefer Graacher Domprobst Riesling Kabinett #03,2025,white,,,
 willi-schaefer-willi-schaefer-graacher-himmelreich-riesling-spatlese-2025,Willi Schaefer,Willi Schaefer Graacher Himmelreich Riesling Spätlese,2025,white,,,
 willi-schaefer-willi-schaefer-graacher-domprobst-riesling-spatlese-05-2025,Willi Schaefer,Willi Schaefer Graacher Domprobst Riesling Spätlese #05,2025,white,,,
-chateau-d-yquem-chateau-d-yquem-2023,Château d'Yquem,Château d'Yquem,2023,dessert,,,
+chateau-d-yquem-chateau-d-yquem-2023,Château d'Yquem,Château d'Yquem,2023,dessert,real,https://2023.yquem.fr/assets/bottle-BLf0Qp8T.jpeg,"Official 2023.yquem.fr vintage microsite bottle photo; label shows 2023 vintage, matches."
 chateau-suduiraut-chateau-suduiraut-2021,Château Suduiraut,Château Suduiraut,2021,dessert,,,
 chateau-rieussec-chateau-rieussec-2021,Château Rieussec,Château Rieussec,2021,dessert,,,
 chateau-coutet-chateau-coutet-2024,Château Coutet,Château Coutet,2024,dessert,,,
@@ -159,7 +159,7 @@ inniskillin-inniskillin-riesling-icewine-vqa-nv,Inniskillin,Inniskillin Riesling
 inniskillin-inniskillin-cabernet-franc-icewine-vqa-nv,Inniskillin,Inniskillin Cabernet Franc Icewine VQA,,dessert,,,
 inniskillin-inniskillin-sparkling-cabernet-franc-icewine-vqa-nv,Inniskillin,Inniskillin Sparkling Cabernet Franc Icewine VQA,,sparkling,,,
 pillitteri-estates-winery-pillitteri-reserve-vidal-icewine-2016,Pillitteri Estates Winery,Pillitteri Reserve Vidal Icewine,2016,dessert,,,
-graham-s-graham-s-six-grapes-reserve-ruby-port-nv,Graham's,Graham's Six Grapes Reserve Ruby Port,,fortified,,,
+graham-s-graham-s-six-grapes-reserve-ruby-port-nv,Graham's,Graham's Six Grapes Reserve Ruby Port,,fortified,real,https://www.grahams-port.com/img/wine/six-grapes_img_bottle_5_1678726073.jpg,"Official grahams-port.com product photo (full-size, not the 530px thumbnail); NV as expected, no vintage on label."
 graham-s-graham-s-the-tawny-nv,Graham's,Graham's The Tawny,,fortified,,,
 graham-s-graham-s-30-years-old-tawny-port-nv,Graham's,Graham's 30 Years Old Tawny Port,,fortified,,,
 graham-s-graham-s-fine-ruby-port-nv,Graham's,Graham's Fine Ruby Port,,fortified,,,
