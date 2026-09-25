@@ -14,7 +14,7 @@ export function Finale() {
       id="all-features"
       tabIndex={-1}
       aria-labelledby="finale-title"
-      className="py-24 md:min-h-screen flex flex-col justify-center text-center focus:outline-none"
+      className="py-24 md:min-h-screen flex flex-col justify-center text-center focus:outline focus:outline-2 focus:outline-offset-4 focus:outline-accent"
     >
       <h2 id="finale-title" className="font-serif text-3xl md:text-4xl text-ink mb-10">
         Your next favorite bottle is a few clicks away.

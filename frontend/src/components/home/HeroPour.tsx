@@ -61,14 +61,19 @@ export function HeroPour() {
   const framesRef = useRef<(HTMLImageElement | null)[]>([]);
   const targetFrameRef = useRef(0);
   const drawnFrameRef = useRef(-1);
+  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [canvasReady, setCanvasReady] = useState(false);
   const [showCue, setShowCue] = useState(true);
 
   const draw = useCallback(
     (force = false) => {
       const canvas = canvasRef.current;
-      const context = canvas?.getContext("2d");
-      if (!canvas || !context) return;
+      if (!canvas) return;
+      // Cache the 2D context: it never changes for a given canvas, and draw()
+      // runs on every scroll-driven animation frame.
+      const context = contextRef.current ?? canvas.getContext("2d");
+      contextRef.current = context;
+      if (!context) return;
       const frames = framesRef.current;
       const index = nearestLoadedFrame(targetFrameRef.current, frames.map(Boolean));
       if (index === null || (!force && index === drawnFrameRef.current)) return;
@@ -119,6 +124,7 @@ export function HeroPour() {
     if (reducedMotion) return;
     let cancelled = false;
     let next = 0;
+    let shownFirstFrame = false;
     const frames: (HTMLImageElement | null)[] = new Array(HERO_FRAME_COUNT).fill(null);
     framesRef.current = frames;
 
@@ -130,7 +136,14 @@ export function HeroPour() {
       image.onload = () => {
         if (cancelled) return;
         frames[index] = image;
-        if (index === 0 && canvasRef.current?.getContext("2d")) setCanvasReady(true);
+        // Reveal the canvas once the first frame to actually load has
+        // decoded, not specifically frame 0 — if frame 0's request fails,
+        // later frames still load and draw, and the canvas should still
+        // replace the poster instead of staying hidden forever.
+        if (!shownFirstFrame && canvasRef.current?.getContext("2d")) {
+          shownFirstFrame = true;
+          setCanvasReady(true);
+        }
         draw();
         loadNext();
       };
