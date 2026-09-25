@@ -25,7 +25,7 @@
 
 | File | Status | Responsibility |
 |---|---|---|
-| `frontend/public/hero/{desktop,mobile}/*` | Modify (re-export) | 65-frame WebP sequences + posters |
+| `frontend/public/hero/{desktop,mobile}/*` | Modify (re-export) | 64-frame WebP sequences + posters |
 | `frontend/src/utils/frameSequence.ts` (+ test) | Create | Frame math: set choice, URLs, progress→index, nearest loaded, canvas placement |
 | `frontend/src/hooks/usePrefersReducedMotion.ts` (+ test) | Create | Reduced-motion media query state |
 | `frontend/src/hooks/useInView.ts` (+ test) | Create | One-shot viewport entry detection |
@@ -61,7 +61,7 @@
   - `type FrameSet = "desktop" | "mobile"`
   - `type FramePlacement = "cover" | "fit-width-bottom"`
   - `interface FrameRect { x: number; y: number; width: number; height: number }`
-  - `const HERO_FRAME_COUNT: number` (65 unless Step 1 reports a different count)
+  - `const HERO_FRAME_COUNT: number` (64, the shipped re-exported frame count)
   - `const MOBILE_MAX_WIDTH = 768`
   - `frameSetForWidth(width: number): FrameSet`
   - `frameUrl(set: FrameSet, index: number): string` — `index` is 0-based
@@ -92,7 +92,7 @@ echo "desktop: $(ls desktop/frame-*.webp | wc -l) frames, $(du -sh desktop | cut
 echo "mobile:  $(ls mobile/frame-*.webp | wc -l) frames, $(du -sh mobile | cut -f1)"
 ```
 
-Expected: both sets report the same count (64 or 65); desktop ≈ 1.3 MB, mobile ≤ 1.2 MB. Use the reported count as `HERO_FRAME_COUNT` in Step 3. If the counts differ, delete the extra trailing frame from the larger set so they match.
+Expected: both sets report the same count (64); desktop ≈ 1.2 MB, mobile ≈ 1.1 MB. Use the reported count as `HERO_FRAME_COUNT` in Step 3. If the counts differ, delete the extra trailing frame from the larger set so they match. To regenerate later, use `frontend/scripts/build-hero-frames.sh` instead of the ad hoc commands below.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -124,7 +124,7 @@ describe("frameSetForWidth", () => {
 describe("frameUrl / posterUrl", () => {
   it("builds 1-based, zero-padded frame paths from a 0-based index", () => {
     expect(frameUrl("desktop", 0)).toBe("/hero/desktop/frame-001.webp");
-    expect(frameUrl("mobile", 64)).toBe("/hero/mobile/frame-065.webp");
+    expect(frameUrl("mobile", 63)).toBe("/hero/mobile/frame-064.webp");
   });
 
   it("builds poster paths", () => {
@@ -135,19 +135,19 @@ describe("frameUrl / posterUrl", () => {
 
 describe("frameIndexForProgress", () => {
   it("maps 0 and 1 to the first and last frame", () => {
-    expect(frameIndexForProgress(0, 65)).toBe(0);
-    expect(frameIndexForProgress(1, 65)).toBe(64);
+    expect(frameIndexForProgress(0, 64)).toBe(0);
+    expect(frameIndexForProgress(1, 64)).toBe(63);
   });
 
   it("rounds to the nearest frame", () => {
-    expect(frameIndexForProgress(0.5, 65)).toBe(32);
+    expect(frameIndexForProgress(0.5, 64)).toBe(32);
     expect(frameIndexForProgress(0.51, 11)).toBe(5);
   });
 
   it("clamps out-of-range and non-finite progress", () => {
-    expect(frameIndexForProgress(-0.3, 65)).toBe(0);
-    expect(frameIndexForProgress(1.7, 65)).toBe(64);
-    expect(frameIndexForProgress(Number.NaN, 65)).toBe(0);
+    expect(frameIndexForProgress(-0.3, 64)).toBe(0);
+    expect(frameIndexForProgress(1.7, 64)).toBe(63);
+    expect(frameIndexForProgress(Number.NaN, 64)).toBe(0);
   });
 
   it("returns 0 when there are no frames", () => {
@@ -195,7 +195,7 @@ Expected: FAIL — cannot resolve `./frameSequence`.
 
 - [ ] **Step 4: Write the implementation**
 
-`frontend/src/utils/frameSequence.ts` (set `HERO_FRAME_COUNT` to the count from Step 1):
+`frontend/src/utils/frameSequence.ts` (`HERO_FRAME_COUNT` is the count from Step 1, 64):
 
 ```ts
 export type FrameSet = "desktop" | "mobile";
@@ -208,7 +208,7 @@ export interface FrameRect {
   height: number;
 }
 
-export const HERO_FRAME_COUNT = 65;
+export const HERO_FRAME_COUNT = 64;
 export const MOBILE_MAX_WIDTH = 768;
 
 export function frameSetForWidth(width: number): FrameSet {

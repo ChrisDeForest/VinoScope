@@ -36,10 +36,14 @@ bottle lip, bottom fade hides a table seam, oval vignette to black).
 | `hero/mobile/frame-001.webp` … `frame-097.webp` | 540×720 (3:4 crop around the glass) | 1.6 MB |
 | `hero/mobile/poster.webp` | copy of frame 1 | — |
 
-**Required asset change:** re-export **both** sets at 8 fps (65 frames each; mobile ≈ 1.1 MB,
-desktop ≈ 1.3 MB) so the mobile set is under ~1.2 MB and both sets share one frame count
-(`HERO_FRAME_COUNT = 65`). The treated source clip lives outside the repo (scratchpad); if it is unavailable,
-subsample the existing mobile frames instead (keep 2 of every 3 frames, 97 → 65).
+**Required asset change:** re-export **both** sets at 8 fps (64 frames each; mobile ≈ 1.1 MB,
+desktop ≈ 1.2 MB) so the mobile set is under ~1.2 MB and both sets share one frame count
+(`HERO_FRAME_COUNT = 64`). The treated source clip lives outside the repo (scratchpad); if it is unavailable,
+subsample the existing mobile frames instead (keep 2 of every 3 frames, 97 → 64).
+
+To regenerate both frame sets from a source clip, use `frontend/scripts/build-hero-frames.sh`,
+which normalizes the source, masks and crops it, exports both sets from the same treated
+timeline, and asserts their frame counts match before publishing.
 
 ## Architecture
 
