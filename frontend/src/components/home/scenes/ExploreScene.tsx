@@ -50,11 +50,16 @@ function ExploreArt() {
 function WineRows({ state }: { state: WinesState }) {
   if (state.status === "loading") {
     return (
-      <ul className="grid gap-2 mb-6" aria-busy="true">
-        {Array.from({ length: SAMPLE_SIZE }, (_, i) => (
-          <li key={i} data-testid="wine-skeleton" className="h-14 rounded border border-surface-border" />
-        ))}
-      </ul>
+      <>
+        <p role="status" className="sr-only">
+          Loading wines…
+        </p>
+        <ul className="grid gap-2 mb-6" aria-busy="true" aria-hidden="true">
+          {Array.from({ length: SAMPLE_SIZE }, (_, i) => (
+            <li key={i} data-testid="wine-skeleton" className="h-14 rounded border border-surface-border" />
+          ))}
+        </ul>
+      </>
     );
   }
 

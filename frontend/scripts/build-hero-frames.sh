@@ -39,6 +39,15 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+is_uint() { [[ "$1" =~ ^[0-9]+$ ]]; }
+
+# --crop-x must land the 540px-wide mobile crop inside the normalised
+# 1280px-wide frame (1280 - 540 = 740), or ffmpeg fails with an opaque crop
+# error deep inside export_set.
+is_uint "$CROP_X" && [ "$CROP_X" -le 740 ] || { echo "--crop-x must be an integer between 0 and 740 (got: $CROP_X)" >&2; exit 1; }
+is_uint "$FPS" && [ "$FPS" -ge 1 ] || { echo "--fps must be a positive integer (got: $FPS)" >&2; exit 1; }
+is_uint "$QUALITY" && [ "$QUALITY" -ge 1 ] && [ "$QUALITY" -le 100 ] || { echo "--quality must be a positive integer no greater than 100 (got: $QUALITY)" >&2; exit 1; }
+
 [ -f "$CLIP" ] || { echo "Clip not found: $CLIP" >&2; exit 1; }
 command -v ffmpeg >/dev/null || { echo "ffmpeg is not on PATH" >&2; exit 1; }
 

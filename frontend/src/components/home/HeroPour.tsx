@@ -35,11 +35,13 @@ function HeroCopy({ showCue }: { showCue: boolean }) {
           Explore Wines
         </Link>
       </div>
-      {showCue && (
-        <p aria-hidden="true" className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.2em] text-cellar-muted">
-          Scroll
-        </p>
-      )}
+      <p
+        aria-hidden="true"
+        data-testid="scroll-cue"
+        className={`absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.2em] text-cellar-muted transition-opacity duration-300 ${showCue ? "opacity-100" : "opacity-0"}`}
+      >
+        Scroll
+      </p>
     </div>
   );
 }
@@ -84,8 +86,14 @@ export function HeroPour() {
       const canvas = canvasRef.current;
       if (!canvas) return;
       // Cache the 2D context: it never changes for a given canvas, and draw()
-      // runs on every scroll-driven animation frame.
-      const context = contextRef.current ?? canvas.getContext("2d");
+      // runs on every scroll-driven animation frame. Re-acquire it whenever
+      // the canvas element itself has changed (e.g. reduced motion toggled
+      // off and on, remounting a fresh <canvas>), since a cached context tied
+      // to a detached canvas would silently paint nothing visible.
+      const context =
+        contextRef.current && contextRef.current.canvas === canvas
+          ? contextRef.current
+          : canvas.getContext("2d");
       contextRef.current = context;
       if (!context) return;
       const frames = framesRef.current;
@@ -168,6 +176,12 @@ export function HeroPour() {
     for (let i = 0; i < PRELOAD_CONCURRENCY; i++) loadNext();
     return () => {
       cancelled = true;
+      // Reset the reveal/draw state so a later remount (e.g. reduced motion
+      // toggling off after having been turned on) starts clean instead of
+      // reusing a context/frame index tied to a now-detached canvas.
+      setCanvasReady(false);
+      drawnFrameRef.current = -1;
+      contextRef.current = null;
     };
   }, [reducedMotion, frameSet, draw]);
 

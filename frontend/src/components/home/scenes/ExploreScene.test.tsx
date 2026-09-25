@@ -58,6 +58,14 @@ describe("ExploreScene", () => {
     expect(screen.getAllByTestId("wine-skeleton")).toHaveLength(3);
   });
 
+  it("hides the skeleton list from assistive tech and announces loading via an sr-only status", () => {
+    vi.mocked(api.listWines).mockReturnValue(new Promise(() => {}));
+    const { container } = renderScene();
+    const skeletonList = container.querySelector('[aria-busy="true"]');
+    expect(skeletonList).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading wines…");
+  });
+
   it("shows up to three linked wines with type, country, and price", async () => {
     vi.mocked(api.listWines).mockResolvedValue({
       total: 4,
