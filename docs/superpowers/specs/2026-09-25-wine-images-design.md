@@ -21,8 +21,13 @@ Two further constraints came out of investigation:
 1. **Real bottle photos first, AI fallback.** For each wine, find the
    producer's bottle shot, download it, and visually verify it (label
    matches, standard bottle size — half-bottle acceptable for dessert).
-   Wines with no findable photo get a FLUX.2 Pro 1k image (unlimited on the
-   Higgsfield plan, `use_unlim: true`).
+   The label must match producer and cuvée, and should show the vintage on
+   record. When no photo of that exact vintage exists online, use the
+   nearest vintage and record the label's year in the manifest `notes`
+   (decided 2026-09-25 after an exact-vintage pass: 11 re-sourced, 18 kept).
+   Wines with no findable photo get a FLUX.2 Pro 1k image. Unlimited mode was
+   unavailable on 2026-09-25, so the 4 fallbacks were paid (1 credit each,
+   approved by the user).
 2. **AI fallbacks never fake a label.** Prompt for the correct bottle shape
    and wine colour for the type (Bordeaux for red/white, flute-style
    sparkling bottle, slim half-bottle for dessert, Port-style for
