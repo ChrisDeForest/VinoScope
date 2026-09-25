@@ -147,6 +147,10 @@ Rules of thumb:
 
 ### Post-processing (ask Claude to do this)
 
+**Now scripted:** `frontend/scripts/build-hero-frames.sh <clip.mp4>` does the edge treatment,
+exports both frame sets and posters, and prints the new `HERO_FRAME_COUNT`. Use `--crop-x` for a
+clip framed differently and `--no-treat` for an already-clean clip. The notes below explain why.
+
 Scrubbing an MP4 by setting `video.currentTime` stutters on most browsers. Smooth scroll-scrub
 needs an **image sequence drawn to a canvas**:
 
