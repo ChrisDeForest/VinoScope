@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, NavLink } from "react-router-dom";
 import { Header } from "./Header";
+import { stubMatchMedia } from "../../test/stubs";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function renderHeader(props?: { overlay?: boolean; fixed?: boolean }) {
   return render(
@@ -105,6 +110,67 @@ describe("Header", () => {
       const panel = document.getElementById(controlsId as string) as HTMLElement;
       await user.click(within(panel).getByRole("link", { name: "Explore" }));
       expect(button).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("has a menu button sized and styled for a visible focus ring (M5)", () => {
+      renderHeader();
+      const button = screen.getByRole("button", { name: "Menu" });
+      expect(button).toHaveClass("p-2", "focus-visible:outline", "focus-visible:outline-2");
+    });
+
+    it("renders the panel (hidden) even when closed, so aria-controls always points at a real element", () => {
+      renderHeader();
+      const button = screen.getByRole("button", { name: "Menu" });
+      const controlsId = button.getAttribute("aria-controls") as string;
+      expect(controlsId).toBeTruthy();
+      const panel = document.getElementById(controlsId);
+      expect(panel).not.toBeNull();
+      expect(panel).toHaveAttribute("hidden");
+    });
+
+    it("gives the open panel a solid background over the hero, and treats the header as non-overlay (I1)", async () => {
+      const user = userEvent.setup();
+      renderHeader({ fixed: true, overlay: true });
+      const header = screen.getByRole("banner");
+      expect(header).not.toHaveClass("border-b");
+
+      await user.click(screen.getByRole("button", { name: "Menu" }));
+
+      expect(header).toHaveClass("bg-surface", "border-b");
+      const controlsId = screen.getByRole("button", { name: "Menu" }).getAttribute("aria-controls") as string;
+      const panel = document.getElementById(controlsId) as HTMLElement;
+      expect(panel).not.toHaveAttribute("hidden");
+      expect(panel).toHaveClass("bg-surface");
+    });
+
+    it("closes the panel when the viewport crosses to >= 768px (M3)", async () => {
+      const emit = stubMatchMedia({ matches: () => false });
+      const user = userEvent.setup();
+      renderHeader();
+      const button = screen.getByRole("button", { name: "Menu" });
+      await user.click(button);
+      expect(button).toHaveAttribute("aria-expanded", "true");
+
+      act(() => emit(true));
+
+      expect(button).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("returns focus to the Menu button when Escape closes the panel while focus was inside it (I3)", async () => {
+      const user = userEvent.setup();
+      renderHeader();
+      const button = screen.getByRole("button", { name: "Menu" });
+      await user.click(button);
+      const controlsId = button.getAttribute("aria-controls") as string;
+      const panel = document.getElementById(controlsId) as HTMLElement;
+      const link = within(panel).getByRole("link", { name: "Explore" });
+      link.focus();
+      expect(link).toHaveFocus();
+
+      await user.keyboard("{Escape}");
+
+      expect(button).toHaveAttribute("aria-expanded", "false");
+      expect(button).toHaveFocus();
     });
 
     it("closes on route change", async () => {

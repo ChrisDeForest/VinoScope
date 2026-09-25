@@ -48,7 +48,7 @@ beforeEach(() => {
   // "fully scrolled past" (top <= 0 with no range) and would hide the cue
   // before the first paint. Stub a plausible unscrolled, taller-than-viewport
   // rect so the mount-time progress read is 0, as it would be in a real
-  // browser for a freshly loaded 250vh section.
+  // browser for a freshly loaded 200vh section.
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ top: 0, height: 2000 } as DOMRect);
 });
 
