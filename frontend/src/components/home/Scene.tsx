@@ -4,6 +4,9 @@ import { useInView } from "../../hooks/useInView";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import "./home.css";
 
+// Let a scene settle on screen before it animates, so the motion isn't over before the eye arrives.
+export const SCENE_REVEAL_DELAY_MS = 400;
+
 interface SceneProps {
   id: string;
   index: number;
@@ -17,7 +20,7 @@ interface SceneProps {
 export function Scene({ id, index, label, title, side, art, children }: SceneProps) {
   const ref = useRef<HTMLElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const inView = useInView(ref);
+  const inView = useInView(ref, { delayMs: SCENE_REVEAL_DELAY_MS });
   const titleId = `${id}-title`;
 
   const classes = ["scene grid items-center gap-10 py-16 md:py-24 md:grid-cols-2"];

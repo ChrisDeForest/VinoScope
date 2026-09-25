@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { Scene, SceneCta } from "./Scene";
+import { Scene, SceneCta, SCENE_REVEAL_DELAY_MS } from "./Scene";
 import { stubMatchMedia, stubIntersectionObserver } from "../../test/stubs";
 
 afterEach(() => {
@@ -34,15 +34,22 @@ describe("Scene", () => {
     expect(screen.getByTestId("scene-art")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("adds is-visible once the scene intersects the viewport", () => {
-    stubMatchMedia({ reducedMotion: false });
-    const { fire } = stubIntersectionObserver();
-    renderScene();
-    const section = screen.getByRole("region", { name: "Find your wine profile." });
-    expect(section).toHaveClass("scene-animate");
-    expect(section).not.toHaveClass("is-visible");
-    fire(0, true);
-    expect(section).toHaveClass("is-visible");
+  it("adds is-visible a short delay after the scene intersects the viewport", () => {
+    vi.useFakeTimers();
+    try {
+      stubMatchMedia({ reducedMotion: false });
+      const { fire } = stubIntersectionObserver();
+      renderScene();
+      const section = screen.getByRole("region", { name: "Find your wine profile." });
+      expect(section).toHaveClass("scene-animate");
+      expect(section).not.toHaveClass("is-visible");
+      fire(0, true);
+      expect(section).not.toHaveClass("is-visible");
+      act(() => vi.advanceTimersByTime(SCENE_REVEAL_DELAY_MS));
+      expect(section).toHaveClass("is-visible");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("omits scene-animate under reduced motion so the final state renders", () => {
