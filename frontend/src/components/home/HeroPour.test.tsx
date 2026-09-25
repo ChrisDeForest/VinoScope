@@ -2,40 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HeroPour } from "./HeroPour";
-
-function stubConnection(value: unknown) {
-  Object.defineProperty(navigator, "connection", { value, configurable: true });
-}
-
-function stubReducedMotion(reduced: boolean) {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((media: string) => ({
-      matches: reduced,
-      media,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-  );
-}
-
-// Like stubReducedMotion, but captures the "change" listener so a test can
-// drive a live toggle the way a real matchMedia would fire it.
-function stubReducedMotionListener(initial: boolean) {
-  let listener: ((event: { matches: boolean }) => void) | null = null;
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((media: string) => ({
-      matches: initial,
-      media,
-      addEventListener: (_type: string, handler: (event: { matches: boolean }) => void) => {
-        listener = handler;
-      },
-      removeEventListener: vi.fn(),
-    }))
-  );
-  return (next: boolean) => listener?.({ matches: next });
-}
+import { stubMatchMedia, stubConnection, restoreConnection } from "../../test/stubs";
 
 // A minimal stand-in for HTMLImageElement that fires `onload` synchronously
 // as soon as `src` is set, so preload effects resolve within the same act().
@@ -88,13 +55,12 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  // @ts-expect-error -- test-only cleanup of a non-standard navigator property
-  delete navigator.connection;
+  restoreConnection();
 });
 
 describe("HeroPour", () => {
   it("renders the headline, the Explore CTA, and a described media layer", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     renderHero();
     expect(screen.getByRole("heading", { level: 1, name: "Find a wine you'll actually enjoy." })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Explore Wines" })).toHaveAttribute("href", "/explore");
@@ -102,7 +68,7 @@ describe("HeroPour", () => {
   });
 
   it("with motion allowed, renders a pinned canvas stage and a visible scroll cue", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     const { container } = renderHero();
     expect(container.querySelector("canvas")).not.toBeNull();
     expect(container.querySelector(".sticky")).not.toBeNull();
@@ -113,14 +79,14 @@ describe("HeroPour", () => {
   });
 
   it("uses the desktop poster at desktop widths", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector('img[src="/hero/desktop/poster.webp"]')).not.toBeNull();
   });
 
   it("uses the 1440p poster, drawn as cover, on large high-resolution displays", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 2560);
     vi.stubGlobal("innerHeight", 1440);
     const { container } = renderHero();
@@ -131,7 +97,7 @@ describe("HeroPour", () => {
   });
 
   it("uses the 1440p poster on retina laptops", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     vi.stubGlobal("innerHeight", 900);
     vi.stubGlobal("devicePixelRatio", 2);
@@ -140,28 +106,28 @@ describe("HeroPour", () => {
   });
 
   it("uses the mobile poster at phone widths", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 375);
     const { container } = renderHero();
     expect(container.querySelector('img[src="/hero/mobile/poster.webp"]')).not.toBeNull();
   });
 
   it("renders the mobile seam-fade overlay at phone widths but not at desktop widths", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 375);
     const { container } = renderHero();
     expect(container.querySelector('[data-testid="mobile-seam-fade"]')).not.toBeNull();
   });
 
   it("does not render the mobile seam-fade overlay at desktop widths", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector('[data-testid="mobile-seam-fade"]')).toBeNull();
   });
 
   it("with reduced motion, renders the static full-glass still: no canvas, no pin, cue hidden", () => {
-    stubReducedMotion(true);
+    stubMatchMedia({ reducedMotion: true });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector("canvas")).toBeNull();
@@ -174,7 +140,7 @@ describe("HeroPour", () => {
   });
 
   it("with reduced motion, uses 100svh for the static hero band", () => {
-    stubReducedMotion(true);
+    stubMatchMedia({ reducedMotion: true });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector("section.h-\\[100svh\\]")).not.toBeNull();
@@ -183,7 +149,7 @@ describe("HeroPour", () => {
   it("with reduced motion, never constructs an Image (no frame preloading)", () => {
     const ImageSpy = vi.fn();
     vi.stubGlobal("Image", ImageSpy);
-    stubReducedMotion(true);
+    stubMatchMedia({ reducedMotion: true });
     vi.stubGlobal("innerWidth", 1440);
     renderHero();
     expect(ImageSpy).not.toHaveBeenCalled();
@@ -193,7 +159,7 @@ describe("HeroPour", () => {
     const ImageSpy = vi.fn();
     vi.stubGlobal("Image", ImageSpy);
     stubConnection({ saveData: true, effectiveType: "4g" });
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector("canvas")).toBeNull();
@@ -204,7 +170,7 @@ describe("HeroPour", () => {
 
   it("with a slow effective connection type and motion otherwise allowed, renders the static variant", () => {
     stubConnection({ saveData: false, effectiveType: "2g" });
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector("canvas")).toBeNull();
@@ -212,7 +178,7 @@ describe("HeroPour", () => {
   });
 
   it("with motion allowed, the outer section is 200vh and the sticky stage is 100svh", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
     expect(container.querySelector("section.h-\\[200vh\\]")).not.toBeNull();
@@ -220,7 +186,7 @@ describe("HeroPour", () => {
   });
 
   it("with motion allowed, renders the scroll sentinel right after the hero section", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     const { container } = renderHero();
     const section = container.querySelector("section");
     const sentinel = container.querySelector("#hero-end");
@@ -230,7 +196,7 @@ describe("HeroPour", () => {
   });
 
   it("with reduced motion, also renders the scroll sentinel right after the hero section", () => {
-    stubReducedMotion(true);
+    stubMatchMedia({ reducedMotion: true });
     const { container } = renderHero();
     const section = container.querySelector("section");
     const sentinel = container.querySelector("#hero-end");
@@ -239,7 +205,7 @@ describe("HeroPour", () => {
   });
 
   it("uses pt-24 for the mobile copy padding (one-row header)", () => {
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     const { container } = renderHero();
     expect(container.querySelector(".pt-24")).not.toBeNull();
     expect(container.querySelector(".pt-40")).toBeNull();
@@ -253,7 +219,7 @@ describe("HeroPour", () => {
       return ctx as unknown as CanvasRenderingContext2D;
     });
     vi.stubGlobal("Image", FakeImage);
-    stubReducedMotion(false);
+    stubMatchMedia({ reducedMotion: false });
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
 
@@ -274,7 +240,7 @@ describe("HeroPour", () => {
     });
     vi.stubGlobal("Image", FakeImage);
     vi.stubGlobal("innerWidth", 1440);
-    const emit = stubReducedMotionListener(false);
+    const emit = stubMatchMedia({ reducedMotion: false });
     const { container } = renderHero();
 
     // Initial mount: canvas present and revealed once a frame loads.

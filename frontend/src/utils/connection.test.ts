@@ -1,13 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { prefersLightweightMedia } from "./connection";
-
-function stubConnection(value: unknown) {
-  Object.defineProperty(navigator, "connection", { value, configurable: true });
-}
+import { stubConnection, restoreConnection } from "../test/stubs";
 
 afterEach(() => {
-  // @ts-expect-error -- test-only cleanup of a non-standard navigator property
-  delete navigator.connection;
+  restoreConnection();
 });
 
 describe("prefersLightweightMedia", () => {

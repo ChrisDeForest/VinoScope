@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
 import * as api from "./services/api";
+import { stubMatchMedia } from "./test/stubs";
 
 vi.mock("./services/api", async () => {
   const actual = await vi.importActual<typeof import("./services/api")>("./services/api");
@@ -11,15 +12,7 @@ vi.mock("./services/api", async () => {
 
 beforeEach(() => {
   vi.mocked(api.listWines).mockResolvedValue({ total: 0, items: [] });
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((media: string) => ({
-      matches: media === "(prefers-reduced-motion: reduce)",
-      media,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-  );
+  stubMatchMedia({ matches: (media) => media === "(prefers-reduced-motion: reduce)" });
 });
 
 afterEach(() => {

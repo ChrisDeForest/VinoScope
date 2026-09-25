@@ -1,34 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { PageShell } from "./PageShell";
-
-function stubIntersectionObserver() {
-  const instances: { callback: IntersectionObserverCallback }[] = [];
-  class FakeObserver {
-    callback: IntersectionObserverCallback;
-    constructor(callback: IntersectionObserverCallback) {
-      this.callback = callback;
-      instances.push(this);
-    }
-    observe = vi.fn();
-    unobserve = vi.fn();
-    disconnect = vi.fn();
-    takeRecords = vi.fn(() => []);
-  }
-  vi.stubGlobal("IntersectionObserver", FakeObserver);
-  return instances;
-}
-
-function fire(instance: { callback: IntersectionObserverCallback }, entry: { top: number; isIntersecting: boolean }) {
-  act(() => {
-    instance.callback(
-      [{ boundingClientRect: { top: entry.top } as DOMRect, isIntersecting: entry.isIntersecting } as IntersectionObserverEntry],
-      {} as IntersectionObserver
-    );
-  });
-}
+import { stubIntersectionObserver } from "../../test/stubs";
 
 function renderAt(path: string, children: ReactNode = <p>Page content</p>) {
   return render(
@@ -64,23 +39,23 @@ describe("PageShell", () => {
   });
 
   it("flips the header from overlay to solid once the hero sentinel has scrolled past the top", () => {
-    const instances = stubIntersectionObserver();
+    const { fire } = stubIntersectionObserver();
     renderAt("/", <div id="hero-end" aria-hidden="true" />);
     const header = screen.getByRole("banner");
     expect(header).toHaveClass("fixed");
     expect(header).not.toHaveClass("border-b");
 
-    fire(instances[0], { top: -50, isIntersecting: false });
+    fire(0, false, -50);
     expect(header).toHaveClass("fixed", "border-b");
   });
 
   it("stays fixed but goes back to overlay if the sentinel scrolls back into view", () => {
-    const instances = stubIntersectionObserver();
+    const { fire } = stubIntersectionObserver();
     renderAt("/", <div id="hero-end" aria-hidden="true" />);
-    fire(instances[0], { top: -50, isIntersecting: false });
+    fire(0, false, -50);
     expect(screen.getByRole("banner")).toHaveClass("border-b");
 
-    fire(instances[0], { top: 100, isIntersecting: true });
+    fire(0, true, 100);
     const header = screen.getByRole("banner");
     expect(header).toHaveClass("fixed");
     expect(header).not.toHaveClass("border-b");

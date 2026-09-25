@@ -1,38 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Scene, SceneCta } from "./Scene";
+import { stubMatchMedia, stubIntersectionObserver } from "../../test/stubs";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
-
-function stubReducedMotion(reduced: boolean) {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((media: string) => ({
-      matches: reduced,
-      media,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-  );
-}
-
-function stubIntersectionObserver() {
-  const callbacks: IntersectionObserverCallback[] = [];
-  class FakeObserver {
-    constructor(callback: IntersectionObserverCallback) {
-      callbacks.push(callback);
-    }
-    observe = vi.fn();
-    unobserve = vi.fn();
-    disconnect = vi.fn();
-    takeRecords = vi.fn(() => []);
-  }
-  vi.stubGlobal("IntersectionObserver", FakeObserver);
-  return callbacks;
-}
 
 function renderScene(side: "left" | "right" = "left") {
   return render(
@@ -61,20 +35,18 @@ describe("Scene", () => {
   });
 
   it("adds is-visible once the scene intersects the viewport", () => {
-    stubReducedMotion(false);
-    const callbacks = stubIntersectionObserver();
+    stubMatchMedia({ reducedMotion: false });
+    const { fire } = stubIntersectionObserver();
     renderScene();
     const section = screen.getByRole("region", { name: "Find your wine profile." });
     expect(section).toHaveClass("scene-animate");
     expect(section).not.toHaveClass("is-visible");
-    act(() => {
-      callbacks[0]([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
-    });
+    fire(0, true);
     expect(section).toHaveClass("is-visible");
   });
 
   it("omits scene-animate under reduced motion so the final state renders", () => {
-    stubReducedMotion(true);
+    stubMatchMedia({ reducedMotion: true });
     stubIntersectionObserver();
     renderScene();
     expect(screen.getByRole("region", { name: "Find your wine profile." })).not.toHaveClass("scene-animate");
