@@ -70,6 +70,20 @@ describe("HeroPour", () => {
     expect(container.querySelector('img[src="/hero/mobile/poster.webp"]')).not.toBeNull();
   });
 
+  it("renders the mobile seam-fade overlay at phone widths but not at desktop widths", () => {
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 375);
+    const { container } = renderHero();
+    expect(container.querySelector('[data-testid="mobile-seam-fade"]')).not.toBeNull();
+  });
+
+  it("does not render the mobile seam-fade overlay at desktop widths", () => {
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 1440);
+    const { container } = renderHero();
+    expect(container.querySelector('[data-testid="mobile-seam-fade"]')).toBeNull();
+  });
+
   it("with reduced motion, renders only the poster: no canvas, no pin, no cue", () => {
     stubReducedMotion(true);
     vi.stubGlobal("innerWidth", 1440);

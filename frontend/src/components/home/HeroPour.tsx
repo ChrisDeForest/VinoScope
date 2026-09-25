@@ -52,6 +52,20 @@ const CELLAR_FADE = (
   <div aria-hidden="true" className="h-[30vh] bg-gradient-to-b from-cellar-bg to-surface" />
 );
 
+// The mobile frame set is placed "fit-width-bottom": full width, anchored to
+// the viewport bottom (aspect-[3/4] mirrors that geometry, since height =
+// width * 4/3). The frame's own background near its top edge is a slightly
+// lighter burgundy than the cellar band above it, so without this the frame's
+// top edge shows as a hard seam. This fades the band color down over the
+// frame's top quarter so the transition reads as continuous instead.
+const MOBILE_SEAM_FADE = (
+  <div
+    aria-hidden="true"
+    data-testid="mobile-seam-fade"
+    className="pointer-events-none absolute inset-x-0 bottom-0 aspect-[3/4] w-full bg-gradient-to-b from-cellar-bg from-0% via-transparent via-25% to-transparent"
+  />
+);
+
 export function HeroPour() {
   const reducedMotion = usePrefersReducedMotion();
   // Chosen once so a resize never triggers a second download of the other set.
@@ -167,6 +181,7 @@ export function HeroPour() {
         <section aria-labelledby="hero-title" className="relative h-screen overflow-hidden bg-cellar-bg">
           <div role="img" aria-label={MEDIA_LABEL} className="absolute inset-0">
             {poster}
+            {frameSet === "mobile" && MOBILE_SEAM_FADE}
           </div>
           <HeroCopy showCue={false} />
         </section>
@@ -186,6 +201,7 @@ export function HeroPour() {
               aria-hidden="true"
               className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${canvasReady ? "opacity-100" : "opacity-0"}`}
             />
+            {frameSet === "mobile" && MOBILE_SEAM_FADE}
           </div>
           <HeroCopy showCue={showCue} />
         </div>
