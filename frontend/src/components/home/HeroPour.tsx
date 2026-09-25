@@ -1,0 +1,183 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { useScrollProgress } from "../../hooks/useScrollProgress";
+import {
+  HERO_FRAME_COUNT,
+  frameIndexForProgress,
+  frameSetForWidth,
+  frameUrl,
+  nearestLoadedFrame,
+  placeFrame,
+  posterUrl,
+  type FrameSet,
+} from "../../utils/frameSequence";
+
+const PRELOAD_CONCURRENCY = 8;
+const CUE_HIDE_PROGRESS = 0.05;
+const MAX_PIXEL_RATIO = 2;
+const MEDIA_LABEL = "Red wine being poured into a glass";
+
+function HeroCopy({ showCue }: { showCue: boolean }) {
+  return (
+    <div className="relative z-10 h-full max-w-6xl mx-auto px-4 pt-24 flex flex-col justify-start md:pt-0 md:justify-center">
+      <div className="max-w-md">
+        <h1 id="hero-title" className="font-serif text-4xl md:text-5xl text-cellar-ink mb-4">
+          Find a wine you'll actually enjoy.
+        </h1>
+        <p className="text-cellar-muted mb-6">
+          Browse a real catalog by type, country, grape, and price — then let VinoScope help you choose.
+        </p>
+        <Link
+          to="/explore"
+          className="inline-block bg-accent text-surface font-semibold px-6 py-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cellar-ink"
+        >
+          Explore Wines
+        </Link>
+      </div>
+      {showCue && (
+        <p aria-hidden="true" className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.2em] text-cellar-muted">
+          Scroll
+        </p>
+      )}
+    </div>
+  );
+}
+
+function posterClass(frameSet: FrameSet): string {
+  return `absolute inset-0 h-full w-full ${frameSet === "desktop" ? "object-cover" : "object-contain object-bottom"}`;
+}
+
+const CELLAR_FADE = (
+  <div aria-hidden="true" className="h-[30vh] bg-gradient-to-b from-cellar-bg to-surface" />
+);
+
+export function HeroPour() {
+  const reducedMotion = usePrefersReducedMotion();
+  // Chosen once so a resize never triggers a second download of the other set.
+  const [frameSet] = useState<FrameSet>(() => frameSetForWidth(window.innerWidth));
+  const sectionRef = useRef<HTMLElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const framesRef = useRef<(HTMLImageElement | null)[]>([]);
+  const targetFrameRef = useRef(0);
+  const drawnFrameRef = useRef(-1);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const [showCue, setShowCue] = useState(true);
+
+  const draw = useCallback(
+    (force = false) => {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext("2d");
+      if (!canvas || !context) return;
+      const frames = framesRef.current;
+      const index = nearestLoadedFrame(targetFrameRef.current, frames.map(Boolean));
+      if (index === null || (!force && index === drawnFrameRef.current)) return;
+      const image = frames[index];
+      if (!image) return;
+      const rect = placeFrame(
+        frameSet === "desktop" ? "cover" : "fit-width-bottom",
+        image.naturalWidth,
+        image.naturalHeight,
+        canvas.width,
+        canvas.height
+      );
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, rect.x, rect.y, rect.width, rect.height);
+      drawnFrameRef.current = index;
+    },
+    [frameSet]
+  );
+
+  useScrollProgress(
+    sectionRef,
+    (progress) => {
+      targetFrameRef.current = frameIndexForProgress(progress, HERO_FRAME_COUNT);
+      setShowCue(progress < CUE_HIDE_PROGRESS);
+      draw();
+    },
+    !reducedMotion
+  );
+
+  // Keep the canvas backing store matched to its CSS size.
+  useEffect(() => {
+    if (reducedMotion) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+      canvas.width = Math.round(canvas.clientWidth * ratio);
+      canvas.height = Math.round(canvas.clientHeight * ratio);
+      draw(true);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [reducedMotion, draw]);
+
+  // Preload frames in order, a few at a time; the poster covers the gap.
+  useEffect(() => {
+    if (reducedMotion) return;
+    let cancelled = false;
+    let next = 0;
+    const frames: (HTMLImageElement | null)[] = new Array(HERO_FRAME_COUNT).fill(null);
+    framesRef.current = frames;
+
+    const loadNext = () => {
+      if (cancelled || next >= HERO_FRAME_COUNT) return;
+      const index = next++;
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = () => {
+        if (cancelled) return;
+        frames[index] = image;
+        if (index === 0 && canvasRef.current?.getContext("2d")) setCanvasReady(true);
+        draw();
+        loadNext();
+      };
+      image.onerror = () => loadNext();
+      image.src = frameUrl(frameSet, index);
+    };
+
+    for (let i = 0; i < PRELOAD_CONCURRENCY; i++) loadNext();
+    return () => {
+      cancelled = true;
+    };
+  }, [reducedMotion, frameSet, draw]);
+
+  const poster = (
+    <img src={posterUrl(frameSet)} alt="" className={posterClass(frameSet)} decoding="async" />
+  );
+
+  if (reducedMotion) {
+    return (
+      <>
+        <section aria-labelledby="hero-title" className="relative h-screen overflow-hidden bg-cellar-bg">
+          <div role="img" aria-label={MEDIA_LABEL} className="absolute inset-0">
+            {poster}
+          </div>
+          <HeroCopy showCue={false} />
+        </section>
+        {CELLAR_FADE}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <section ref={sectionRef} aria-labelledby="hero-title" className="relative h-[250vh] bg-cellar-bg">
+        <div className="sticky top-0 h-screen overflow-hidden">
+          <div role="img" aria-label={MEDIA_LABEL} className="absolute inset-0">
+            {poster}
+            <canvas
+              ref={canvasRef}
+              aria-hidden="true"
+              className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${canvasReady ? "opacity-100" : "opacity-0"}`}
+            />
+          </div>
+          <HeroCopy showCue={showCue} />
+        </div>
+      </section>
+      {CELLAR_FADE}
+    </>
+  );
+}
