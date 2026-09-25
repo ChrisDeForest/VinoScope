@@ -36,6 +36,11 @@ bottle lip, bottom fade hides a table seam, oval vignette to black).
 | `hero/mobile/frame-001.webp` … `frame-097.webp` | 540×720 (3:4 crop around the glass) | 1.6 MB |
 | `hero/mobile/poster.webp` | copy of frame 1 | — |
 
+**Update 2026-09-24 (post-merge):** the source clip was upscaled to 2560×1440 with Higgsfield's
+ByteDance upscaler (AI-generated-video preset, 0.32 credits) and re-exported at 1080p: desktop frames
+are 1920×1080 (≈ 2.1 MB), mobile 810×1080 (≈ 1.8 MB), still 64 frames each. Scene sections no longer
+have a 130vh minimum height (padding only), and the finale no longer fills a full screen.
+
 **Required asset change:** re-export **both** sets at 8 fps (64 frames each; mobile ≈ 1.1 MB,
 desktop ≈ 1.2 MB) so the mobile set is under ~1.2 MB and both sets share one frame count
 (`HERO_FRAME_COUNT = 64`). The treated source clip lives outside the repo (scratchpad); if it is unavailable,
@@ -203,7 +208,7 @@ Learn), each with its one-line blurb from today's teasers; 5 columns desktop, 2 
 - No new runtime dependencies.
 - Main JS chunk (`index-*.js`) growth ≤ 15 kB gzip (currently 71.9 kB gzip; recharts is already
   split into its own lazy chunk).
-- Hero frames: desktop ≤ ~2 MB, mobile ≤ ~1.2 MB; never block first paint; poster is the LCP image.
+- Hero frames: desktop ≤ ~2.5 MB, mobile ≤ ~2 MB (1080p); never block first paint; poster is the LCP image.
 - Scroll handler: passive listener, work deferred to `requestAnimationFrame`, no layout reads other
   than one `getBoundingClientRect()` per frame on the hero section.
 

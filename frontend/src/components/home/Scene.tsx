@@ -20,7 +20,7 @@ export function Scene({ id, index, label, title, side, art, children }: ScenePro
   const inView = useInView(ref);
   const titleId = `${id}-title`;
 
-  const classes = ["scene grid items-center gap-10 py-20 md:min-h-[130vh] md:grid-cols-2"];
+  const classes = ["scene grid items-center gap-10 py-16 md:py-24 md:grid-cols-2"];
   if (!reducedMotion) classes.push("scene-animate");
   if (inView) classes.push("is-visible");
 
