@@ -23,6 +23,18 @@ describe("WineImage", () => {
     expect(screen.getByRole("img").getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
   });
 
+  it("resets the failed state when src changes, and treats an empty src as no image", () => {
+    const { rerender } = render(<WineImage src="/wines/a.webp" alt="Wine A" />);
+    fireEvent.error(screen.getByRole("img", { name: "Wine A" }));
+    expect(screen.getByRole("img", { name: "Wine A" }).getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+
+    rerender(<WineImage src="/wines/b.webp" alt="Wine A" />);
+    expect(screen.getByRole("img", { name: "Wine A" }).getAttribute("src")).toBe("/wines/b.webp");
+
+    rerender(<WineImage src="" alt="Wine A" />);
+    expect(screen.getByRole("img", { name: "Wine A" }).getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+  });
+
   it("loads lazily unless eager", () => {
     const { rerender } = render(<WineImage src="/wines/a.webp" alt="A" />);
     expect(screen.getByRole("img").getAttribute("loading")).toBe("lazy");

@@ -14,8 +14,11 @@ export function WineImage({
   className?: string;
   eager?: boolean;
 }) {
-  const [failed, setFailed] = useState(false);
-  const showBottle = src !== null && !failed;
+  // Tracks *which* src last failed, rather than a plain boolean, so a new src
+  // (e.g. navigating from one wine's detail page to another's) isn't stuck
+  // showing the placeholder from a previous image's error.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showBottle = !!src && failedSrc !== src;
 
   return (
     <div className={`bg-image-panel overflow-hidden ${className}`}>
@@ -26,7 +29,7 @@ export function WineImage({
         decoding="async"
         width={600}
         height={900}
-        onError={() => setFailed(true)}
+        onError={() => setFailedSrc(src)}
         className={
           showBottle
             ? "w-full h-full object-contain p-3 drop-shadow-[0_8px_12px_rgba(0,0,0,0.35)]"
