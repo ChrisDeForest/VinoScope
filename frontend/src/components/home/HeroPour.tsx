@@ -23,7 +23,7 @@ const MEDIA_LABEL = "Red wine being poured into a glass";
 
 function HeroCopy({ showCue }: { showCue: boolean }) {
   return (
-    <div className="relative z-10 h-full max-w-6xl mx-auto px-4 pt-40 flex flex-col justify-start md:pt-0 md:justify-center">
+    <div className="relative z-10 h-full max-w-6xl mx-auto px-4 pt-24 flex flex-col justify-start md:pt-0 md:justify-center">
       <div className="max-w-md">
         <h1 id="hero-title" className="font-serif text-4xl md:text-5xl text-cellar-ink mb-4">
           Find a wine you'll actually enjoy.
@@ -59,6 +59,10 @@ function mediaClass(frameSet: FrameSet): string {
 const CELLAR_FADE = (
   <div aria-hidden="true" className="h-[30vh] bg-gradient-to-b from-cellar-bg to-surface" />
 );
+
+// Marks the end of the hero for useScrolledPast: once this scrolls above the
+// viewport top, the sticky header switches from its overlay state to solid.
+const HERO_END_SENTINEL = <div id="hero-end" aria-hidden="true" />;
 
 // The mobile frame set is placed "fit-width-bottom": full width, anchored to
 // the viewport bottom (aspect-[3/4] mirrors that geometry, since height =
@@ -211,6 +215,7 @@ export function HeroPour() {
           </div>
           <HeroCopy showCue={false} />
         </section>
+        {HERO_END_SENTINEL}
         {CELLAR_FADE}
       </>
     );
@@ -232,6 +237,7 @@ export function HeroPour() {
           <HeroCopy showCue={showCue} />
         </div>
       </section>
+      {HERO_END_SENTINEL}
       {CELLAR_FADE}
     </>
   );

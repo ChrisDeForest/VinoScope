@@ -219,6 +219,32 @@ describe("HeroPour", () => {
     expect(container.querySelector(".sticky.h-\\[100svh\\]")).not.toBeNull();
   });
 
+  it("with motion allowed, renders the scroll sentinel right after the hero section", () => {
+    stubReducedMotion(false);
+    const { container } = renderHero();
+    const section = container.querySelector("section");
+    const sentinel = container.querySelector("#hero-end");
+    expect(sentinel).not.toBeNull();
+    expect(sentinel).toHaveAttribute("aria-hidden", "true");
+    expect(section?.nextElementSibling).toBe(sentinel);
+  });
+
+  it("with reduced motion, also renders the scroll sentinel right after the hero section", () => {
+    stubReducedMotion(true);
+    const { container } = renderHero();
+    const section = container.querySelector("section");
+    const sentinel = container.querySelector("#hero-end");
+    expect(sentinel).not.toBeNull();
+    expect(section?.nextElementSibling).toBe(sentinel);
+  });
+
+  it("uses pt-24 for the mobile copy padding (one-row header)", () => {
+    stubReducedMotion(false);
+    const { container } = renderHero();
+    expect(container.querySelector(".pt-24")).not.toBeNull();
+    expect(container.querySelector(".pt-40")).toBeNull();
+  });
+
   it("with motion allowed, draws a loaded frame into the canvas and reveals it", async () => {
     const contexts: ReturnType<typeof makeFakeContext>[] = [];
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement) {
