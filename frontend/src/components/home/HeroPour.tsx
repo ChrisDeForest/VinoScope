@@ -5,17 +5,18 @@ import { useScrollProgress } from "../../hooks/useScrollProgress";
 import {
   HERO_FRAME_COUNT,
   frameIndexForProgress,
-  frameSetForWidth,
+  MAX_PIXEL_RATIO,
+  frameSetForViewport,
   frameUrl,
   nearestLoadedFrame,
   placeFrame,
+  placementForSet,
   posterUrl,
   type FrameSet,
 } from "../../utils/frameSequence";
 
 const PRELOAD_CONCURRENCY = 8;
 const CUE_HIDE_PROGRESS = 0.05;
-const MAX_PIXEL_RATIO = 2;
 const MEDIA_LABEL = "Red wine being poured into a glass";
 
 function HeroCopy({ showCue }: { showCue: boolean }) {
@@ -47,7 +48,7 @@ function HeroCopy({ showCue }: { showCue: boolean }) {
 }
 
 function posterClass(frameSet: FrameSet): string {
-  return `absolute inset-0 h-full w-full ${frameSet === "desktop" ? "object-cover" : "object-contain object-bottom"}`;
+  return `absolute inset-0 h-full w-full ${frameSet === "mobile" ? "object-contain object-bottom" : "object-cover"}`;
 }
 
 const CELLAR_FADE = (
@@ -71,7 +72,9 @@ const MOBILE_SEAM_FADE = (
 export function HeroPour() {
   const reducedMotion = usePrefersReducedMotion();
   // Chosen once so a resize never triggers a second download of the other set.
-  const [frameSet] = useState<FrameSet>(() => frameSetForWidth(window.innerWidth));
+  const [frameSet] = useState<FrameSet>(() =>
+    frameSetForViewport({ width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio })
+  );
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<(HTMLImageElement | null)[]>([]);
@@ -102,7 +105,7 @@ export function HeroPour() {
       const image = frames[index];
       if (!image) return;
       const rect = placeFrame(
-        frameSet === "desktop" ? "cover" : "fit-width-bottom",
+        placementForSet(frameSet),
         image.naturalWidth,
         image.naturalHeight,
         canvas.width,

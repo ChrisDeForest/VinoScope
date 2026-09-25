@@ -1,22 +1,56 @@
 import { describe, it, expect } from "vitest";
 import {
   frameIndexForProgress,
-  frameSetForWidth,
+  frameSetForViewport,
+  placementForSet,
   frameUrl,
   nearestLoadedFrame,
   placeFrame,
   posterUrl,
 } from "./frameSequence";
 
-describe("frameSetForWidth", () => {
-  it("uses the mobile set at 768px and below", () => {
-    expect(frameSetForWidth(375)).toBe("mobile");
-    expect(frameSetForWidth(768)).toBe("mobile");
+describe("frameSetForViewport", () => {
+  const pick = (width: number, height: number, pixelRatio = 1) => frameSetForViewport({ width, height, pixelRatio });
+
+  it("uses the mobile set at 768px wide and below, whatever the density", () => {
+    expect(pick(375, 812, 3)).toBe("mobile");
+    expect(pick(768, 1024, 2)).toBe("mobile");
   });
 
-  it("uses the desktop set above 768px", () => {
-    expect(frameSetForWidth(769)).toBe("desktop");
-    expect(frameSetForWidth(1440)).toBe("desktop");
+  it("uses the 1080p desktop set when it needs no more than ~10% enlargement", () => {
+    expect(pick(769, 600)).toBe("desktop");
+    expect(pick(1920, 1080)).toBe("desktop");
+    expect(pick(1280, 720, 1.5)).toBe("desktop");
+    expect(pick(2112, 1188)).toBe("desktop");
+  });
+
+  it("uses the 1440p desktop set when the hero covers more physical pixels", () => {
+    expect(pick(2113, 1188)).toBe("desktop-1440");
+    expect(pick(2560, 1440)).toBe("desktop-1440");
+    expect(pick(3440, 1440)).toBe("desktop-1440");
+    expect(pick(1440, 900, 2)).toBe("desktop-1440");
+  });
+
+  it("accounts for cover cropping on tall viewports", () => {
+    // 1200px tall needs a 2133px-wide 16:9 frame to fill it.
+    expect(pick(1000, 1200)).toBe("desktop-1440");
+  });
+
+  it("caps pixel density at 2, matching the canvas backing store", () => {
+    expect(pick(1000, 560, 3)).toBe("desktop");
+  });
+
+  it("treats a missing or invalid pixel ratio as 1", () => {
+    expect(pick(1920, 1080, 0)).toBe("desktop");
+    expect(pick(1920, 1080, Number.NaN)).toBe("desktop");
+  });
+});
+
+describe("placementForSet", () => {
+  it("fits mobile frames to the width and covers with desktop frames", () => {
+    expect(placementForSet("mobile")).toBe("fit-width-bottom");
+    expect(placementForSet("desktop")).toBe("cover");
+    expect(placementForSet("desktop-1440")).toBe("cover");
   });
 });
 

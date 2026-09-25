@@ -1,4 +1,4 @@
-export type FrameSet = "desktop" | "mobile";
+export type FrameSet = "mobile" | "desktop" | "desktop-1440";
 export type FramePlacement = "cover" | "fit-width-bottom";
 
 export interface FrameRect {
@@ -10,9 +10,24 @@ export interface FrameRect {
 
 export const HERO_FRAME_COUNT = 64;
 export const MOBILE_MAX_WIDTH = 768;
+// The canvas backing store never exceeds 2x density, so neither should frame choice.
+export const MAX_PIXEL_RATIO = 2;
+const DESKTOP_FRAME_WIDTH = 1920;
+// Tolerate a little enlargement before paying for the 2560px set.
+const DESKTOP_UPSCALE_TOLERANCE = 1.1;
 
-export function frameSetForWidth(width: number): FrameSet {
-  return width > MOBILE_MAX_WIDTH ? "desktop" : "mobile";
+// Chooses the smallest frame set that stays sharp on this viewport. Desktop
+// frames are drawn "cover", so a tall viewport needs a wider frame than its
+// width alone suggests.
+export function frameSetForViewport({ width, height, pixelRatio }: { width: number; height: number; pixelRatio: number }): FrameSet {
+  if (width <= MOBILE_MAX_WIDTH) return "mobile";
+  const density = Number.isFinite(pixelRatio) && pixelRatio > 0 ? Math.min(pixelRatio, MAX_PIXEL_RATIO) : 1;
+  const coveredWidth = Math.max(width, (height * 16) / 9) * density;
+  return coveredWidth > DESKTOP_FRAME_WIDTH * DESKTOP_UPSCALE_TOLERANCE ? "desktop-1440" : "desktop";
+}
+
+export function placementForSet(set: FrameSet): FramePlacement {
+  return set === "mobile" ? "fit-width-bottom" : "cover";
 }
 
 export function frameUrl(set: FrameSet, index: number): string {

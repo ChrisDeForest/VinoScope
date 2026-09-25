@@ -113,6 +113,26 @@ describe("HeroPour", () => {
     expect(container.querySelector('img[src="/hero/desktop/poster.webp"]')).not.toBeNull();
   });
 
+  it("uses the 1440p poster, drawn as cover, on large high-resolution displays", () => {
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 2560);
+    vi.stubGlobal("innerHeight", 1440);
+    const { container } = renderHero();
+    const poster = container.querySelector('img[src="/hero/desktop-1440/poster.webp"]');
+    expect(poster).not.toBeNull();
+    expect(poster).toHaveClass("object-cover");
+    expect(container.querySelector('[data-testid="mobile-seam-fade"]')).toBeNull();
+  });
+
+  it("uses the 1440p poster on retina laptops", () => {
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 1440);
+    vi.stubGlobal("innerHeight", 900);
+    vi.stubGlobal("devicePixelRatio", 2);
+    const { container } = renderHero();
+    expect(container.querySelector('img[src="/hero/desktop-1440/poster.webp"]')).not.toBeNull();
+  });
+
   it("uses the mobile poster at phone widths", () => {
     stubReducedMotion(false);
     vi.stubGlobal("innerWidth", 375);

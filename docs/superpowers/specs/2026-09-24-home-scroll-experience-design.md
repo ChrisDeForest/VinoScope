@@ -41,6 +41,13 @@ ByteDance upscaler (AI-generated-video preset, 0.32 credits) and re-exported at 
 are 1920×1080 (≈ 2.1 MB), mobile 810×1080 (≈ 1.8 MB), still 64 frames each. Scene sections no longer
 have a 130vh minimum height (padding only), and the finale no longer fills a full screen.
 
+**Update (resolution tiers):** there are now three sets, all exported in one run of
+`build-hero-frames.sh` from a 2560×1440 master: `desktop-1440` (2560×1440, ≈ 3.0 MB), `desktop`
+(1920×1080, ≈ 2.2 MB), `mobile` (810×1080, ≈ 1.9 MB). `frameSetForViewport({ width, height,
+pixelRatio })` picks once on mount: ≤ 768px wide → mobile; otherwise the physical width the
+"cover" frame must fill — `max(width, height × 16/9) × min(pixelRatio, 2)` — above 2112px
+(1920 + 10%) → `desktop-1440`, else `desktop`.
+
 **Required asset change:** re-export **both** sets at 8 fps (64 frames each; mobile ≈ 1.1 MB,
 desktop ≈ 1.2 MB) so the mobile set is under ~1.2 MB and both sets share one frame count
 (`HERO_FRAME_COUNT = 64`). The treated source clip lives outside the repo (scratchpad); if it is unavailable,

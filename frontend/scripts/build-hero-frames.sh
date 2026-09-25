@@ -6,36 +6,36 @@
 #   frontend/scripts/build-hero-frames.sh <clip.mp4> [options]
 #
 # Options:
-#   --height <px>     Output height: 720, 1080 (default) or 1440. Desktop frames are
-#                     16:9 at this height; mobile frames are a 3:4 crop of it.
 #   --no-treat        Skip the edge treatment (use when the clip is already clean).
 #   --crop-x <px>     Left edge of the 3:4 mobile crop, measured at 720p scale
 #                     (0-740, default 440 — centred on the glass in the original
-#                     pour); scaled automatically for --height. Re-tune for a clip
-#                     framed differently.
+#                     pour). Re-tune for a clip framed differently.
 #   --fps <n>         Frames per second to sample (default 8).
 #   --quality <n>     WebP quality 0-100 (default 68).
 #
-# Output: frontend/public/hero/{desktop,mobile}/frame-NNN.webp + poster.webp.
-# Afterwards, set HERO_FRAME_COUNT in src/utils/frameSequence.ts to the frame
-# count this script prints, and check sizes (at 1080p expect roughly desktop ≲ 3 MB,
-# mobile ≲ 2 MB).
+# Output: frontend/public/hero/<set>/frame-NNN.webp + poster.webp for three sets,
+# all from one 2560x1440 master so frame counts always match (see
+# frameSetForViewport in src/utils/frameSequence.ts for who gets which):
+#   desktop-1440  2560x1440   high-density / large displays
+#   desktop       1920x1080   everything else wider than 768px
+#   mobile         810x1080   3:4 crop around the glass, phones
+# Feed it the sharpest clip you have (ideally 1440p or an upscale); smaller
+# clips are enlarged with lanczos. Afterwards, set HERO_FRAME_COUNT in
+# src/utils/frameSequence.ts to the count this script prints.
 
 set -euo pipefail
 
-usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 
 [ $# -ge 1 ] || usage
 CLIP="$1"; shift
 TREAT=1
-HEIGHT=1080
 CROP_X=440
 FPS=8
 QUALITY=68
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --height) HEIGHT="$2"; shift ;;
     --no-treat) TREAT=0 ;;
     --crop-x) CROP_X="$2"; shift ;;
     --fps) FPS="$2"; shift ;;
@@ -51,7 +51,6 @@ is_uint() { [[ "$1" =~ ^[0-9]+$ ]]; }
 # 1280px-wide frame (1280 - 540 = 740), or ffmpeg fails with an opaque crop
 # error deep inside export_set.
 is_uint "$CROP_X" && [ "$CROP_X" -le 740 ] || { echo "--crop-x must be an integer between 0 and 740 (got: $CROP_X)" >&2; exit 1; }
-case "$HEIGHT" in 720|1080|1440) ;; *) echo "--height must be 720, 1080 or 1440 (got: $HEIGHT)" >&2; exit 1 ;; esac
 is_uint "$FPS" && [ "$FPS" -ge 1 ] || { echo "--fps must be a positive integer (got: $FPS)" >&2; exit 1; }
 is_uint "$QUALITY" && [ "$QUALITY" -ge 1 ] && [ "$QUALITY" -le 100 ] || { echo "--quality must be a positive integer no greater than 100 (got: $QUALITY)" >&2; exit 1; }
 
@@ -63,9 +62,11 @@ OUT_DIR="$SCRIPT_DIR/../public/hero"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-WIDTH=$((HEIGHT * 16 / 9))
-MOBILE_WIDTH=$((HEIGHT * 3 / 4))
-MOBILE_X=$((CROP_X * HEIGHT / 720))
+# Master resolution; the mobile crop is 1080x1440 at x = crop-x scaled from 720p.
+WIDTH=2560
+HEIGHT=1440
+MOBILE_X=$((CROP_X * 2))
+SETS="desktop-1440 desktop mobile"
 
 # 1. Normalise to WIDTHxHEIGHT so the mask and crop coordinates below always apply.
 ffmpeg -loglevel error -y -i "$CLIP" -an -vf "scale=$WIDTH:$HEIGHT:force_original_aspect_ratio=increase:flags=lanczos,crop=$WIDTH:$HEIGHT" \
@@ -85,7 +86,7 @@ else
   cp "$WORK/source.mp4" "$WORK/treated.mp4"
 fi
 
-# 3. Export both sets from the same timeline so they always have equal counts.
+# 3. Export every set from the same timeline so they always have equal counts.
 export_set() {
   local name="$1" filter="$2"
   local dir="$WORK/$name"
@@ -93,20 +94,26 @@ export_set() {
   ffmpeg -loglevel error -y -i "$WORK/treated.mp4" -vf "$filter" -c:v libwebp -quality "$QUALITY" "$dir/frame-%03d.webp"
   cp "$dir/frame-001.webp" "$dir/poster.webp"
 }
-export_set desktop "fps=$FPS"
-export_set mobile "fps=$FPS,crop=$MOBILE_WIDTH:$HEIGHT:$MOBILE_X:0"
+export_set desktop-1440 "fps=$FPS"
+export_set desktop "fps=$FPS,scale=1920:1080:flags=lanczos"
+export_set mobile "fps=$FPS,crop=1080:1440:$MOBILE_X:0,scale=810:1080:flags=lanczos"
 
-DESKTOP_COUNT=$(ls "$WORK/desktop"/frame-*.webp | wc -l | tr -d ' ')
-MOBILE_COUNT=$(ls "$WORK/mobile"/frame-*.webp | wc -l | tr -d ' ')
-[ "$DESKTOP_COUNT" = "$MOBILE_COUNT" ] || { echo "Frame counts differ ($DESKTOP_COUNT vs $MOBILE_COUNT)" >&2; exit 1; }
+COUNT=""
+for name in $SETS; do
+  n=$(ls "$WORK/$name"/frame-*.webp | wc -l | tr -d ' ')
+  [ -z "$COUNT" ] && COUNT="$n"
+  [ "$n" = "$COUNT" ] || { echo "Frame counts differ ($name has $n, expected $COUNT)" >&2; exit 1; }
+done
 
 # 4. Replace the published sets only after everything above succeeded.
 mkdir -p "$OUT_DIR"
-for name in desktop mobile; do
+for name in $SETS; do
   rm -rf "$OUT_DIR/$name"
   mv "$WORK/$name" "$OUT_DIR/$name"
 done
 
-echo "desktop: $DESKTOP_COUNT frames, $(du -sh "$OUT_DIR/desktop" | cut -f1)"
-echo "mobile:  $MOBILE_COUNT frames, $(du -sh "$OUT_DIR/mobile" | cut -f1)"
-echo "Next: set HERO_FRAME_COUNT = $DESKTOP_COUNT in frontend/src/utils/frameSequence.ts"
+for name in $SETS; do
+  printf '%-13s %s frames, %s
+' "$name:" "$COUNT" "$(du -sh "$OUT_DIR/$name" | cut -f1)"
+done
+echo "Next: set HERO_FRAME_COUNT = $COUNT in frontend/src/utils/frameSequence.ts"
