@@ -20,7 +20,10 @@ const DESKTOP_UPSCALE_TOLERANCE = 1.1;
 // frames are drawn "cover", so a tall viewport needs a wider frame than its
 // width alone suggests.
 export function frameSetForViewport({ width, height, pixelRatio }: { width: number; height: number; pixelRatio: number }): FrameSet {
-  if (width <= MOBILE_MAX_WIDTH) return "mobile";
+  // The mobile set is cropped 3:4 and fitted to the width, so it only reads
+  // well on portrait-ish phones. A landscape phone (width small, but wider
+  // than it is tall) falls through to a desktop tier instead, drawn "cover".
+  if (width <= MOBILE_MAX_WIDTH && height >= width) return "mobile";
   const density = Number.isFinite(pixelRatio) && pixelRatio > 0 ? Math.min(pixelRatio, MAX_PIXEL_RATIO) : 1;
   const coveredWidth = Math.max(width, (height * 16) / 9) * density;
   return coveredWidth > DESKTOP_FRAME_WIDTH * DESKTOP_UPSCALE_TOLERANCE ? "desktop-1440" : "desktop";
@@ -36,6 +39,10 @@ export function frameUrl(set: FrameSet, index: number): string {
 
 export function posterUrl(set: FrameSet): string {
   return `/hero/${set}/poster.webp`;
+}
+
+export function stillUrl(set: FrameSet): string {
+  return `/hero/${set}/still.webp`;
 }
 
 export function frameIndexForProgress(progress: number, frameCount: number): number {

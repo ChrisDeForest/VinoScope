@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { prefersLightweightMedia } from "../../utils/connection";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useScrollProgress } from "../../hooks/useScrollProgress";
 import {
@@ -12,6 +13,7 @@ import {
   placeFrame,
   placementForSet,
   posterUrl,
+  stillUrl,
   type FrameSet,
 } from "../../utils/frameSequence";
 
@@ -47,7 +49,10 @@ function HeroCopy({ showCue }: { showCue: boolean }) {
   );
 }
 
-function posterClass(frameSet: FrameSet): string {
+// Shared by the poster (motion branch's loading placeholder) and the still
+// (static branch's only image): both are a single frame laid out the same
+// way as the frame sequence itself.
+function mediaClass(frameSet: FrameSet): string {
   return `absolute inset-0 h-full w-full ${frameSet === "mobile" ? "object-contain object-bottom" : "object-cover"}`;
 }
 
@@ -71,6 +76,14 @@ const MOBILE_SEAM_FADE = (
 
 export function HeroPour() {
   const reducedMotion = usePrefersReducedMotion();
+  // Read once at mount: a live-updating connection has nothing worth
+  // reacting to mid-session, and re-reading on every render would risk
+  // flipping the hero between variants while the visitor is scrolling it.
+  const [lightweight] = useState<boolean>(prefersLightweightMedia);
+  // True when the hero should skip motion entirely: reduced-motion
+  // preference or a data-saver / slow connection. Renders a single still
+  // image instead of the scroll-scrubbed canvas.
+  const isStatic = reducedMotion || lightweight;
   // Chosen once so a resize never triggers a second download of the other set.
   const [frameSet] = useState<FrameSet>(() =>
     frameSetForViewport({ width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio })
@@ -125,12 +138,12 @@ export function HeroPour() {
       setShowCue(progress < CUE_HIDE_PROGRESS);
       draw();
     },
-    !reducedMotion
+    !isStatic
   );
 
   // Keep the canvas backing store matched to its CSS size.
   useEffect(() => {
-    if (reducedMotion) return;
+    if (isStatic) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
@@ -142,11 +155,11 @@ export function HeroPour() {
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, [reducedMotion, draw]);
+  }, [isStatic, draw]);
 
   // Preload frames in order, a few at a time; the poster covers the gap.
   useEffect(() => {
-    if (reducedMotion) return;
+    if (isStatic) return;
     let cancelled = false;
     let next = 0;
     let shownFirstFrame = false;
@@ -186,18 +199,14 @@ export function HeroPour() {
       drawnFrameRef.current = -1;
       contextRef.current = null;
     };
-  }, [reducedMotion, frameSet, draw]);
+  }, [isStatic, frameSet, draw]);
 
-  const poster = (
-    <img src={posterUrl(frameSet)} alt="" className={posterClass(frameSet)} decoding="async" />
-  );
-
-  if (reducedMotion) {
+  if (isStatic) {
     return (
       <>
-        <section aria-labelledby="hero-title" className="relative h-screen overflow-hidden bg-cellar-bg">
+        <section aria-labelledby="hero-title" className="relative h-[100svh] overflow-hidden bg-cellar-bg">
           <div role="img" aria-label={MEDIA_LABEL} className="absolute inset-0">
-            {poster}
+            <img src={stillUrl(frameSet)} alt="" className={mediaClass(frameSet)} decoding="async" />
             {frameSet === "mobile" && MOBILE_SEAM_FADE}
           </div>
           <HeroCopy showCue={false} />
@@ -209,10 +218,10 @@ export function HeroPour() {
 
   return (
     <>
-      <section ref={sectionRef} aria-labelledby="hero-title" className="relative h-[250vh] bg-cellar-bg">
-        <div className="sticky top-0 h-screen overflow-hidden">
+      <section ref={sectionRef} aria-labelledby="hero-title" className="relative h-[200vh] bg-cellar-bg">
+        <div className="sticky top-0 h-[100svh] overflow-hidden">
           <div role="img" aria-label={MEDIA_LABEL} className="absolute inset-0">
-            {poster}
+            <img src={posterUrl(frameSet)} alt="" className={mediaClass(frameSet)} decoding="async" />
             <canvas
               ref={canvasRef}
               aria-hidden="true"

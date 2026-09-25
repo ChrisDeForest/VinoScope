@@ -7,14 +7,20 @@ import {
   nearestLoadedFrame,
   placeFrame,
   posterUrl,
+  stillUrl,
 } from "./frameSequence";
 
 describe("frameSetForViewport", () => {
   const pick = (width: number, height: number, pixelRatio = 1) => frameSetForViewport({ width, height, pixelRatio });
 
-  it("uses the mobile set at 768px wide and below, whatever the density", () => {
+  it("uses the mobile set at 768px wide and below when the viewport is portrait-ish", () => {
     expect(pick(375, 812, 3)).toBe("mobile");
     expect(pick(768, 1024, 2)).toBe("mobile");
+    expect(pick(600, 600)).toBe("mobile");
+  });
+
+  it("falls through to a desktop tier for small landscape (phone) viewports", () => {
+    expect(pick(740, 360, 2)).toBe("desktop");
   });
 
   it("uses the 1080p desktop set when it needs no more than ~10% enlargement", () => {
@@ -63,6 +69,12 @@ describe("frameUrl / posterUrl", () => {
   it("builds poster paths", () => {
     expect(posterUrl("desktop")).toBe("/hero/desktop/poster.webp");
     expect(posterUrl("mobile")).toBe("/hero/mobile/poster.webp");
+  });
+
+  it("builds still paths", () => {
+    expect(stillUrl("desktop")).toBe("/hero/desktop/still.webp");
+    expect(stillUrl("mobile")).toBe("/hero/mobile/still.webp");
+    expect(stillUrl("desktop-1440")).toBe("/hero/desktop-1440/still.webp");
   });
 });
 

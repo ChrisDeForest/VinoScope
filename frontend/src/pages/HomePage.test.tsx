@@ -81,10 +81,10 @@ describe("HomePage (reduced motion)", () => {
     await screen.findByText("Hundreds of wines by type, country, grape and price.");
   });
 
-  it("shows the poster instead of a canvas", async () => {
+  it("shows the static still instead of a canvas", async () => {
     const { container } = renderHome();
     expect(container.querySelector("canvas")).toBeNull();
-    expect(container.querySelector('img[src="/hero/desktop/poster.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/hero/desktop/still.webp"]')).not.toBeNull();
     await screen.findByText("Hundreds of wines by type, country, grape and price.");
   });
 });

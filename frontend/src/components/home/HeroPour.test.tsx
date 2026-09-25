@@ -3,6 +3,10 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HeroPour } from "./HeroPour";
 
+function stubConnection(value: unknown) {
+  Object.defineProperty(navigator, "connection", { value, configurable: true });
+}
+
 function stubReducedMotion(reduced: boolean) {
   vi.stubGlobal(
     "matchMedia",
@@ -84,6 +88,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  // @ts-expect-error -- test-only cleanup of a non-standard navigator property
+  delete navigator.connection;
 });
 
 describe("HeroPour", () => {
@@ -154,7 +160,7 @@ describe("HeroPour", () => {
     expect(container.querySelector('[data-testid="mobile-seam-fade"]')).toBeNull();
   });
 
-  it("with reduced motion, renders only the poster: no canvas, no pin, cue hidden", () => {
+  it("with reduced motion, renders the static full-glass still: no canvas, no pin, cue hidden", () => {
     stubReducedMotion(true);
     vi.stubGlobal("innerWidth", 1440);
     const { container } = renderHero();
@@ -163,7 +169,15 @@ describe("HeroPour", () => {
     const cue = screen.getByTestId("scroll-cue");
     expect(cue).toHaveClass("opacity-0");
     expect(cue).not.toHaveClass("opacity-100");
-    expect(container.querySelector('img[src="/hero/desktop/poster.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/hero/desktop/still.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/hero/desktop/poster.webp"]')).toBeNull();
+  });
+
+  it("with reduced motion, uses 100svh for the static hero band", () => {
+    stubReducedMotion(true);
+    vi.stubGlobal("innerWidth", 1440);
+    const { container } = renderHero();
+    expect(container.querySelector("section.h-\\[100svh\\]")).not.toBeNull();
   });
 
   it("with reduced motion, never constructs an Image (no frame preloading)", () => {
@@ -173,6 +187,36 @@ describe("HeroPour", () => {
     vi.stubGlobal("innerWidth", 1440);
     renderHero();
     expect(ImageSpy).not.toHaveBeenCalled();
+  });
+
+  it("with data saver on and motion otherwise allowed, renders the static still instead of the canvas", () => {
+    const ImageSpy = vi.fn();
+    vi.stubGlobal("Image", ImageSpy);
+    stubConnection({ saveData: true, effectiveType: "4g" });
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 1440);
+    const { container } = renderHero();
+    expect(container.querySelector("canvas")).toBeNull();
+    expect(container.querySelector(".sticky")).toBeNull();
+    expect(container.querySelector('img[src="/hero/desktop/still.webp"]')).not.toBeNull();
+    expect(ImageSpy).not.toHaveBeenCalled();
+  });
+
+  it("with a slow effective connection type and motion otherwise allowed, renders the static variant", () => {
+    stubConnection({ saveData: false, effectiveType: "2g" });
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 1440);
+    const { container } = renderHero();
+    expect(container.querySelector("canvas")).toBeNull();
+    expect(container.querySelector('img[src="/hero/desktop/still.webp"]')).not.toBeNull();
+  });
+
+  it("with motion allowed, the outer section is 200vh and the sticky stage is 100svh", () => {
+    stubReducedMotion(false);
+    vi.stubGlobal("innerWidth", 1440);
+    const { container } = renderHero();
+    expect(container.querySelector("section.h-\\[200vh\\]")).not.toBeNull();
+    expect(container.querySelector(".sticky.h-\\[100svh\\]")).not.toBeNull();
   });
 
   it("with motion allowed, draws a loaded frame into the canvas and reveals it", async () => {

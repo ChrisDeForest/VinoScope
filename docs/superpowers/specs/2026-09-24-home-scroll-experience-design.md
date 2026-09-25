@@ -44,9 +44,11 @@ have a 130vh minimum height (padding only), and the finale no longer fills a ful
 **Update (resolution tiers):** there are now three sets, all exported in one run of
 `build-hero-frames.sh` from a 2560×1440 master: `desktop-1440` (2560×1440, ≈ 3.0 MB), `desktop`
 (1920×1080, ≈ 2.2 MB), `mobile` (810×1080, ≈ 1.9 MB). `frameSetForViewport({ width, height,
-pixelRatio })` picks once on mount: ≤ 768px wide → mobile; otherwise the physical width the
-"cover" frame must fill — `max(width, height × 16/9) × min(pixelRatio, 2)` — above 2112px
-(1920 + 10%) → `desktop-1440`, else `desktop`.
+pixelRatio })` picks once on mount: ≤ 768px wide **and** portrait-ish (`height >= width`) →
+mobile, since the mobile set is a 3:4 crop fitted to the width; a landscape phone falls through
+to a desktop tier instead, drawn `cover`. Otherwise the physical width the "cover" frame must
+fill — `max(width, height × 16/9) × min(pixelRatio, 2)` — above 2112px (1920 + 10%) →
+`desktop-1440`, else `desktop`.
 
 **Required asset change:** re-export **both** sets at 8 fps (64 frames each; mobile ≈ 1.1 MB,
 desktop ≈ 1.2 MB) so the mobile set is under ~1.2 MB and both sets share one frame count
@@ -56,6 +58,11 @@ subsample the existing mobile frames instead (keep 2 of every 3 frames, 97 → 6
 To regenerate both frame sets from a source clip, use `frontend/scripts/build-hero-frames.sh`,
 which normalizes the source, masks and crops it, exports both sets from the same treated
 timeline, and asserts their frame counts match before publishing.
+
+**Still frame:** each set also gets `still.webp`, a copy of its **last** exported frame (the
+full glass) — `build-hero-frames.sh` writes it alongside `poster.webp` for every set. It is the
+only image the static hero (below) shows; the motion hero still uses `poster.webp` (frame 1) as
+its loading placeholder under the canvas.
 
 ## Architecture
 
@@ -80,7 +87,7 @@ must be full-bleed with the header on top of it, so:
 | Unit | File | Responsibility |
 |---|---|---|
 | `HomePage` | `pages/HomePage.tsx` | Thin composition: skip link, `HeroPour`, five scenes, `Finale` |
-| `HeroPour` | `components/home/HeroPour.tsx` | Dark full-bleed band; sticky inner stage; canvas scrubbed by scroll; headline + "Explore Wines" CTA; bottom fade into `--color-surface`; poster-only in reduced motion |
+| `HeroPour` | `components/home/HeroPour.tsx` | Dark full-bleed band; sticky inner stage; canvas scrubbed by scroll; headline + "Explore Wines" CTA; bottom fade into `--color-surface`; still-image-only static variant under reduced motion or a data-saver/slow connection |
 | `Scene` | `components/home/Scene.tsx` | Shared scene frame: `art` and `children` slots, `side: "left" \| "right"` (art side), `id`, `labelledBy`; adds `is-visible` on first entry into view |
 | `ExploreScene` | `components/home/scenes/ExploreScene.tsx` | Glass + fanning bottles; 3 real wines via `listWines({ limit: 3 })` |
 | `DiscoverScene` | `components/home/scenes/DiscoverScene.tsx` | Swirling wine; five taste meters |
@@ -91,7 +98,8 @@ must be full-bleed with the header on top of it, so:
 | `useScrollProgress` | `hooks/useScrollProgress.ts` | 0→1 progress of an element through its scroll range; pure math in `scrollProgress()` |
 | `useInView` | `hooks/useInView.ts` | `true` once the element first intersects; fires once; returns `true` immediately when `IntersectionObserver` is unavailable |
 | `usePrefersReducedMotion` | `hooks/usePrefersReducedMotion.ts` | Tracks `(prefers-reduced-motion: reduce)` via `matchMedia`, including changes |
-| frame utils | `utils/frameSequence.ts` | `frameIndexForProgress`, `nearestLoadedFrame`, `frameSetForWidth`, `frameUrl`, `HERO_FRAME_COUNT` |
+| frame utils | `utils/frameSequence.ts` | `frameIndexForProgress`, `nearestLoadedFrame`, `frameSetForViewport`, `frameUrl`, `posterUrl`, `stillUrl`, `HERO_FRAME_COUNT` |
+| connection utils | `utils/connection.ts` | `prefersLightweightMedia()` — data saver / slow connection detection for the hero |
 
 Scene art is inline SVG inside each scene component (no external SVG files), so strokes can use
 `currentColor`/CSS variables and be animated with CSS.
@@ -112,8 +120,8 @@ Line art strokes use the existing `--color-accent`.
 
 ## The experience, top to bottom
 
-Total ≈ 9–10 viewport heights of scrolling: hero section 2.5 tall (1.5 of scrub while pinned + the
-pinned screen), each scene ≈ 1.3, finale ≈ 1.
+Total ≈ 8–9 viewport heights of scrolling: hero section 2 tall (one screen of scrub while pinned +
+the pinned screen), each scene ≈ 1.3, finale ≈ 1.
 
 ### Skip link
 
@@ -122,10 +130,11 @@ Visually hidden until focused (`sr-only focus:not-sr-only` pattern), styled with
 
 ### Hero (`HeroPour`)
 
-- Outer section: `height: 250vh` (1.5 screens of scrub + the pinned screen), background
+- Outer section: `height: 200vh` (one screen of scrub while pinned + the pinned screen), background
   `--color-cellar-bg`, full-bleed.
-- Inner stage: `position: sticky; top: 0; height: 100vh`. Contains the canvas (covering the stage,
-  `object-fit: cover` behavior computed in draw) and the copy.
+- Inner stage: `position: sticky; top: 0; height: 100svh` (the small-viewport-height unit, so mobile
+  browser chrome showing/hiding never leaves a gap or clips the stage). Contains the canvas
+  (covering the stage, `object-fit: cover` behavior computed in draw) and the copy.
 - Frame placement: desktop frames are drawn `cover` (cropped to fill). Mobile frames are fitted to
   the screen width and anchored to the bottom, leaving dark cellar space above.
 - Copy sits in the empty left third on desktop, and in the dark space at the top on mobile:
@@ -134,8 +143,14 @@ Visually hidden until focused (`sr-only focus:not-sr-only` pattern), styled with
   progress > 0.05.
 - Scrub: `useScrollProgress(outerRef)` → `frameIndexForProgress(p, HERO_FRAME_COUNT)` → draw.
   Redraw only when the frame index changes, at most once per animation frame.
-- Frame set: `frameSetForWidth(window.innerWidth)` — `desktop` above 768px, `mobile` otherwise.
-  Chosen on mount (not re-chosen on resize, to avoid re-downloading).
+- Frame set: `frameSetForViewport({ width, height, pixelRatio })` (see Assets above for the three
+  tiers and the portrait-ish mobile rule). Chosen on mount (not re-chosen on resize, to avoid
+  re-downloading).
+- Data saver / slow connection: `prefersLightweightMedia()` (`utils/connection.ts`) reads
+  `navigator.connection` once at mount — true when `saveData` is on or `effectiveType` is
+  `slow-2g`/`2g`/`3g`. When true (or reduced motion is on), the hero renders the **static**
+  variant instead: same `100svh` band, the full-glass `still.webp` in place of the canvas, no
+  sticky pin, no frame preloading, and the "Scroll" cue hidden.
 - Loading: poster `<img>` is visible immediately (eager; it is the first image on the page). Frames preload in
   the background after first paint (`new Image()` per frame, sequential-ish in batches of 8). The
   canvas replaces the poster once frame 1 has decoded. If the target frame isn't loaded yet, draw
@@ -195,9 +210,12 @@ Learn), each with its one-line blurb from today's teasers; 5 columns desktop, 2 
 
 ## Reduced motion and fallbacks
 
-- `usePrefersReducedMotion()` true → `HeroPour` renders a normal-height (100vh) band with the poster
-  image only (no sticky, no canvas, no frame preloading); scenes omit `scene-animate`, so they
-  render final states. All copy and CTAs present.
+- `usePrefersReducedMotion()` true, **or** `prefersLightweightMedia()` true (data saver / slow
+  connection) → `HeroPour` renders the static variant: a normal-height (`100svh`) band with the
+  full-glass `still.webp` only (no sticky, no canvas, no frame preloading, cue hidden); scenes omit
+  `scene-animate`, so they render final states. All copy and CTAs present. The media layer keeps
+  `role="img"` + `aria-label="Red wine being poured into a glass"` in both the static and motion
+  variants.
 - `IntersectionObserver` missing → `useInView` returns `true`; scenes show final states.
 - Canvas 2D context unavailable → keep the poster image.
 - API failure in Explore → fallback copy (above); page never shows an error state.
@@ -227,7 +245,11 @@ Browser API stubs live in the tests that need them (`vi.stubGlobal`), following
 
 - `utils/frameSequence.test.ts`: progress→index mapping incl. clamping at 0/1 and rounding;
   `nearestLoadedFrame` picks the closest loaded index (ties → lower) and returns `null` when none
-  loaded; `frameSetForWidth` boundary at 768; `frameUrl` zero-pads to 3 digits.
+  loaded; `frameSetForViewport` boundary at 768 plus the portrait/landscape mobile rule; `frameUrl`
+  zero-pads to 3 digits; `stillUrl` builds `still.webp` paths.
+- `utils/connection.test.ts`: `prefersLightweightMedia()` true on `saveData` or a slow
+  `effectiveType`, false when `navigator.connection` is absent (stubbed via
+  `Object.defineProperty(navigator, "connection", …)`).
 - `hooks/useScrollProgress.test.ts`: pure `scrollProgress({ top, height, viewportHeight })` for
   above/inside/below viewport and zero-length ranges.
 - `hooks/usePrefersReducedMotion.test.ts`: initial value and change-event updates via stubbed

@@ -13,8 +13,11 @@
 #   --fps <n>         Frames per second to sample (default 8).
 #   --quality <n>     WebP quality 0-100 (default 68).
 #
-# Output: frontend/public/hero/<set>/frame-NNN.webp + poster.webp for three sets,
-# all from one 2560x1440 master so frame counts always match (see
+# Output: frontend/public/hero/<set>/frame-NNN.webp + poster.webp (frame 1,
+# the motion hero's loading placeholder) + still.webp (the last frame, the
+# full glass — shown by the static hero: reduced motion or a slow/data-saver
+# connection) for three sets, all from one 2560x1440 master so frame counts
+# always match (see
 # frameSetForViewport in src/utils/frameSequence.ts for who gets which):
 #   desktop-1440  2560x1440   high-density / large displays
 #   desktop       1920x1080   everything else wider than 768px
@@ -93,6 +96,7 @@ export_set() {
   mkdir -p "$dir"
   ffmpeg -loglevel error -y -i "$WORK/treated.mp4" -vf "$filter" -c:v libwebp -quality "$QUALITY" "$dir/frame-%03d.webp"
   cp "$dir/frame-001.webp" "$dir/poster.webp"
+  cp "$(ls "$dir"/frame-*.webp | sort | tail -n 1)" "$dir/still.webp"
 }
 export_set desktop-1440 "fps=$FPS"
 export_set desktop "fps=$FPS,scale=1920:1080:flags=lanczos"
