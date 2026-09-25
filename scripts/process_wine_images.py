@@ -84,9 +84,18 @@ def set_image_urls(wines, urls):
     return updated
 
 
+ALPHA_BBOX_THRESHOLD = 10
+
+
 def fit_on_canvas(image):
     rgba = image.convert("RGBA")
-    bbox = rgba.getchannel("A").getbbox()
+    alpha = rgba.getchannel("A")
+    # rembg sometimes leaves stray near-zero-alpha noise pixels at the image
+    # edges; a plain getbbox() on the raw alpha channel treats alpha=1 as
+    # "content" and produces a bbox stretched toward that noise, which then
+    # off-centers the real bottle on the canvas. Threshold first so only
+    # visibly-opaque pixels count toward the bounding box.
+    bbox = alpha.point(lambda a: 255 if a > ALPHA_BBOX_THRESHOLD else 0).getbbox()
     if bbox is None:
         raise ValueError("image is fully transparent after background removal")
     bottle = rgba.crop(bbox)
