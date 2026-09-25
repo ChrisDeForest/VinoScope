@@ -16,7 +16,7 @@
 - Output format: WebP, `quality=85`, alpha preserved. Path `frontend/public/wines/<slug>.webp`; `image_url` value `/wines/<slug>.webp`.
 - Slug: `slugify(f"{winery} {name} {vintage or 'nv'}")` — lowercase ASCII, accents stripped, runs of non-alphanumerics → `-`, trimmed. Raw CSV uses `NV`, cleaned CSV uses blank — both mean no vintage.
 - Raw CSV `data/raw/wines_combined_200_currency_audited.csv` is UTF-8 **with BOM**; cleaned CSV is UTF-8 without BOM. Preserve each file's BOM state on write. Read with `dtype=str, keep_default_na=False`.
-- `data/` is gitignored: commit `data/images/manifest.csv` and the two CSVs with `git add -f`. Never commit `data/images/raw/`.
+- `data/` is gitignored: commit only `data/images/manifest.csv` (with `git add -f`). The raw and cleaned wine CSVs stay untracked (user decision) — `process` updates them on disk only. Never commit `data/images/raw/`.
 - Higgsfield: only FLUX.2 Pro at 1k (`use_unlim: true`) or Seedream 5.0 Lite may be used without asking. Any other model, upscale, edit or `remove_background` needs the user's explicit OK with a cost quote first.
 - AI images must have **no readable text** on the label.
 - Run Python tests from repo root with `./.venv/Scripts/python -m pytest`; frontend tests with `npm test` in `frontend/`.
@@ -640,7 +640,7 @@ Backfill: `./.venv/Scripts/python scripts/import_wines.py data/cleaned/wines_com
 
 ```bash
 git add frontend/public/wines
-git add -f data/images/manifest.csv data/raw/wines_combined_200_currency_audited.csv data/cleaned/wines_combined_200_currency_audited.csv
+git add -f data/images/manifest.csv
 git commit -m "feat: pilot wine images for five wines"
 ```
 
@@ -665,7 +665,7 @@ git commit -m "feat: pilot wine images for five wines"
 
 ```bash
 git add frontend/public/wines
-git add -f data/images/manifest.csv data/raw/wines_combined_200_currency_audited.csv data/cleaned/wines_combined_200_currency_audited.csv
+git add -f data/images/manifest.csv
 git commit -m "feat: wine images batch <n>"
 ```
 
@@ -713,7 +713,7 @@ Run: `./.venv/Scripts/python -m scripts.process_wine_images process` and Read th
 
 ```bash
 git add frontend/public/wines
-git add -f data/images/manifest.csv data/raw/wines_combined_200_currency_audited.csv data/cleaned/wines_combined_200_currency_audited.csv
+git add -f data/images/manifest.csv
 git commit -m "feat: AI fallback bottle images"
 ```
 
