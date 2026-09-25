@@ -9,8 +9,47 @@ import { Scene, SceneCta } from "../Scene";
 
 const SAMPLE_SIZE = 3;
 const FALLBACK_COPY = "Hundreds of wines by type, country, grape and price.";
+const COLORS = ["red", "white", "rosé"] as const;
+const COLOR_LIMIT = 20;
 
 type WinesState = { status: "loading" } | { status: "loaded"; wines: WineListItem[] } | { status: "error" };
+
+/**
+ * Picks one wine per color (in the given order), skipping colors with no
+ * items. If fewer than SAMPLE_SIZE wines were picked, tops up from any
+ * remaining items across all colors, never duplicating a wine by id.
+ */
+export function pickWines(
+  responsesByColor: readonly WineListItem[][],
+  random: () => number = Math.random
+): WineListItem[] {
+  const picked: WineListItem[] = [];
+  const pickedIds = new Set<number>();
+  const leftovers: WineListItem[] = [];
+
+  for (const items of responsesByColor) {
+    if (items.length === 0) continue;
+    const index = Math.floor(random() * items.length);
+    const chosen = items[index];
+    if (!pickedIds.has(chosen.id)) {
+      picked.push(chosen);
+      pickedIds.add(chosen.id);
+    }
+    items.forEach((item, i) => {
+      if (i !== index) leftovers.push(item);
+    });
+  }
+
+  for (const item of leftovers) {
+    if (picked.length >= SAMPLE_SIZE) break;
+    if (!pickedIds.has(item.id)) {
+      picked.push(item);
+      pickedIds.add(item.id);
+    }
+  }
+
+  return picked;
+}
 
 function Bottle() {
   return (
@@ -95,13 +134,12 @@ export function ExploreScene() {
 
   useEffect(() => {
     let active = true;
-    listWines({ limit: SAMPLE_SIZE })
-      .then((response) => {
-        if (active) setState({ status: "loaded", wines: response.items.slice(0, SAMPLE_SIZE) });
-      })
-      .catch(() => {
-        if (active) setState({ status: "error" });
-      });
+    Promise.allSettled(COLORS.map((type) => listWines({ type, limit: COLOR_LIMIT }))).then((results) => {
+      if (!active) return;
+      const itemsByColor = results.map((result) => (result.status === "fulfilled" ? result.value.items : []));
+      const wines = pickWines(itemsByColor);
+      setState(wines.length > 0 ? { status: "loaded", wines } : { status: "error" });
+    });
     return () => {
       active = false;
     };
