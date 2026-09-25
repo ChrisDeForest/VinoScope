@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { StrictMode } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -63,6 +64,7 @@ describe("ExplorePage", () => {
   beforeEach(() => {
     listWinesMock.mockReset();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("initializes filters from the URL query string", async () => {
@@ -284,5 +286,101 @@ describe("ExplorePage", () => {
     staleLoad.reject(new Error("stale load failed"));
     await waitFor(() => expect(screen.queryByText(/stale load failed|failed to load more wines/i)).not.toBeInTheDocument());
     expect(screen.queryByRole("button", { name: "Loading..." })).not.toBeInTheDocument();
+  });
+
+  it("keeps every loaded wine when returning to Explore under StrictMode", async () => {
+    // StrictMode runs effects twice in development; the restore must survive it.
+    listWinesMock.mockImplementation((params: { offset: number; limit: number }) =>
+      Promise.resolve({
+        total: 30,
+        items: Array.from({ length: params.limit }, (_, i) => makeWine(params.offset + i + 1)),
+      })
+    );
+    const strict = () =>
+      render(
+        <StrictMode>
+          <MemoryRouter initialEntries={["/explore"]}>
+            <ExplorePage />
+          </MemoryRouter>
+        </StrictMode>
+      );
+    const { unmount } = strict();
+    await waitFor(() => expect(screen.getByText("Wine 12")).toBeInTheDocument());
+    await userEvent.setup().click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(screen.getByText("Wine 24")).toBeInTheDocument());
+    unmount();
+
+    listWinesMock.mockClear();
+    strict();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getByText("Wine 24")).toBeInTheDocument();
+    expect(screen.getByText("Showing 24 of 30")).toBeInTheDocument();
+    expect(listWinesMock).not.toHaveBeenCalled();
+  });
+
+  function catalogue(total: number) {
+    listWinesMock.mockImplementation((params: { offset: number; limit: number }) => {
+      const count = Math.max(0, Math.min(params.limit, total - params.offset));
+      return Promise.resolve({
+        total,
+        items: Array.from({ length: count }, (_, i) => makeWine(params.offset + i + 1)),
+      });
+    });
+  }
+
+  it("the Show control tops the list up to the chosen count and sizes later Load more steps", async () => {
+    catalogue(200);
+    renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText("Show"), "48");
+    await waitFor(() => expect(screen.getByText("Showing 48 of 200")).toBeInTheDocument());
+    expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 12, limit: 36 }));
+
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(screen.getByText("Showing 96 of 200")).toBeInTheDocument());
+    expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 48, limit: 48 }));
+  });
+
+  it("Show All loads every wine in API-sized chunks and hides Load more", async () => {
+    catalogue(230);
+    renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 12 of 230")).toBeInTheDocument());
+
+    await userEvent.setup().selectOptions(screen.getByLabelText("Show"), "all");
+    await waitFor(() => expect(screen.getByText("Showing 230 of 230")).toBeInTheDocument());
+    for (const call of listWinesMock.mock.calls) expect(call[0].limit).toBeLessThanOrEqual(100);
+    expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+  });
+
+  it("choosing a smaller count shows only that many without refetching", async () => {
+    catalogue(200);
+    renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText("Show"), "48");
+    await waitFor(() => expect(screen.getByText("Showing 48 of 200")).toBeInTheDocument());
+
+    listWinesMock.mockClear();
+    await user.selectOptions(screen.getByLabelText("Show"), "24");
+    expect(screen.getByText("Showing 24 of 200")).toBeInTheDocument();
+    expect(screen.queryByText("Wine 25")).not.toBeInTheDocument();
+    expect(listWinesMock).not.toHaveBeenCalled();
+  });
+
+  it("remembers the chosen count for the next visit", async () => {
+    catalogue(200);
+    const { unmount } = renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
+    await userEvent.setup().selectOptions(screen.getByLabelText("Show"), "24");
+    await waitFor(() => expect(screen.getByText("Showing 24 of 200")).toBeInTheDocument());
+    unmount();
+
+    sessionStorage.clear();
+    listWinesMock.mockClear();
+    renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 24 of 200")).toBeInTheDocument());
+    expect(listWinesMock).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 24 }));
   });
 });

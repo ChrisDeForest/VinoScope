@@ -30,9 +30,52 @@ const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: st
   { key: "maxPrice", name: "max price", describe: (value) => `Max price: $${value}` },
 ];
 
-const PAGE_SIZE = 12;
+type PageSize = number | "all";
+
+const PAGE_SIZE_OPTIONS: PageSize[] = [12, 24, 48, 96, "all"];
+const DEFAULT_PAGE_SIZE = 12;
+// The wines API rejects a limit above 100, so bigger ranges are fetched in chunks.
+const API_MAX_LIMIT = 100;
 const STATE_KEY = "vinoscope-explore-state";
 const SCROLL_KEY = "vinoscope-explore-scroll";
+const PAGE_SIZE_KEY = "vinoscope-explore-page-size";
+
+function readPageSize(): PageSize {
+  try {
+    const stored = localStorage.getItem(PAGE_SIZE_KEY);
+    const match = PAGE_SIZE_OPTIONS.find((option) => String(option) === stored);
+    return match ?? DEFAULT_PAGE_SIZE;
+  } catch {
+    return DEFAULT_PAGE_SIZE;
+  }
+}
+
+function writePageSize(size: PageSize): void {
+  try {
+    localStorage.setItem(PAGE_SIZE_KEY, String(size));
+  } catch {
+    /* Storage can be unavailable; the choice still applies for this visit. */
+  }
+}
+
+/** Fetches up to `count` wines from `offset` (`Infinity` = to the end), one API-sized chunk at a time. */
+async function fetchWineRange(
+  filters: FilterValues,
+  offset: number,
+  count: number
+): Promise<{ items: WineListItem[]; total: number }> {
+  const items: WineListItem[] = [];
+  let total = Infinity;
+  while (items.length < count && offset + items.length < total) {
+    const limit = Math.min(API_MAX_LIMIT, count - items.length);
+    const page = await listWines(filtersToApiParams(filters, limit, offset + items.length));
+    total = page.total;
+    items.push(...page.items);
+    // A short page means the API has nothing more for these filters.
+    if (page.items.length < limit) break;
+  }
+  return { items, total: Number.isFinite(total) ? total : offset };
+}
 
 interface ExploreSnapshot {
   filtersKey: string;
@@ -64,9 +107,13 @@ export function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState<PageSize>(readPageSize);
   const loadMoreRequestId = useRef(0);
   const primaryRequestId = useRef(0);
-  const skipNextFetchRef = useRef(initial.hit);
+  // Which filters the wines in `items` were loaded for. A fetch is skipped when
+  // it already matches, which (unlike a one-shot "skip once" flag) survives
+  // StrictMode running the effect twice after a snapshot restore.
+  const loadedFiltersKeyRef = useRef<string | null>(initial.hit ? initial.snapshot!.filtersKey : null);
   const restoredScrollRef = useRef(false);
 
   useEffect(() => {
@@ -96,16 +143,20 @@ export function ExplorePage() {
   }, [appliedFilters.q]);
 
   useEffect(() => {
-    if (skipNextFetchRef.current) {
-      skipNextFetchRef.current = false;
+    const filtersKey = filtersKeyOf(appliedFilters);
+    const requestId = ++primaryRequestId.current;
+    setError(null);
+    if (loadedFiltersKeyRef.current === filtersKey) {
+      // Already showing these filters' wines (a restored snapshot, or a switch
+      // back while another fetch was in flight -- bumping the id drops that one).
+      setLoading(false);
       return;
     }
-    const requestId = ++primaryRequestId.current;
     setLoading(true);
-    setError(null);
-    listWines(filtersToApiParams(appliedFilters, PAGE_SIZE, 0))
+    fetchWineRange(appliedFilters, 0, pageSize === "all" ? Infinity : pageSize)
       .then((data) => {
         if (requestId !== primaryRequestId.current) return;
+        loadedFiltersKeyRef.current = filtersKey;
         setItems(data.items);
         setTotal(data.total);
       })
@@ -157,20 +208,37 @@ export function ExplorePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  async function handleLoadMore() {
+  async function loadMore(count: number) {
     const requestId = ++loadMoreRequestId.current;
     setLoadingMore(true);
     setLoadMoreError(null);
     try {
-      const next = await listWines(filtersToApiParams(appliedFilters, PAGE_SIZE, items.length));
+      const next = await fetchWineRange(appliedFilters, items.length, count);
       if (requestId !== loadMoreRequestId.current) return;
       setItems((prev) => [...prev, ...next.items]);
+      setTotal(next.total);
     } catch (err) {
       if (requestId !== loadMoreRequestId.current) return;
       setLoadMoreError(err instanceof ApiError ? err.message : "Failed to load more wines");
     } finally {
       if (requestId !== loadMoreRequestId.current) return;
       setLoadingMore(false);
+    }
+  }
+
+  function handleLoadMore() {
+    void loadMore(pageSize === "all" ? Infinity : pageSize);
+  }
+
+  function handlePageSizeChange(size: PageSize) {
+    setPageSize(size);
+    writePageSize(size);
+    invalidateLoadMore();
+    const target = size === "all" ? total : Math.min(size, total);
+    if (items.length > target) {
+      setItems((prev) => prev.slice(0, target));
+    } else if (items.length < target) {
+      void loadMore(target - items.length);
     }
   }
 
@@ -253,6 +321,23 @@ export function ExplorePage() {
             ))}
           </select>
         </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="explore-page-size" className="text-sm text-ink-muted">
+            Show
+          </label>
+          <select
+            id="explore-page-size"
+            value={String(pageSize)}
+            onChange={(e) => handlePageSizeChange(e.target.value === "all" ? "all" : Number(e.target.value))}
+            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
+          >
+            {PAGE_SIZE_OPTIONS.map((option) => (
+              <option key={option} value={String(option)}>
+                {option === "all" ? (total > 0 ? `All (${total})` : "All") : option}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {activeChips.length > 0 ? (
@@ -277,7 +362,7 @@ export function ExplorePage() {
       ) : null}
 
       {loading ? (
-        <WineGrid wines={[]} skeletonCount={PAGE_SIZE} />
+        <WineGrid wines={[]} skeletonCount={pageSize === "all" ? DEFAULT_PAGE_SIZE : pageSize} />
       ) : error ? (
         <ErrorMessage
           message="Couldn't load wines. Please try again."
