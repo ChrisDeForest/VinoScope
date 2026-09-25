@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Routes, Route, Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { PageShell } from "./PageShell";
 import { stubIntersectionObserver } from "../../test/stubs";
@@ -15,6 +16,7 @@ function renderAt(path: string, children: ReactNode = <p>Page content</p>) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  document.documentElement.classList.remove("home-scroll-padding");
 });
 
 describe("PageShell", () => {
@@ -59,5 +61,78 @@ describe("PageShell", () => {
     const header = screen.getByRole("banner");
     expect(header).toHaveClass("fixed");
     expect(header).not.toHaveClass("border-b");
+  });
+
+  it("sets a scroll-padding class on <html> on the home route and removes it elsewhere (I2)", () => {
+    const { unmount } = renderAt("/");
+    expect(document.documentElement).toHaveClass("home-scroll-padding");
+    unmount();
+
+    renderAt("/pair");
+    expect(document.documentElement).not.toHaveClass("home-scroll-padding");
+  });
+
+  describe("route changes to and from home (C1)", () => {
+    function renderRoutedApp(initialPath: string) {
+      return render(
+        <MemoryRouter initialEntries={[initialPath]}>
+          <PageShell>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <>
+                    <div id="hero-end" aria-hidden="true" />
+                    <Link to="/pair">Go to pair</Link>
+                  </>
+                }
+              />
+              <Route path="/pair" element={<Link to="/">Go home</Link>} />
+            </Routes>
+          </PageShell>
+        </MemoryRouter>
+      );
+    }
+
+    it("re-subscribes and applies scroll padding when navigating from another route to home", async () => {
+      const { fire } = stubIntersectionObserver();
+      const user = userEvent.setup();
+      renderRoutedApp("/pair");
+
+      expect(screen.getByRole("banner")).not.toHaveClass("fixed");
+      expect(document.documentElement).not.toHaveClass("home-scroll-padding");
+
+      await user.click(screen.getByRole("link", { name: "Go home" }));
+
+      const header = screen.getByRole("banner");
+      expect(header).toHaveClass("fixed");
+      expect(header).not.toHaveClass("border-b");
+      expect(document.documentElement).toHaveClass("home-scroll-padding");
+
+      fire(0, false, -50);
+      expect(header).toHaveClass("border-b");
+    });
+
+    it("resets state and re-subscribes with a fresh observer after home -> pair -> home", async () => {
+      const { fire } = stubIntersectionObserver();
+      const user = userEvent.setup();
+      renderRoutedApp("/");
+
+      fire(0, false, -50);
+      expect(screen.getByRole("banner")).toHaveClass("border-b");
+
+      await user.click(screen.getByRole("link", { name: "Go to pair" }));
+      expect(screen.getByRole("banner")).not.toHaveClass("fixed");
+      expect(document.documentElement).not.toHaveClass("home-scroll-padding");
+
+      await user.click(screen.getByRole("link", { name: "Go home" }));
+      const header = screen.getByRole("banner");
+      expect(header).toHaveClass("fixed");
+      expect(header).not.toHaveClass("border-b");
+      expect(document.documentElement).toHaveClass("home-scroll-padding");
+
+      fire(1, false, -50);
+      expect(header).toHaveClass("border-b");
+    });
   });
 });

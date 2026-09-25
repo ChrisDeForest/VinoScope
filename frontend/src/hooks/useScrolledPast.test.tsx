@@ -7,8 +7,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function Probe({ id }: { id: string }) {
-  const scrolledPast = useScrolledPast(id);
+function Probe({ id, enabled }: { id: string; enabled?: boolean }) {
+  const scrolledPast = useScrolledPast(id, enabled);
   return <div data-testid="probe" data-scrolled-past={String(scrolledPast)} />;
 }
 
@@ -17,6 +17,15 @@ function renderProbe(id = "hero-end", withElement = true) {
     <>
       {withElement && <div id="hero-end" aria-hidden="true" />}
       <Probe id={id} />
+    </>
+  );
+}
+
+function renderToggleableProbe(enabled: boolean) {
+  return render(
+    <>
+      <div id="hero-end" aria-hidden="true" />
+      <Probe id="hero-end" enabled={enabled} />
     </>
   );
 }
@@ -54,5 +63,56 @@ describe("useScrolledPast", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     renderProbe();
     expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "false");
+  });
+
+  it("does not subscribe while disabled, and resets to false when it becomes disabled", () => {
+    const { fire, instances } = stubIntersectionObserver();
+    const { rerender } = renderToggleableProbe(false);
+    expect(instances).toHaveLength(0);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "false");
+
+    rerender(
+      <>
+        <div id="hero-end" aria-hidden="true" />
+        <Probe id="hero-end" enabled />
+      </>
+    );
+    expect(instances).toHaveLength(1);
+    fire(0, false, -50);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "true");
+
+    rerender(
+      <>
+        <div id="hero-end" aria-hidden="true" />
+        <Probe id="hero-end" enabled={false} />
+      </>
+    );
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "false");
+  });
+
+  it("re-subscribes with a fresh observer each time it is re-enabled", () => {
+    const { fire, instances } = stubIntersectionObserver();
+    const { rerender } = renderToggleableProbe(true);
+    fire(0, false, -50);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "true");
+
+    rerender(
+      <>
+        <div id="hero-end" aria-hidden="true" />
+        <Probe id="hero-end" enabled={false} />
+      </>
+    );
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "false");
+
+    rerender(
+      <>
+        <div id="hero-end" aria-hidden="true" />
+        <Probe id="hero-end" enabled />
+      </>
+    );
+    expect(instances).toHaveLength(2);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "false");
+    fire(1, false, -50);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-scrolled-past", "true");
   });
 });
