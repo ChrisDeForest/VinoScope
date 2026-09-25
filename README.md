@@ -31,6 +31,10 @@ design docs.
    Review the output file by hand before continuing.
 4. Import: `python scripts/import_wines.py data/cleaned/<file>.csv`
 5. Verify: `python scripts/verify_import.py`
+6. Bottle images (optional, not part of the backend app): `pip install -r
+   scripts/requirements-images.txt`, then see `scripts/process_wine_images.py`
+   and `data/images/manifest.csv`. The dev venv already has these for running
+   `tests/scripts/`.
 
 ## Frontend setup
 
