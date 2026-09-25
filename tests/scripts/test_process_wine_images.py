@@ -201,3 +201,16 @@ def test_process_image_flatten_sends_transparent_source_to_remover_on_white(tmp_
     process_image(raw, tmp_path / "bottle.webp", remover, flatten=True)
 
     assert seen == [(255, 255, 255)]
+
+
+def test_process_image_leaves_holes_in_an_already_transparent_source(tmp_path):
+    raw = tmp_path / "ring.png"
+    _ring_and_notch().save(raw, "PNG")
+    out = tmp_path / "ring.webp"
+
+    process_image(raw, out, _fail_remover)
+
+    with Image.open(out) as written:
+        # Content bbox (10, 5, 100, 60) is scaled x6 to 540x330 and offset
+        # to (30, 285), so the hole centre (25, 25) lands at (120, 405).
+        assert written.getpixel((120, 405))[3] == 0

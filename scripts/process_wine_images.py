@@ -151,12 +151,13 @@ def process_image(raw_path, out_path, remover, flatten=False):
         # see-through, so a source with its own clean alpha is used as-is.
         rgba = source.convert("RGBA")
         if flatten:
-            cutout = remover(flatten_on_white(rgba))
+            cutout = fill_interior_holes(remover(flatten_on_white(rgba)))
         elif has_transparent_background(source):
+            # Its holes are deliberate, and the RGB under them is exporter
+            # filler rather than the photo, so they are left alone.
             cutout = rgba
         else:
-            cutout = remover(rgba)
-    cutout = fill_interior_holes(cutout)
+            cutout = fill_interior_holes(remover(rgba))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fit_on_canvas(cutout).save(out_path, "WEBP", quality=WEBP_QUALITY)
 
