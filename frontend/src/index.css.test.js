@@ -35,6 +35,12 @@ describe("global stylesheet", () => {
       "--color-ink",
       "--color-ink-muted",
       "--color-accent",
+      "--color-wine-red",
+      "--color-wine-white",
+      "--color-wine-rose",
+      "--color-cellar-bg",
+      "--color-cellar-ink",
+      "--color-cellar-muted",
     ]) {
       expect(css).toMatch(new RegExp(`${variable}\\s*:`));
     }

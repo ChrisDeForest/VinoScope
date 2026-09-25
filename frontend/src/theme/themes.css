@@ -6,6 +6,9 @@
   --color-ink: #e8dcc8;
   --color-ink-muted: #a8908a;
   --color-accent: #c9a86a;
+  --color-wine-red: #8e1b2e;
+  --color-wine-white: #d9c27a;
+  --color-wine-rose: #d98a8f;
 }
 
 [data-theme="cream-terracotta"] {
@@ -15,6 +18,9 @@
   --color-ink: #3a2a22;
   --color-ink-muted: #7a6b5b;
   --color-accent: #a8452f;
+  --color-wine-red: #7a1426;
+  --color-wine-white: #b8952f;
+  --color-wine-rose: #c4666f;
 }
 
 [data-theme="charcoal-gold"] {
@@ -24,4 +30,14 @@
   --color-ink: #f0f0f0;
   --color-ink-muted: #8a8a8e;
   --color-accent: #d4af6a;
+  --color-wine-red: #9b2335;
+  --color-wine-white: #e0c97f;
+  --color-wine-rose: #e09aa0;
+}
+
+/* The home hero is an always-dark "cellar" band in every theme. */
+:root {
+  --color-cellar-bg: #0b0506;
+  --color-cellar-ink: #f3e9da;
+  --color-cellar-muted: #c9b8a8;
 }
