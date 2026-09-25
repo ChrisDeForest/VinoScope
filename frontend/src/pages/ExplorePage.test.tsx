@@ -369,6 +369,53 @@ describe("ExplorePage", () => {
     expect(listWinesMock).not.toHaveBeenCalled();
   });
 
+  it("disables Show during a filter reload so a mid-load pick can't leave a gap", async () => {
+    const pendingFilterB = deferred<{ total: number; items: WineListItem[] }>();
+    listWinesMock.mockImplementation((params: { offset: number; limit: number; type?: string }) => {
+      if (params.type === "white") return pendingFilterB.promise;
+      const count = Math.max(0, Math.min(params.limit, 200 - params.offset));
+      return Promise.resolve({
+        total: 200,
+        items: Array.from({ length: count }, (_, i) => makeWine(params.offset + i + 1)),
+      });
+    });
+    renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /^filters/i }));
+    const dialog = screen.getByRole("dialog", { name: "Filters" });
+    await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
+    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+
+    // The filter-B fetch is still pending (deferred): Show must be disabled so
+    // it can't be changed against the stale items/total from filters A.
+    expect(screen.getByLabelText("Show")).toBeDisabled();
+
+    pendingFilterB.resolve({
+      total: 200,
+      items: Array.from({ length: 12 }, (_, i) => makeWine(1000 + i, { type: "white" })),
+    });
+    await waitFor(() => expect(screen.getByLabelText("Show")).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
+
+    listWinesMock.mockImplementation((params: { offset: number; limit: number; type?: string }) => {
+      const count = Math.max(0, Math.min(params.limit, 200 - params.offset));
+      return Promise.resolve({
+        total: 200,
+        items: Array.from({ length: count }, (_, i) => makeWine(2000 + params.offset + i, { type: "white" })),
+      });
+    });
+    await user.selectOptions(screen.getByLabelText("Show"), "48");
+
+    // The list must land on exactly the chosen, contiguous size -- no gap.
+    await waitFor(() => expect(screen.getByText("Showing 48 of 200")).toBeInTheDocument());
+    expect(screen.getAllByRole("img")).toHaveLength(48);
+    expect(listWinesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ offset: 12, limit: 36, type: "white" })
+    );
+  });
+
   it("remembers the chosen count for the next visit", async () => {
     catalogue(200);
     const { unmount } = renderExplore();

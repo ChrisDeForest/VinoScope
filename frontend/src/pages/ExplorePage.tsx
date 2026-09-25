@@ -110,6 +110,11 @@ export function ExplorePage() {
   const [pageSize, setPageSize] = useState<PageSize>(readPageSize);
   const loadMoreRequestId = useRef(0);
   const primaryRequestId = useRef(0);
+  // The main fetch effect only depends on `appliedFilters`, so it can't pick up
+  // a `pageSize` change made after it was scheduled; it reads this ref instead
+  // of the `pageSize` closure so it always uses the latest choice.
+  const pageSizeRef = useRef(pageSize);
+  pageSizeRef.current = pageSize;
   // Which filters the wines in `items` were loaded for. A fetch is skipped when
   // it already matches, which (unlike a one-shot "skip once" flag) survives
   // StrictMode running the effect twice after a snapshot restore.
@@ -153,12 +158,15 @@ export function ExplorePage() {
       return;
     }
     setLoading(true);
-    fetchWineRange(appliedFilters, 0, pageSize === "all" ? Infinity : pageSize)
+    const size = pageSizeRef.current;
+    fetchWineRange(appliedFilters, 0, size === "all" ? Infinity : size)
       .then((data) => {
         if (requestId !== primaryRequestId.current) return;
         loadedFiltersKeyRef.current = filtersKey;
         setItems(data.items);
         setTotal(data.total);
+        // Drop any loadMore that was still in flight for the previous items/total.
+        loadMoreRequestId.current += 1;
       })
       .catch((err) => {
         if (requestId !== primaryRequestId.current) return;
@@ -329,7 +337,8 @@ export function ExplorePage() {
             id="explore-page-size"
             value={String(pageSize)}
             onChange={(e) => handlePageSizeChange(e.target.value === "all" ? "all" : Number(e.target.value))}
-            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
+            disabled={loading}
+            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink disabled:opacity-60"
           >
             {PAGE_SIZE_OPTIONS.map((option) => (
               <option key={option} value={String(option)}>
