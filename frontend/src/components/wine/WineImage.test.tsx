@@ -8,7 +8,7 @@ describe("WineImage", () => {
     const img = screen.getByRole("img", { name: "Caymus" });
     expect(img.getAttribute("src")).toBe("/wines/caymus.webp");
     expect(img.className).toContain("object-contain");
-    expect(img.parentElement?.className).toContain("bg-surface-raised");
+    expect(img.parentElement?.className).toContain("bg-image-panel");
     expect(img.parentElement?.className).toContain("h-48");
   });
 

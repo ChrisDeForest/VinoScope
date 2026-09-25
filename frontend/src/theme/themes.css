@@ -2,6 +2,7 @@
 [data-theme="dark-burgundy"] {
   --color-surface: #231416;
   --color-surface-raised: #2f1b1e;
+  --color-image-panel: #2f1b1e;
   --color-surface-border: #4a262b;
   --color-ink: #e8dcc8;
   --color-ink-muted: #a8908a;
@@ -14,6 +15,7 @@
 [data-theme="cream-terracotta"] {
   --color-surface: #f5efe6;
   --color-surface-raised: #ffffff;
+  --color-image-panel: #ebe1d2;
   --color-surface-border: #e3d5c0;
   --color-ink: #3a2a22;
   --color-ink-muted: #7a6b5b;
@@ -26,6 +28,7 @@
 [data-theme="charcoal-gold"] {
   --color-surface: #1c1c1e;
   --color-surface-raised: #242426;
+  --color-image-panel: #242426;
   --color-surface-border: #38383a;
   --color-ink: #f0f0f0;
   --color-ink-muted: #8a8a8e;

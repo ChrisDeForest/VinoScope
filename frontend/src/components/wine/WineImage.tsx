@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const PLACEHOLDER_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='520'%3E%3Crect width='400' height='520' fill='%232f1b1e'/%3E%3C/svg%3E";
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='520'%3E%3Crect width='400' height='520' fill='none'/%3E%3C/svg%3E";
 
 export function WineImage({
   src,
@@ -18,7 +18,7 @@ export function WineImage({
   const showBottle = src !== null && !failed;
 
   return (
-    <div className={`bg-surface-raised overflow-hidden ${className}`}>
+    <div className={`bg-image-panel overflow-hidden ${className}`}>
       <img
         src={showBottle ? src : PLACEHOLDER_IMAGE}
         alt={alt}

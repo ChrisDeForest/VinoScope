@@ -9,6 +9,7 @@ export default {
       colors: {
         surface: "var(--color-surface)",
         "surface-raised": "var(--color-surface-raised)",
+        "image-panel": "var(--color-image-panel)",
         "surface-border": "var(--color-surface-border)",
         ink: "var(--color-ink)",
         "ink-muted": "var(--color-ink-muted)",

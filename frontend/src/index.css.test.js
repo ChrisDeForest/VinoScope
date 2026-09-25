@@ -31,6 +31,7 @@ describe("global stylesheet", () => {
     for (const variable of [
       "--color-surface",
       "--color-surface-raised",
+      "--color-image-panel",
       "--color-surface-border",
       "--color-ink",
       "--color-ink-muted",
