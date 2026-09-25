@@ -4,9 +4,9 @@ import { Scene, SceneCta } from "../Scene";
 
 const VINE_ROWS = [150, 170, 190];
 const REGIONS: ReadonlyArray<readonly [name: string, x: number, y: number]> = [
-  ["Bordeaux", 165, 55],
-  ["Napa", 200, 45],
-  ["Barossa", 190, 85],
+  ["Bordeaux", 150, 45],
+  ["Napa", 178, 62],
+  ["Barossa", 168, 82],
 ];
 
 function LearnArt() {

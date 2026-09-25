@@ -20,7 +20,7 @@ const MEDIA_LABEL = "Red wine being poured into a glass";
 
 function HeroCopy({ showCue }: { showCue: boolean }) {
   return (
-    <div className="relative z-10 h-full max-w-6xl mx-auto px-4 pt-24 flex flex-col justify-start md:pt-0 md:justify-center">
+    <div className="relative z-10 h-full max-w-6xl mx-auto px-4 pt-40 flex flex-col justify-start md:pt-0 md:justify-center">
       <div className="max-w-md">
         <h1 id="hero-title" className="font-serif text-4xl md:text-5xl text-cellar-ink mb-4">
           Find a wine you'll actually enjoy.
