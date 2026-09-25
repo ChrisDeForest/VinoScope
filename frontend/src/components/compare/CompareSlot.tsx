@@ -1,8 +1,6 @@
 import { formatVintage } from "../../utils/format";
+import { WineImage } from "../wine/WineImage";
 import type { WineDetail } from "../../types/wine";
-
-const PLACEHOLDER_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='260'%3E%3Crect width='200' height='260' fill='%232f1b1e'/%3E%3C/svg%3E";
 
 export function CompareSlot({ wine, onRemove }: { wine: WineDetail; onRemove: () => void }) {
   return (
@@ -15,11 +13,7 @@ export function CompareSlot({ wine, onRemove }: { wine: WineDetail; onRemove: ()
       >
         &times;
       </button>
-      <img
-        src={wine.image_url ?? PLACEHOLDER_IMAGE}
-        alt={wine.name}
-        className="w-full h-32 object-cover bg-surface-raised"
-      />
+      <WineImage src={wine.image_url} alt={wine.name} className="w-full h-32" />
       <div className="p-2">
         <h3 className="font-serif text-sm text-ink">{wine.name}</h3>
         <p className="text-xs text-ink-muted">

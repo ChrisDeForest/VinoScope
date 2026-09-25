@@ -11,10 +11,8 @@ import { formatVintage } from "../utils/format";
 import { getAdminKey } from "../services/adminAuth";
 import { WineEditPanel } from "../components/admin/WineEditPanel";
 import { AddToCompareButton } from "../components/compare/AddToCompareButton";
+import { WineImage } from "../components/wine/WineImage";
 import type { WineDetail } from "../types/wine";
-
-const PLACEHOLDER_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='520'%3E%3Crect width='400' height='520' fill='%232f1b1e'/%3E%3C/svg%3E";
 
 export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,11 +59,7 @@ export function WineDetailPage() {
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
-      <img
-        src={wine.image_url ?? PLACEHOLDER_IMAGE}
-        alt={wine.name}
-        className="w-full md:w-80 h-96 object-cover bg-surface-raised rounded"
-      />
+      <WineImage src={wine.image_url} alt={wine.name} eager className="w-full md:w-80 h-96 rounded shrink-0" />
 
       <div className="flex-1 flex flex-col gap-4">
         <div>

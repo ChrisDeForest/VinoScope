@@ -1,10 +1,8 @@
 import { Link } from "react-router-dom";
 import { AddToCompareButton } from "../compare/AddToCompareButton";
+import { WineImage } from "./WineImage";
 import type { WineListItem } from "../../types/wine";
 import { formatPrice, formatVintage, primaryGrapeLabel, formatApproxUsd, hasApproxUsdConversion } from "../../utils/format";
-
-const PLACEHOLDER_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='260'%3E%3Crect width='200' height='260' fill='%232f1b1e'/%3E%3C/svg%3E";
 
 export function WineCard({
   wine,
@@ -28,18 +26,7 @@ export function WineCard({
       className="block flex-1"
     >
       <div className="relative">
-        <img
-          src={wine.image_url ?? PLACEHOLDER_IMAGE}
-          alt={wine.name}
-          loading={eagerImage ? "eager" : "lazy"}
-          decoding="async"
-          width={400}
-          height={384}
-          onError={(event) => {
-            if (event.currentTarget.src !== PLACEHOLDER_IMAGE) event.currentTarget.src = PLACEHOLDER_IMAGE;
-          }}
-          className="w-full h-48 object-cover bg-surface-raised"
-        />
+        <WineImage src={wine.image_url} alt={wine.name} eager={eagerImage} className="w-full h-48" />
         {matchScore !== undefined ? (
           <span className="absolute top-1.5 right-1.5 bg-accent text-surface text-xs font-bold px-2 py-0.5 rounded-full">
             {Math.round(matchScore * 100)}% Match
