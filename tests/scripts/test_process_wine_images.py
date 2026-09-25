@@ -9,6 +9,7 @@ from scripts.process_wine_images import (
     fill_interior_holes,
     fit_on_canvas,
     has_bom,
+    has_transparent_background,
     process_image,
     read_wines_csv,
     set_image_urls,
@@ -156,3 +157,47 @@ def test_process_image_writes_transparent_webp(tmp_path):
         assert written.mode == "RGBA"
         assert written.getpixel((5, 5))[3] == 0
         assert written.getpixel((300, 450))[3] == 255
+
+
+def _fail_remover(image):
+    raise AssertionError("remover must not run on an already-transparent source")
+
+
+def test_process_image_keeps_existing_transparency_without_remover(tmp_path):
+    # Producer packshots often ship as transparent PNGs; running rembg on
+    # them punches holes in dark or clear glass, so their own alpha wins.
+    raw = tmp_path / "bottle.png"
+    source = Image.new("RGBA", (200, 400), (255, 255, 255, 0))
+    source.paste((40, 10, 20, 255), (70, 40, 130, 360))
+    source.save(raw, "PNG")
+    out = tmp_path / "bottle.webp"
+
+    process_image(raw, out, _fail_remover)
+
+    with Image.open(out) as written:
+        assert written.getpixel((5, 5))[3] == 0
+        assert written.getpixel((300, 450))[3] == 255
+
+
+def test_has_transparent_background_needs_fully_transparent_pixels():
+    clear = Image.new("RGBA", (50, 50), (0, 0, 0, 0))
+    clear.paste((200, 0, 0, 255), (10, 10, 40, 40))
+    assert has_transparent_background(clear)
+    assert not has_transparent_background(Image.new("RGBA", (50, 50), (255, 255, 255, 255)))
+    assert not has_transparent_background(Image.new("RGB", (50, 50), (255, 255, 255)))
+
+
+def test_process_image_flatten_sends_transparent_source_to_remover_on_white(tmp_path):
+    raw = tmp_path / "bottle.png"
+    source = Image.new("RGBA", (200, 400), (0, 0, 0, 0))
+    source.paste((40, 10, 20, 255), (70, 40, 130, 360))
+    source.save(raw, "PNG")
+    seen = []
+
+    def remover(image):
+        seen.append(image.convert("RGB").getpixel((5, 5)))
+        return _white_to_transparent(image)
+
+    process_image(raw, tmp_path / "bottle.webp", remover, flatten=True)
+
+    assert seen == [(255, 255, 255)]

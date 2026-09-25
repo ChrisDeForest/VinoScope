@@ -124,18 +124,50 @@ def fill_interior_holes(image):
     return Image.fromarray(arr, "RGBA")
 
 
-def process_image(raw_path, out_path, remover):
+TRANSPARENT_SHARE = 0.05
+
+
+def has_transparent_background(image):
+    """True when the source already ships cut out: a meaningful share of its
+    pixels is fully transparent. Packshots are often cropped tight to the
+    bottle, so the border alone is not a reliable signal."""
+    if "A" not in image.getbands() and "transparency" not in image.info:
+        return False
+    alpha = np.array(image.convert("RGBA").getchannel("A"))
+    return (alpha == 0).mean() >= TRANSPARENT_SHARE
+
+
+def flatten_on_white(image):
+    white = Image.new("RGBA", image.size, (255, 255, 255, 255))
+    white.alpha_composite(image.convert("RGBA"))
+    return white
+
+
+def process_image(raw_path, out_path, remover, flatten=False):
+    """flatten=True is for transparent sources whose alpha still carries
+    artwork or a halo: they are put on white and cut out by the remover."""
     with Image.open(raw_path) as source:
-        cutout = remover(source.convert("RGBA"))
+        # rembg on an already-transparent packshot turns dark or clear glass
+        # see-through, so a source with its own clean alpha is used as-is.
+        rgba = source.convert("RGBA")
+        if flatten:
+            cutout = remover(flatten_on_white(rgba))
+        elif has_transparent_background(source):
+            cutout = rgba
+        else:
+            cutout = remover(rgba)
     cutout = fill_interior_holes(cutout)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fit_on_canvas(cutout).save(out_path, "WEBP", quality=WEBP_QUALITY)
 
 
-def rembg_remover():
+DEFAULT_MODEL = "isnet-general-use"
+
+
+def rembg_remover(model=DEFAULT_MODEL):
     from rembg import new_session, remove
 
-    session = new_session("isnet-general-use")
+    session = new_session(model)
     return lambda image: remove(image, session=session)
 
 
@@ -152,7 +184,7 @@ def init_manifest():
     print(f"Wrote {len(manifest)} rows to {MANIFEST_PATH}")
 
 
-def process_all(only=None, force=False):
+def process_all(only=None, force=False, model=DEFAULT_MODEL, flatten=False):
     manifest = read_wines_csv(MANIFEST_PATH)
     remover = None
     missing = []
@@ -166,8 +198,8 @@ def process_all(only=None, force=False):
         if raw_path is None:
             missing.append(slug)
             continue
-        remover = remover or rembg_remover()
-        process_image(raw_path, out_path, remover)
+        remover = remover or rembg_remover(model)
+        process_image(raw_path, out_path, remover, flatten=flatten)
         print(f"processed {slug}")
 
     urls = {slug: f"/wines/{slug}.webp" for slug in manifest["slug"] if (OUT_DIR / f"{slug}.webp").exists()}
@@ -186,11 +218,17 @@ def main(argv=None):
     process = commands.add_parser("process", help="Cut out raw images and update CSV image_url")
     process.add_argument("--only", help="Process a single slug")
     process.add_argument("--force", action="store_true", help="Reprocess even if output exists")
+    process.add_argument("--model", default=DEFAULT_MODEL, help="rembg model, e.g. birefnet-general")
+    process.add_argument(
+        "--flatten",
+        action="store_true",
+        help="Put a transparent source on white and cut it out again (artwork or halo baked into its alpha)",
+    )
     args = parser.parse_args(argv)
     if args.command == "init-manifest":
         init_manifest()
     else:
-        process_all(only=args.only, force=args.force)
+        process_all(only=args.only, force=args.force, model=args.model, flatten=args.flatten)
 
 
 if __name__ == "__main__":
