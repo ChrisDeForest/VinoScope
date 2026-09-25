@@ -1,0 +1,104 @@
+/*
+ * Home scene animation. Every rule outside `.scene-animate:not(.is-visible)`
+ * describes the finished (resting) look, so reduced motion, no JS, and no
+ * IntersectionObserver all show complete scenes.
+ */
+
+.scene .draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.2s ease var(--delay, 0s);
+}
+
+.scene .pop,
+.scene .fan,
+.scene .slide,
+.scene .swirl {
+  transform-box: fill-box;
+}
+
+.scene .pop {
+  transform-origin: center;
+  transition: opacity 0.6s ease var(--delay, 0s), transform 0.6s ease var(--delay, 0s);
+}
+
+.scene .fan {
+  transform-origin: 50% 100%;
+  transform: rotate(var(--fan, 0deg));
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--delay, 0s), opacity 0.6s ease var(--delay, 0s);
+}
+
+.scene .slide {
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--delay, 0s), opacity 0.6s ease var(--delay, 0s);
+}
+
+.scene .meter-fill {
+  transform-origin: left center;
+  transform: scaleX(var(--value, 1));
+  transition: transform 1s ease var(--delay, 0s);
+}
+
+.scene .fade-out {
+  opacity: 0.12;
+  transition: opacity 1.2s ease var(--delay, 0s);
+}
+
+.scene .radar-a {
+  opacity: 0;
+  transition: opacity 0.8s ease var(--delay, 0s);
+}
+
+.scene .radar-b {
+  opacity: 1;
+  transition: opacity 0.8s ease var(--delay, 0s);
+}
+
+.scene-animate:not(.is-visible) .draw {
+  stroke-dashoffset: 1;
+}
+
+.scene-animate:not(.is-visible) .pop {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+}
+
+.scene-animate:not(.is-visible) .fan {
+  opacity: 0;
+  transform: rotate(0deg);
+}
+
+.scene-animate:not(.is-visible) .slide {
+  opacity: 0;
+  transform: translateX(var(--from-x, 0px));
+}
+
+.scene-animate:not(.is-visible) .meter-fill {
+  transform: scaleX(0);
+}
+
+.scene-animate:not(.is-visible) .fade-out,
+.scene-animate:not(.is-visible) .radar-a {
+  opacity: 1;
+}
+
+.scene-animate:not(.is-visible) .radar-b {
+  opacity: 0;
+}
+
+.scene-animate.is-visible .swirl {
+  transform-origin: center;
+  animation: scene-swirl 1.4s ease-in-out var(--delay, 0s) 2;
+}
+
+@keyframes scene-swirl {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: skewY(5deg) translateY(-2px);
+  }
+  75% {
+    transform: skewY(-5deg) translateY(2px);
+  }
+}
