@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
 import { useRef } from "react";
-import { scrollProgress, useScrollProgress } from "./useScrollProgress";
+import { scrollProgress, throughProgress, useScrollProgress } from "./useScrollProgress";
 
 describe("scrollProgress", () => {
   it("is 0 before the element reaches the top of the viewport", () => {
@@ -19,6 +19,32 @@ describe("scrollProgress", () => {
   it("handles elements no taller than the viewport", () => {
     expect(scrollProgress({ top: 10, height: 800, viewportHeight: 1000 })).toBe(0);
     expect(scrollProgress({ top: 0, height: 800, viewportHeight: 1000 })).toBe(1);
+  });
+});
+
+describe("throughProgress", () => {
+  // viewportHeight 1000 → the default anchor line sits at 600px.
+  it("is 0 until the element's top reaches the anchor line", () => {
+    expect(throughProgress({ top: 900, height: 2000, viewportHeight: 1000 })).toBe(0);
+    expect(throughProgress({ top: 600, height: 2000, viewportHeight: 1000 })).toBe(0);
+  });
+
+  it("is proportional while the anchor line travels through the element", () => {
+    expect(throughProgress({ top: -400, height: 2000, viewportHeight: 1000 })).toBe(0.5);
+  });
+
+  it("is 1 once the element's bottom has passed the anchor line", () => {
+    expect(throughProgress({ top: -1400, height: 2000, viewportHeight: 1000 })).toBe(1);
+    expect(throughProgress({ top: -5000, height: 2000, viewportHeight: 1000 })).toBe(1);
+  });
+
+  it("accepts a custom anchor", () => {
+    expect(throughProgress({ top: 0, height: 1000, viewportHeight: 1000, anchor: 0.5 })).toBe(0.5);
+  });
+
+  it("handles zero-height elements", () => {
+    expect(throughProgress({ top: 700, height: 0, viewportHeight: 1000 })).toBe(0);
+    expect(throughProgress({ top: 100, height: 0, viewportHeight: 1000 })).toBe(1);
   });
 });
 
@@ -74,5 +100,18 @@ describe("useScrollProgress", () => {
       window.dispatchEvent(new Event("scroll"));
     });
     expect(onProgress).not.toHaveBeenCalled();
+  });
+
+  it("uses a custom progress function when given one", () => {
+    const onProgress = vi.fn();
+
+    function CustomProbe() {
+      const ref = useRef<HTMLDivElement>(null);
+      useScrollProgress(ref, onProgress, true, () => 0.42);
+      return <div ref={ref} />;
+    }
+
+    render(<CustomProbe />);
+    expect(onProgress).toHaveBeenLastCalledWith(0.42);
   });
 });
