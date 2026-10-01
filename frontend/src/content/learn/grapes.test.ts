@@ -55,5 +55,15 @@ describe("Key Grapes content", () => {
   it("uses ranges where the grape spans the scale", () => {
     expect(GRAPES.find((grape) => grape.id === "riesling")!.profile.sweetness).toEqual([1, 5]);
     expect(GRAPES.find((grape) => grape.id === "chardonnay")!.profile.body).toEqual([2, 4]);
+    expect(GRAPES.find((grape) => grape.id === "chardonnay")!.profile.acidity).toEqual([3, 4]);
+    expect(GRAPES.find((grape) => grape.id === "syrah")!.profile.body).toEqual([4, 5]);
+  });
+
+  it("refines the wine facts", () => {
+    const byId = (id: string) => GRAPES.find((grape) => grape.id === id)!;
+    expect(byId("cabernet-sauvignon").profile.acidity).toBe(4);
+    expect(byId("chardonnay").about).toContain("malolactic");
+    expect(byId("sauvignon-blanc").regions).toContain("Bordeaux (blended with Sémillon)");
+    expect(byId("syrah").exploreLabel).toBe("Syrah");
   });
 });

@@ -29,13 +29,16 @@ export function ProfileBars({ profile }: { profile: Record<Dimension, ProfileVal
             <span aria-hidden="true" className="text-xs text-ink-muted">
               {DIMENSION_TITLES[dimension]}
             </span>
-            <span aria-hidden="true" className="grid grid-cols-5 gap-1">
+            <span aria-hidden="true" className="flex items-center gap-2">
+              <span className="grid flex-1 grid-cols-5 gap-1">
               {STEPS.map((step) => {
                 const state = segmentState(value, step);
                 return (
                   <span key={step} data-testid="segment" data-state={state} className={`h-2 rounded-full ${SEGMENT_CLASS[state]}`} />
                 );
               })}
+              </span>
+              {typeof value !== "number" ? <span className="text-[11px] text-ink-muted">varies</span> : null}
             </span>
           </li>
         );

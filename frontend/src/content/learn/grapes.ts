@@ -12,6 +12,8 @@ export interface GrapeContent {
   color: GrapeColor;
   /** Value for Explore's `grape` filter (a case-insensitive contains match). */
   exploreGrape: string;
+  /** Link wording when it must match the filter rather than the display name (e.g. "Syrah" for "Syrah / Shiraz"). */
+  exploreLabel?: string;
   tagline: string;
   /** "What it's like". */
   about: string;
@@ -42,7 +44,7 @@ export const GRAPES: readonly GrapeContent[] = [
     tagline: "The structured, age-worthy king of reds.",
     about: "Small, thick-skinned berries give Cabernet deep color, firm tannin and the backbone to age for decades. It loves warm, sunny, well-drained vineyards and leads most blends on Bordeaux's Left Bank.",
     notes: ["blackcurrant", "black cherry", "cedar", "mint"],
-    profile: { sweetness: 1, acidity: 3, tannin: 5, body: 5, fruitiness: 4 },
+    profile: { sweetness: 1, acidity: 4, tannin: 5, body: 5, fruitiness: 4 },
     regions: ["Bordeaux (Left Bank)", "Napa Valley", "Coonawarra", "Chile"],
     source: "general",
   },
@@ -75,10 +77,11 @@ export const GRAPES: readonly GrapeContent[] = [
     name: "Syrah / Shiraz",
     color: "red",
     exploreGrape: "Syrah",
+    exploreLabel: "Syrah",
     tagline: "Dark, peppery and bold. Called Shiraz in Australia.",
     about: "Syrah makes deeply colored, full-bodied wines. In France's Northern Rhône it's savory and peppery; in warm Australia, where it goes by Shiraz, it's riper, richer and jammier.",
     notes: ["blackberry", "black pepper", "smoked meat"],
-    profile: { sweetness: 1, acidity: 3, tannin: 4, body: 5, fruitiness: 4 },
+    profile: { sweetness: 1, acidity: 3, tannin: 4, body: [4, 5], fruitiness: 4 },
     regions: ["Northern Rhône", "Barossa Valley", "Washington"],
     source: "general",
   },
@@ -88,9 +91,9 @@ export const GRAPES: readonly GrapeContent[] = [
     color: "white",
     exploreGrape: "Chardonnay",
     tagline: "The shape-shifter of white wine.",
-    about: "Chardonnay is fairly neutral on its own, so climate and winemaking shape it. Cool-climate, unoaked styles like Chablis are lean and citrusy; warm-climate, oak-aged styles are rich and creamy, with notes of butter and vanilla.",
+    about: "Chardonnay is fairly neutral on its own, so climate and winemaking shape it. Cool-climate, unoaked styles like Chablis are lean and citrusy; warm-climate styles that go through malolactic conversion and oak aging are rich and creamy, with notes of butter and vanilla.",
     notes: ["apple", "lemon", "pineapple", "butter", "vanilla"],
-    profile: { sweetness: 1, acidity: 3, tannin: 1, body: [2, 4], fruitiness: 3 },
+    profile: { sweetness: 1, acidity: [3, 4], tannin: 1, body: [2, 4], fruitiness: 3 },
     regions: ["Burgundy (Chablis, Meursault)", "California", "Australia"],
     source: "general",
   },
@@ -103,7 +106,7 @@ export const GRAPES: readonly GrapeContent[] = [
     about: "Sauvignon Blanc is all about bright acidity and pungent aromas, from citrus and passion fruit to fresh-cut grass. It's usually made in stainless steel and drunk young, to keep that freshness.",
     notes: ["grapefruit", "green apple", "cut grass", "passion fruit"],
     profile: { sweetness: 1, acidity: 5, tannin: 1, body: 2, fruitiness: 4 },
-    regions: ["Loire (Sancerre)", "Marlborough", "Bordeaux"],
+    regions: ["Loire (Sancerre)", "Marlborough", "Bordeaux (blended with Sémillon)"],
     source: "general",
   },
   {

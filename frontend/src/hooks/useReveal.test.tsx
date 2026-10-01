@@ -8,9 +8,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function Probe() {
+function Probe({ delayMs }: { delayMs?: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const classes = useReveal(ref);
+  const classes = useReveal(ref, delayMs === undefined ? undefined : { delayMs });
   return <div ref={ref} data-testid="probe" className={classes.join(" ")} />;
 }
 
@@ -32,6 +32,14 @@ describe("useReveal", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("reveals at once when delayMs is 0", () => {
+    stubMatchMedia({ reducedMotion: false });
+    const { fire } = stubIntersectionObserver();
+    render(<Probe delayMs={0} />);
+    fire(0, true);
+    expect(screen.getByTestId("probe")).toHaveClass("is-visible");
   });
 
   it("omits scene-animate under reduced motion", () => {

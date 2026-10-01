@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation, useNavigationType } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import * as api from "../../../services/api";
 import { GrapesChapter, grapeIdFromHash } from "./GrapesChapter";
 
@@ -20,9 +20,16 @@ function LocationProbe() {
   return (
     <p data-testid="location">
       {location.pathname}
+      {location.search}
       {location.hash} {type}
     </p>
   );
+}
+
+let navigateProbe: ReturnType<typeof useNavigate>;
+function NavigateCapture() {
+  navigateProbe = useNavigate();
+  return null;
 }
 
 function renderAt(path: string) {
@@ -30,6 +37,7 @@ function renderAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <GrapesChapter />
       <LocationProbe />
+      <NavigateCapture />
     </MemoryRouter>
   );
 }
@@ -71,5 +79,27 @@ describe("GrapesChapter", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Pinot Noir" }));
     expect(screen.getByRole("tabpanel", { name: "Pinot Noir" })).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent("/learn#grape-pinot-noir REPLACE");
+  });
+
+  it("keeps the query string when writing the hash", async () => {
+    renderAt("/learn?x=1");
+    await userEvent.click(screen.getByRole("tab", { name: "Merlot" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/learn?x=1#grape-merlot REPLACE");
+  });
+
+  it("follows Back and Forward to a grape hash, ignores other hashes", async () => {
+    renderAt("/learn#grape-merlot");
+    act(() => navigateProbe({ hash: "#grapes" }));
+    expect(selectedName()).toBe("Merlot");
+    await userEvent.click(screen.getByRole("tab", { name: "Riesling" })); // replaces #grapes
+    act(() => navigateProbe({ hash: "#vine" }));
+    act(() => navigateProbe(-1)); // POP to #grape-riesling
+    expect(selectedName()).toBe("Riesling");
+    act(() => navigateProbe({ hash: "#grape-pinot-noir" }));
+    act(() => navigateProbe({ hash: "#vine" }));
+    act(() => navigateProbe(-1)); // POP to #grape-pinot-noir
+    expect(selectedName()).toBe("Pinot Noir");
+    act(() => navigateProbe(1)); // POP to #vine: unchanged
+    expect(selectedName()).toBe("Pinot Noir");
   });
 });

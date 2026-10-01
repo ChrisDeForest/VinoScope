@@ -35,6 +35,14 @@ describe("ProfileBars", () => {
     expect(states(sweetness)).toEqual(["empty", "range", "range", "range", "empty"]);
   });
 
+  it("shows a visible, aria-hidden cue on ranged rows only", () => {
+    render(<ProfileBars profile={PROFILE} />);
+    const cues = screen.getAllByText("varies");
+    expect(cues).toHaveLength(1);
+    expect(cues[0].closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.getAllByRole("listitem")[0]).toContainElement(cues[0]);
+  });
+
   it("hides the segments from assistive technology", () => {
     render(<ProfileBars profile={PROFILE} />);
     for (const segment of screen.getAllByTestId("segment")) {

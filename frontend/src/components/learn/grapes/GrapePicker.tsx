@@ -38,7 +38,7 @@ export function GrapePicker({ grapes, selectedId, onSelect }: GrapePickerProps) 
   }
 
   return (
-    <div role="tablist" aria-label="Grapes" className="flex items-center gap-2 overflow-x-auto pb-2">
+    <div role="tablist" aria-label="Grapes" className="flex items-center gap-2 overflow-x-auto py-1">
       {grapes.map((grape, index) => {
         const selected = grape.id === selectedId;
         const startsGroup = index === 0 || grapes[index - 1].color !== grape.color;
@@ -60,7 +60,7 @@ export function GrapePicker({ grapes, selectedId, onSelect }: GrapePickerProps) 
               role="tab"
               id={grapeTabId(grape.id)}
               aria-selected={selected}
-              aria-controls={GRAPE_PANEL_ID}
+              aria-controls={selected ? GRAPE_PANEL_ID : undefined}
               tabIndex={selected ? 0 : -1}
               onClick={() => onSelect(grape.id)}
               onKeyDown={(event) => move(event, index)}

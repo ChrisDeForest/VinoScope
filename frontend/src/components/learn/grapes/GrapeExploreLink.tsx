@@ -21,7 +21,8 @@ export function GrapeExploreLink({ name, exploreGrape }: { name: string; explore
     };
   }, [exploreGrape]);
 
-  const label = count === null ? `Explore ${name} wines` : `Explore ${count} ${name} ${count === 1 ? "wine" : "wines"}`;
+  // A zero count would read as a dead end, so it falls back to the plain label.
+  const label = !count ? `Explore ${name} wines` : `Explore ${count} ${name} ${count === 1 ? "wine" : "wines"}`;
 
   return (
     <Link

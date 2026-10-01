@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import * as api from "../../../services/api";
 import { GRAPES } from "../../../content/learn/grapes";
 import { GrapePanel } from "./GrapePanel";
+import { REVEAL_DELAY_MS } from "../../../hooks/useReveal";
+import { stubIntersectionObserver, stubMatchMedia } from "../../../test/stubs";
 
 vi.mock("../../../services/api", async () => {
   const actual = await vi.importActual<typeof import("../../../services/api")>("../../../services/api");
@@ -13,17 +15,22 @@ vi.mock("../../../services/api", async () => {
 const RIESLING = GRAPES.find((grape) => grape.id === "riesling")!;
 const MERLOT = GRAPES.find((grape) => grape.id === "merlot")!;
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
 beforeEach(() => {
   vi.mocked(api.listWines).mockReturnValue(new Promise(() => {}));
 });
 
-function renderPanel(grape = RIESLING) {
+function renderPanel(grape = RIESLING, initial = false) {
   return render(
     <MemoryRouter>
       <button role="tab" id={`grape-${grape.id}`}>
         {grape.name}
       </button>
-      <GrapePanel grape={grape} />
+      <GrapePanel grape={grape} initial={initial} />
     </MemoryRouter>
   );
 }
@@ -58,5 +65,30 @@ describe("GrapePanel", () => {
     for (const stroke of screen.getByTestId("grape-art").querySelectorAll(".draw")) {
       expect(stroke).toHaveAttribute("pathLength", "1");
     }
+  });
+
+  it("links Syrah by its filter name, not the combined display name", () => {
+    renderPanel(GRAPES.find((grape) => grape.id === "syrah")!);
+    expect(screen.getByRole("link", { name: "Explore Syrah wines" })).toHaveAttribute("href", "/explore?grape=Syrah");
+  });
+
+  it("is focusable so keyboard users can scroll it", () => {
+    renderPanel();
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("tabindex", "0");
+  });
+
+  it("reveals a switched-to panel as soon as it is in view, but delays the initial one", () => {
+    vi.useFakeTimers();
+    stubMatchMedia({ reducedMotion: false });
+    const { fire } = stubIntersectionObserver();
+    const first = renderPanel(RIESLING, true);
+    fire(0, true);
+    expect(screen.getByRole("tabpanel")).not.toHaveClass("is-visible");
+    act(() => vi.advanceTimersByTime(REVEAL_DELAY_MS));
+    expect(screen.getByRole("tabpanel")).toHaveClass("is-visible");
+    first.unmount();
+    renderPanel(MERLOT, false);
+    fire(1, true);
+    expect(screen.getByRole("tabpanel")).toHaveClass("is-visible");
   });
 });

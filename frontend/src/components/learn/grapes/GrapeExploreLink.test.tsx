@@ -45,6 +45,13 @@ describe("GrapeExploreLink", () => {
     expect(await screen.findByRole("link", { name: "Explore 1 Merlot wine" })).toBeInTheDocument();
   });
 
+  it("treats a count of 0 like no count", async () => {
+    vi.mocked(api.listWines).mockResolvedValue({ total: 0, items: [] });
+    renderLink("Riesling", "Riesling");
+    await act(async () => {});
+    expect(screen.getByRole("link", { name: "Explore Riesling wines" })).toBeInTheDocument();
+  });
+
   it("falls back to the plain label when the count fails", async () => {
     vi.mocked(api.listWines).mockRejectedValue(new Error("network"));
     renderLink("Riesling", "Riesling");

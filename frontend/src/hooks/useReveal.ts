@@ -10,9 +10,9 @@ export const REVEAL_DELAY_MS = 400;
  * `scene-animate` opts into the initial (hidden) state only when motion is
  * allowed, and `is-visible` switches to the finished state once in view.
  */
-export function useReveal(ref: RefObject<Element>): string[] {
+export function useReveal(ref: RefObject<Element>, { delayMs = REVEAL_DELAY_MS }: { delayMs?: number } = {}): string[] {
   const reducedMotion = usePrefersReducedMotion();
-  const inView = useInView(ref, { delayMs: REVEAL_DELAY_MS });
+  const inView = useInView(ref, { delayMs });
   const classes: string[] = [];
   if (!reducedMotion) classes.push("scene-animate");
   if (inView) classes.push("is-visible");

@@ -36,11 +36,12 @@ describe("GrapePicker", () => {
     ]);
   });
 
-  it("wires each tab to its id and the shared panel", () => {
-    render(<Harness />);
+  it("wires each tab to its id, and only the selected tab to the shared panel", () => {
+    render(<Harness initial="pinot-noir" />);
     const tab = screen.getByRole("tab", { name: "Pinot Noir" });
     expect(tab).toHaveAttribute("id", "grape-pinot-noir");
     expect(tab).toHaveAttribute("aria-controls", GRAPE_PANEL_ID);
+    expect(screen.getByRole("tab", { name: "Merlot" })).not.toHaveAttribute("aria-controls");
   });
 
   it("marks only the selected tab as selected and tabbable", () => {

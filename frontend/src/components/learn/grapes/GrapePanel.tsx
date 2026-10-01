@@ -10,13 +10,14 @@ import "../learn.css";
 
 const COLOR_LABEL = { red: "Red grape", white: "White grape" } as const;
 
-export function GrapePanel({ grape }: { grape: GrapeContent }) {
+// `initial` keeps the scroll-in delay for the chapter's first appearance; switching grapes reveals at once.
+export function GrapePanel({ grape, initial = false }: { grape: GrapeContent; initial?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reveal = useReveal(ref);
+  const reveal = useReveal(ref, initial ? undefined : { delayMs: 0 });
   const classes = ["scene grid gap-8 rounded border border-surface-border p-6 mt-4 md:grid-cols-3 md:items-start", ...reveal];
 
   return (
-    <div ref={ref} role="tabpanel" id={GRAPE_PANEL_ID} aria-labelledby={grapeTabId(grape.id)} className={classes.join(" ")}>
+    <div ref={ref} role="tabpanel" id={GRAPE_PANEL_ID} tabIndex={0} aria-labelledby={grapeTabId(grape.id)} className={classes.join(" ")}>
       <div data-testid="grape-art" aria-hidden="true">
         <GrapeArt color={grape.color} />
       </div>
@@ -55,7 +56,7 @@ export function GrapePanel({ grape }: { grape: GrapeContent }) {
           </div>
         </dl>
         <div>
-          <GrapeExploreLink name={grape.name} exploreGrape={grape.exploreGrape} />
+          <GrapeExploreLink name={grape.exploreLabel ?? grape.name} exploreGrape={grape.exploreGrape} />
         </div>
       </div>
     </div>
