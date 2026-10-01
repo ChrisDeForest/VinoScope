@@ -44,6 +44,6 @@ describe("Vine to Glass content", () => {
   });
 
   it("ends by pointing back to How to Taste", () => {
-    expect(VINE_STAGES[VINE_STAGES.length - 1].link).toEqual({ href: "#taste", label: "Now taste it: How to Taste ↑" });
+    expect(VINE_STAGES[VINE_STAGES.length - 1].link).toEqual({ href: "#taste", label: "Now taste it: How to Taste" });
   });
 });

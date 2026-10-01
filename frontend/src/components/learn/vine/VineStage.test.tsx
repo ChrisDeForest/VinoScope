@@ -31,15 +31,23 @@ describe("VineStage", () => {
 
   it("renders a callout per style difference", () => {
     renderStage();
-    expect(screen.getByRole("link", { name: "Explore white wines →" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Explore rosé wines →" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Explore red wines →" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Explore white wines" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Explore rosé wines" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Explore red wines" })).toBeInTheDocument();
   });
 
   it("hides the art and the spine node from assistive technology", () => {
     renderStage();
     expect(screen.getByTestId("stage-art")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("stage-node")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("keeps the node's rotation off the animated .pop span", () => {
+    renderStage();
+    const node = screen.getByTestId("stage-node");
+    expect(node).toHaveClass("rotate-45");
+    expect(node.firstElementChild).toHaveClass("pop");
+    expect(node.firstElementChild).not.toHaveClass("rotate-45");
   });
 
   it("puts the art on the right for even stages and the left for odd ones", () => {
@@ -52,6 +60,6 @@ describe("VineStage", () => {
 
   it("renders the closing link back to How to Taste", () => {
     renderStage(GLASS, 6);
-    expect(screen.getByRole("link", { name: "Now taste it: How to Taste ↑" })).toHaveAttribute("href", "#taste");
+    expect(screen.getByRole("link", { name: "Now taste it: How to Taste" })).toHaveAttribute("href", "#taste");
   });
 });

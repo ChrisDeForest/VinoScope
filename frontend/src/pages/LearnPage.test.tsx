@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import * as api from "../services/api";
 import { LearnPage } from "./LearnPage";
@@ -33,6 +33,85 @@ function renderAt(path: string) {
     </MemoryRouter>
   );
 }
+
+describe("LearnPage hash pinning", () => {
+  let resizeCallbacks: Array<() => void>;
+  const disconnect = vi.fn();
+
+  beforeEach(() => {
+    resizeCallbacks = [];
+    disconnect.mockReset();
+    class FakeResizeObserver {
+      connected = true;
+      constructor(callback: () => void) {
+        // Like the real thing, a disconnected observer never fires again.
+        resizeCallbacks.push(() => this.connected && callback());
+      }
+      observe() {}
+      unobserve() {}
+      disconnect = () => {
+        this.connected = false;
+        disconnect();
+      };
+    }
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+  });
+
+  const resize = () => act(() => resizeCallbacks.forEach((callback) => callback()));
+
+  it("re-scrolls the target (instantly) when layout resizes after arrival", () => {
+    renderAt("/learn#vine");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    resize();
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(scrollIntoView.mock.instances[1]).toBe(document.getElementById("vine"));
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: "auto", block: "start" });
+  });
+
+  it.each([["wheel"], ["touchstart"], ["keydown"], ["pointerdown"]])("stops re-scrolling after a user %s", (type) => {
+    renderAt("/learn#vine");
+    window.dispatchEvent(new Event(type));
+    resize();
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("stops pinning after the settle window", () => {
+    vi.useFakeTimers();
+    try {
+      renderAt("/learn#vine");
+      act(() => {
+        vi.advanceTimersByTime(4100);
+      });
+      resize();
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(disconnect).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not observe without a hash", () => {
+    renderAt("/learn");
+    expect(resizeCallbacks).toHaveLength(0);
+  });
+
+  it("disconnects on unmount", () => {
+    const view = render(
+      <MemoryRouter initialEntries={["/learn#vine"]}>
+        <LearnPage />
+      </MemoryRouter>
+    );
+    view.unmount();
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("does nothing without ResizeObserver", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    expect(() => renderAt("/learn#vine")).not.toThrow();
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("LearnPage", () => {
   it("renders the intro and the How to Taste chapter", () => {

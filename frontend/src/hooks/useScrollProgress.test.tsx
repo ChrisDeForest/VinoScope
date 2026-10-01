@@ -42,6 +42,16 @@ describe("throughProgress", () => {
     expect(throughProgress({ top: 0, height: 1000, viewportHeight: 1000, anchor: 0.5 })).toBe(0.5);
   });
 
+  it("slides the reading line to the viewport bottom as the page runs out of scroll", () => {
+    // Page end: timeline bottom (top + height = 900) is on screen but above the 600px line's reach otherwise.
+    expect(throughProgress({ top: -1100, height: 2000, viewportHeight: 1000, remaining: 0 })).toBe(1);
+    expect(throughProgress({ top: -1100, height: 2000, viewportHeight: 1000 })).toBeLessThan(1);
+  });
+
+  it("keeps the anchor line while plenty of page remains", () => {
+    expect(throughProgress({ top: -400, height: 2000, viewportHeight: 1000, remaining: 5000 })).toBe(0.5);
+  });
+
   it("handles zero-height elements", () => {
     expect(throughProgress({ top: 700, height: 0, viewportHeight: 1000 })).toBe(0);
     expect(throughProgress({ top: 100, height: 0, viewportHeight: 1000 })).toBe(1);
@@ -65,6 +75,7 @@ describe("useScrollProgress", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   function Probe({ onProgress, enabled }: { onProgress: (p: number) => void; enabled?: boolean }) {
@@ -100,6 +111,21 @@ describe("useScrollProgress", () => {
       window.dispatchEvent(new Event("scroll"));
     });
     expect(onProgress).not.toHaveBeenCalled();
+  });
+
+  it("passes the scroll remaining below the viewport to the progress function", () => {
+    vi.stubGlobal("scrollY", 300);
+    vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(1700);
+    const progressFn = vi.fn(() => 0);
+
+    function RemainingProbe() {
+      const ref = useRef<HTMLDivElement>(null);
+      useScrollProgress(ref, vi.fn(), true, progressFn);
+      return <div ref={ref} />;
+    }
+
+    render(<RemainingProbe />);
+    expect(progressFn).toHaveBeenLastCalledWith(expect.objectContaining({ remaining: 400 }));
   });
 
   it("uses a custom progress function when given one", () => {

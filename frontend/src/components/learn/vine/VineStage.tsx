@@ -19,9 +19,9 @@ export function VineStage({ stage, index }: { stage: VineStageContent; index: nu
       <span
         data-testid="stage-node"
         aria-hidden="true"
-        className="absolute left-6 top-12 -translate-x-1/2 md:left-1/2 md:top-1/2 md:-translate-y-1/2"
+        className="absolute left-6 top-12 -translate-x-1/2 rotate-45 md:left-1/2 md:top-1/2 md:-translate-y-1/2"
       >
-        <span className="pop block h-4 w-4 rotate-45 rounded-tl-full rounded-br-full border border-accent bg-surface" />
+        <span className="pop block h-4 w-4 rounded-tl-full rounded-br-full border border-accent bg-surface" />
       </span>
       <div data-testid="stage-art" aria-hidden="true" className={textFirst ? "md:order-last" : undefined}>
         <Art />
@@ -55,7 +55,7 @@ export function VineStage({ stage, index }: { stage: VineStageContent; index: nu
             href={stage.link.href}
             className="mt-4 inline-block text-accent font-semibold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
-            {stage.link.label}
+            {stage.link.label} <span aria-hidden="true">↑</span>
           </a>
         ) : null}
       </div>

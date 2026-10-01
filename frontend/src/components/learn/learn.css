@@ -53,6 +53,14 @@
   transform: translateY(-24px);
 }
 
+.scene .rise {
+  transition: opacity 0.6s ease var(--delay, 0s);
+}
+
+.scene-animate:not(.is-visible) .rise {
+  opacity: 0;
+}
+
 /* Resting: bubbles sit in place. On reveal they float up and fade three times, then settle back. */
 .scene-animate.is-visible .rise {
   animation: learn-rise 1.8s ease-out var(--delay, 0s) 3;

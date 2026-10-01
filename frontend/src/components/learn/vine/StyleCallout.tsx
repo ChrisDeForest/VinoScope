@@ -29,7 +29,7 @@ export function StyleCallout({ style, text }: { style: WineStyle; text: string }
         to={`/explore?type=${encodeURIComponent(style)}`}
         className="text-xs text-accent hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
-        Explore {label.toLowerCase()} wines →
+        Explore {label.toLowerCase()} wines <span aria-hidden="true">→</span>
       </Link>
     </div>
   );

@@ -20,12 +20,12 @@ describe("StyleCallout", () => {
 
   it("links to Explore filtered by the style", () => {
     renderCallout("red");
-    expect(screen.getByRole("link", { name: "Explore red wines →" })).toHaveAttribute("href", "/explore?type=red");
+    expect(screen.getByRole("link", { name: "Explore red wines" })).toHaveAttribute("href", "/explore?type=red");
   });
 
   it("encodes accented styles in the link", () => {
     renderCallout("rosé");
     expect(screen.getByText("Rosé:")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Explore rosé wines →" })).toHaveAttribute("href", "/explore?type=ros%C3%A9");
+    expect(screen.getByRole("link", { name: "Explore rosé wines" })).toHaveAttribute("href", "/explore?type=ros%C3%A9");
   });
 });

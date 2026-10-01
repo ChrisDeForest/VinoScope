@@ -43,7 +43,7 @@ export const VINE_STAGES: readonly VineStageContent[] = [
     id: "harvest",
     title: "Harvest",
     what: "In late summer or fall, growers taste and test the grapes and pick when sugar and acidity are in balance. Some vineyards harvest by hand, cluster by cluster; others use machines that shake the berries loose.",
-    why: "Pick late and the wine leans riper and sweeter; pick early and it stays crisp and tart. This is the first place sweetness and acidity are decided.",
+    why: "Pick late and the grapes are riper, which usually means a fuller, more alcoholic wine; pick early and it stays crisp and tart. This is the first place sweetness, acidity and body are decided.",
     source: "general",
   },
   {
@@ -64,8 +64,8 @@ export const VINE_STAGES: readonly VineStageContent[] = [
     what: "Yeast eats the grape sugar and turns it into alcohol and carbon dioxide (CO₂). Most fermentations take one to three weeks, in steel tanks or wooden vats.",
     why: "Let it finish and the wine is dry; stop it early and some sugar stays behind as sweetness. More sugar at the start means more alcohol, and more body.",
     callouts: [
-      { style: "red", text: "Ferments with its skins, soaking up color and tannin as it goes." },
-      { style: "fortified", text: "Brandy is added partway through, which stops the yeast and leaves the wine sweet and strong, as in Port." },
+      { style: "red", text: "Ferments with its skins, soaking up color and tannin as it goes, and is pressed off its skins once fermentation finishes." },
+      { style: "fortified", text: "For sweet styles like Port, brandy is added partway through, stopping the yeast and leaving the wine sweet and strong. Dry styles like Sherry are fortified after fermentation." },
     ],
     source: "general",
   },
@@ -82,7 +82,7 @@ export const VINE_STAGES: readonly VineStageContent[] = [
     what: "Winemakers often blend grapes or barrels to balance the final wine, then clarify it by fining and filtering, and bottle it.",
     why: "Blending is how a winemaker fine-tunes the five scales: a little more acidity here, softer tannin there.",
     callouts: [
-      { style: "sparkling", text: "A second fermentation happens inside the sealed bottle. Its CO₂ has nowhere to go, so it becomes the bubbles." },
+      { style: "sparkling", text: "In the traditional (Champagne) method, a second fermentation happens inside the sealed bottle, and its CO₂ becomes the bubbles. Prosecco does the same in a pressurized tank." },
     ],
     source: "general",
   },
@@ -91,7 +91,7 @@ export const VINE_STAGES: readonly VineStageContent[] = [
     title: "In Your Glass",
     what: "Some wines keep improving in the bottle for years as their tannins soften; most are made to enjoy within a few years. Then it's opened, poured and served.",
     why: "Everything upstream, from the vineyard's sunshine to the barrel, ends up as what you taste.",
-    link: { href: "#taste", label: "Now taste it: How to Taste ↑" },
+    link: { href: "#taste", label: "Now taste it: How to Taste" },
     source: "general",
   },
 ];

@@ -14,6 +14,9 @@ beforeEach(() => {
   });
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
   vi.stubGlobal("innerHeight", 1000);
+  vi.stubGlobal("scrollY", 0);
+  // Plenty of page below, so the reading line stays at its 0.6 anchor.
+  vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(6000);
   // Only the timeline has real geometry: 2000px tall, top at `timelineTop`.
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     return (this.dataset.testid === "vine-timeline" ? { top: timelineTop, height: 2000 } : { top: 0, height: 0 }) as DOMRect;
@@ -59,6 +62,15 @@ describe("VineChapter", () => {
       window.dispatchEvent(new Event("scroll"));
     });
     expect(spine.style.transform).toBe("scaleY(1)");
+  });
+
+  it("finishes the spine at the page end even though the line anchor alone would not reach the tail", () => {
+    stubMatchMedia({ reducedMotion: false });
+    vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(5000);
+    vi.stubGlobal("scrollY", 4000); // 5000 - (4000 + 1000) = 0 remaining
+    timelineTop = -1100; // bottom at 900px: on screen, but only the sliding line (at 1000px) passes it
+    renderChapter();
+    expect(screen.getByTestId("vine-spine").style.transform).toBe("scaleY(1)");
   });
 
   it("draws the full spine and skips the scroll listener under reduced motion", () => {
