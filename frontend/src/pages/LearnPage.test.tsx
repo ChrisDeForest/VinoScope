@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import * as api from "../services/api";
 import { LearnPage } from "./LearnPage";
@@ -43,9 +43,24 @@ describe("LearnPage", () => {
     expect(screen.getByText("01 · How to Taste")).toBeInTheDocument();
   });
 
-  it("hides the chapter nav while there is only one chapter", () => {
+  it("shows the chapter nav with both chapters", () => {
     renderAt("/learn");
-    expect(screen.queryByRole("navigation", { name: "Learn chapters" })).not.toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Learn chapters" });
+    expect(within(nav).getByRole("link", { name: "How to Taste" })).toHaveAttribute("href", "#taste");
+    expect(within(nav).getByRole("link", { name: "Vine to Glass" })).toHaveAttribute("href", "#vine");
+  });
+
+  it("renders the Vine to Glass chapter second", () => {
+    renderAt("/learn");
+    const chapter = screen.getByRole("region", { name: "From vine to glass" });
+    expect(chapter).toHaveAttribute("id", "vine");
+    expect(screen.getByText("02 · Vine to Glass")).toBeInTheDocument();
+  });
+
+  it("scrolls #vine into view on arrival", () => {
+    renderAt("/learn#vine");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.instances[0]).toBe(document.getElementById("vine"));
   });
 
   it("scrolls a #hash chapter into view on arrival", () => {

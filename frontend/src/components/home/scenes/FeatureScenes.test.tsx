@@ -58,9 +58,9 @@ describe("PairScene", () => {
 });
 
 describe("LearnScene", () => {
-  it("describes the How to Taste guide", () => {
+  it("describes both Learn chapters", () => {
     renderScene(LearnScene);
     expect(screen.getByText(/five things your mouth is measuring/i)).toBeInTheDocument();
-    expect(screen.queryByText(/being poured now/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/from the vineyard to your glass/i)).toBeInTheDocument();
   });
 });

@@ -50,8 +50,8 @@ export function LearnScene() {
   return (
     <Scene id="learn" index={5} label="Learn" title="Learn what's in your glass." side="left" art={<LearnArt />}>
       <p className="text-ink-muted mb-6">
-        Start with the five things your mouth is measuring — sweetness, acidity, tannin, body and fruit — each with
-        real wines from the catalog to taste the difference.
+        Learn the five things your mouth is measuring, with real wines to taste the difference — then follow a grape
+        from the vineyard to your glass.
       </p>
       <SceneCta to="/learn">Start Learning</SceneCta>
     </Scene>

@@ -1,5 +1,7 @@
 import { TASTE_CHAPTER } from "../../content/learn/taste";
+import { VINE_CHAPTER } from "../../content/learn/vine";
 import { TasteChapter } from "./taste/TasteChapter";
+import { VineChapter } from "./vine/VineChapter";
 
 export interface LearnChapter {
   id: string;
@@ -17,5 +19,12 @@ export const LEARN_CHAPTERS: readonly LearnChapter[] = [
     title: TASTE_CHAPTER.title,
     lead: TASTE_CHAPTER.lead,
     Component: TasteChapter,
+  },
+  {
+    id: VINE_CHAPTER.id,
+    label: VINE_CHAPTER.label,
+    title: VINE_CHAPTER.title,
+    lead: VINE_CHAPTER.lead,
+    Component: VineChapter,
   },
 ];
