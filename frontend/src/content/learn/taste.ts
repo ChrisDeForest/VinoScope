@@ -46,7 +46,7 @@ export const TASTE_DIMENSIONS: readonly TasteDimensionContent[] = [
       vintage: 2023,
       reason: "The same grape, made from shriveled, botrytis-affected berries picked one by one.",
     },
-    source: "general",
+    source: "course",
   },
   {
     dimension: "acidity",
@@ -65,7 +65,7 @@ export const TASTE_DIMENSIONS: readonly TasteDimensionContent[] = [
       vintage: 2023,
       reason: "Marlborough's cool nights keep this Sauvignon Blanc bright and zippy.",
     },
-    source: "general",
+    source: "course",
   },
   {
     dimension: "tannin",
@@ -84,7 +84,7 @@ export const TASTE_DIMENSIONS: readonly TasteDimensionContent[] = [
       vintage: 2020,
       reason: "Nebbiolo is one of the most tannic grapes there is, and Barolo is famous for its grip.",
     },
-    source: "general",
+    source: "course",
   },
   {
     dimension: "body",
@@ -103,7 +103,7 @@ export const TASTE_DIMENSIONS: readonly TasteDimensionContent[] = [
       vintage: 2022,
       reason: "Ripe Australian Shiraz with high alcohol and dense extract.",
     },
-    source: "general",
+    source: "course",
   },
   {
     dimension: "fruitiness",
@@ -122,6 +122,6 @@ export const TASTE_DIMENSIONS: readonly TasteDimensionContent[] = [
       vintage: 2023,
       reason: "The same grape in sunny Napa: ripe, generous orchard and tropical fruit.",
     },
-    source: "general",
+    source: "course",
   },
 ];
