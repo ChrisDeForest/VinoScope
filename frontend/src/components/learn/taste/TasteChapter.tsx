@@ -30,7 +30,7 @@ export function TasteChapter() {
       {/* One announcement for the whole chapter instead of one live region per block */}
       {loading && (
         <p role="status" className="sr-only">
-          Loading example wines…
+          Loading example winesâ€¦
         </p>
       )}
       {TASTE_DIMENSIONS.map((content, i) => (
