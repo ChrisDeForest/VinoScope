@@ -39,6 +39,36 @@
   transform: scaleY(0);
 }
 
+.scene .press,
+.scene .rise {
+  transform-box: fill-box;
+}
+
+/* Resting: the press plate is down. On reveal it slides down into place. */
+.scene .press {
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--delay, 0s);
+}
+
+.scene-animate:not(.is-visible) .press {
+  transform: translateY(-24px);
+}
+
+/* Resting: bubbles sit in place. On reveal they float up and fade three times, then settle back. */
+.scene-animate.is-visible .rise {
+  animation: learn-rise 1.8s ease-out var(--delay, 0s) 3;
+}
+
+@keyframes learn-rise {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(var(--rise-y, -30px));
+    opacity: 0;
+  }
+}
+
 /* Chapter-nav anchor jumps glide, except under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   html:has(.learn-page) {
