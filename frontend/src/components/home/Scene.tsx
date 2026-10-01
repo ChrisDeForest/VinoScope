@@ -1,11 +1,9 @@
 import { useRef, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useInView } from "../../hooks/useInView";
-import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { REVEAL_DELAY_MS, useReveal } from "../../hooks/useReveal";
 import "./home.css";
 
-// Let a scene settle on screen before it animates, so the motion isn't over before the eye arrives.
-export const SCENE_REVEAL_DELAY_MS = 400;
+export const SCENE_REVEAL_DELAY_MS = REVEAL_DELAY_MS;
 
 interface SceneProps {
   id: string;
@@ -19,13 +17,10 @@ interface SceneProps {
 
 export function Scene({ id, index, label, title, side, art, children }: SceneProps) {
   const ref = useRef<HTMLElement>(null);
-  const reducedMotion = usePrefersReducedMotion();
-  const inView = useInView(ref, { delayMs: SCENE_REVEAL_DELAY_MS });
+  const reveal = useReveal(ref);
   const titleId = `${id}-title`;
 
-  const classes = ["scene grid items-center gap-10 py-16 md:py-24 md:grid-cols-2"];
-  if (!reducedMotion) classes.push("scene-animate");
-  if (inView) classes.push("is-visible");
+  const classes = ["scene grid items-center gap-10 py-16 md:py-24 md:grid-cols-2", ...reveal];
 
   return (
     <section ref={ref} id={id} aria-labelledby={titleId} data-side={side} className={classes.join(" ")}>
