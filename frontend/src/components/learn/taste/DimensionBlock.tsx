@@ -28,15 +28,10 @@ function Pair({ content, pair }: { content: TasteDimensionContent; pair: PairSta
   if (pair.status === "hidden") return null;
   if (pair.status === "loading") {
     return (
-      <>
-        <p role="status" className="sr-only">
-          Loading example wines…
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
-          <ExampleWineCardSkeleton />
-          <ExampleWineCardSkeleton />
-        </div>
-      </>
+      <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        <ExampleWineCardSkeleton />
+        <ExampleWineCardSkeleton />
+      </div>
     );
   }
   return (

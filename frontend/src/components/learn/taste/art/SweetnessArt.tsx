@@ -29,7 +29,7 @@ export function SweetnessArt() {
       ))}
       <path
         className="drip fill-wine-white"
-        style={cssVars({ "--delay": "1.2s", "--drip-y": "44px" })}
+        style={cssVars({ "--delay": "1.2s", "--drip-y": "54px" })}
         d="M100 62 q-5 8 0 12 q5 -4 0 -12 z"
       />
       <g transform="translate(30 70) scale(0.7)">

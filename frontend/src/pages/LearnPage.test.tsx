@@ -11,8 +11,11 @@ vi.mock("../services/api", async () => {
 
 const scrollIntoView = vi.fn();
 const originalScrollIntoView = Element.prototype.scrollIntoView;
+const scrollTo = vi.fn();
 
 beforeEach(() => {
+  scrollTo.mockReset();
+  vi.stubGlobal("scrollTo", scrollTo);
   vi.mocked(api.listWines).mockResolvedValue({ total: 0, items: [] });
   scrollIntoView.mockReset();
   Element.prototype.scrollIntoView = scrollIntoView;
@@ -51,8 +54,22 @@ describe("LearnPage", () => {
     expect(scrollIntoView.mock.instances[0]).toBe(document.getElementById("taste"));
   });
 
-  it("does not scroll without a hash", () => {
+  it("does not scroll an element into view without a hash", () => {
     renderAt("/learn");
     expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("resets the window to the top on arrival without a hash", () => {
+    renderAt("/learn");
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("leaves the window scroll alone when there is a hash", () => {
+    renderAt("/learn#taste");
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("survives a malformed hash", () => {
+    expect(() => renderAt("/learn#%zz")).not.toThrow();
   });
 });

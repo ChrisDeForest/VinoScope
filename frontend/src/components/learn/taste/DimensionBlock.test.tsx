@@ -51,7 +51,7 @@ describe("DimensionBlock", () => {
 
   it("shows skeletons while the pair loads", () => {
     renderBlock({ status: "loading" });
-    expect(screen.getByRole("status")).toHaveTextContent("Loading example wines");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
   });
 

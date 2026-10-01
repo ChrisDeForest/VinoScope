@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import * as api from "../../../services/api";
 import { TASTE_DIMENSIONS } from "../../../content/learn/taste";
@@ -74,5 +74,13 @@ describe("TasteChapter", () => {
     const tannin = screen.getByRole("article", { name: "Tannin" });
     expect(tannin.querySelector('[aria-label="Example wines"]')).toBeNull();
     expect(tannin).toHaveTextContent(TASTE_DIMENSIONS.find((entry) => entry.dimension === "tannin")!.what);
+  });
+
+  it("shows a single loading status until every pair settles", async () => {
+    renderChapter();
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Loading example wines");
+    await screen.findAllByRole("list", { name: "Example wines" });
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
   });
 });

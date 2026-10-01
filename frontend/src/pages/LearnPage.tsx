@@ -14,9 +14,23 @@ export function LearnPage() {
   // Only on arrival: the chapter doesn't exist yet when the browser tries its own
   // hash scroll. Later hash changes come from in-page anchors, which scroll natively.
   useEffect(() => {
-    if (!hash) return;
+    if (!hash) {
+      // The app doesn't reset scroll on navigation, so arriving from deep in another page would land mid-chapter.
+      try {
+        window.scrollTo(0, 0);
+      } catch {
+        // jsdom doesn't implement scrollTo
+      }
+      return;
+    }
+    let id = hash.slice(1);
+    try {
+      id = decodeURIComponent(id);
+    } catch {
+      // malformed escape (e.g. %zz): fall back to the raw fragment
+    }
     document
-      .getElementById(decodeURIComponent(hash.slice(1)))
+      .getElementById(id)
       ?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
   }, []);
 

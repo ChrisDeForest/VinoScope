@@ -23,8 +23,16 @@ export function TasteChapter() {
     };
   }, []);
 
+  const loading = TASTE_DIMENSIONS.some(({ dimension }) => (pairs[dimension] ?? LOADING).status === "loading");
+
   return (
     <div className="mt-4">
+      {/* One announcement for the whole chapter instead of one live region per block */}
+      {loading && (
+        <p role="status" className="sr-only">
+          Loading example wines…
+        </p>
+      )}
       {TASTE_DIMENSIONS.map((content, i) => (
         <DimensionBlock
           key={content.dimension}
