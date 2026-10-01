@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { StrictMode } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { ExplorePage } from "./ExplorePage";
 import * as api from "../services/api";
 import type { WineListItem } from "../types/wine";
@@ -429,5 +429,64 @@ describe("ExplorePage", () => {
     renderExplore();
     await waitFor(() => expect(screen.getByText("Showing 24 of 200")).toBeInTheDocument());
     expect(listWinesMock).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 24 }));
+  });
+});
+
+describe("ExplorePage scroll position", () => {
+  const scrollTo = vi.fn();
+
+  beforeEach(() => {
+    listWinesMock.mockReset();
+    listWinesMock.mockResolvedValue({ total: 1, items: [makeWine(1)] });
+    sessionStorage.clear();
+    localStorage.clear();
+    scrollTo.mockReset();
+    vi.stubGlobal("scrollTo", scrollTo);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // Arrives at Explore by clicking a link (a PUSH navigation), like the Learn page's grape buttons.
+  async function arriveByLink(to: string) {
+    render(
+      <MemoryRouter initialEntries={["/learn"]}>
+        <Routes>
+          <Route path="/learn" element={<Link to={to}>Go to Explore</Link>} />
+          <Route path="/explore" element={<ExplorePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await userEvent.click(screen.getByRole("link", { name: "Go to Explore" }));
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+  }
+
+  // Visits Explore once so it saves a snapshot, then records a deep scroll position for it.
+  async function leaveExploreScrolledTo(path: string, scrollY: number) {
+    const { unmount } = renderExplore([path]);
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    unmount();
+    sessionStorage.setItem("vinoscope-explore-scroll", JSON.stringify(scrollY));
+    scrollTo.mockReset();
+  }
+
+  it("starts at the top when a link opens Explore with new filters", async () => {
+    await arriveByLink("/explore?grape=Pinot%20Noir");
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("starts at the top when a link opens Explore even if those results were seen before", async () => {
+    await leaveExploreScrolledTo("/explore?grape=Pinot%20Noir", 900);
+    await arriveByLink("/explore?grape=Pinot%20Noir");
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    expect(scrollTo).not.toHaveBeenCalledWith(0, 900);
+  });
+
+  it("restores the saved position when coming back with Back/Forward", async () => {
+    await leaveExploreScrolledTo("/explore", 900);
+    // MemoryRouter's initial entry is a POP navigation, like pressing Back.
+    renderExplore(["/explore"]);
+    expect(scrollTo).toHaveBeenCalledWith(0, 900);
   });
 });

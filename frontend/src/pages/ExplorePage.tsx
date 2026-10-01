@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigationType, useSearchParams } from "react-router-dom";
 import { ApiError, listWines } from "../services/api";
 import type { SortOption, WineListItem } from "../types/wine";
 import { WineGrid } from "../components/wine/WineGrid";
@@ -89,6 +89,7 @@ function filtersKeyOf(filters: FilterValues): string {
 
 export function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigationType = useNavigationType();
 
   const [initial] = useState(() => {
     const filters = filtersFromSearchParams(searchParams);
@@ -189,10 +190,13 @@ export function ExplorePage() {
   }, [items, total, loading, appliedFilters]);
 
   useEffect(() => {
-    if (!restoredScrollRef.current && initial.hit) {
+    if (!restoredScrollRef.current) {
       restoredScrollRef.current = true;
+      // The app doesn't reset scroll between pages, so set it here: Back/Forward returns to
+      // where the reader was; arriving by a link starts at the top of the results.
+      const restore = navigationType === "POP" && initial.hit;
       try {
-        window.scrollTo(0, initial.scrollY);
+        window.scrollTo(0, restore ? initial.scrollY : 0);
       } catch {
         /* jsdom and some embedded webviews don't implement scrollTo. */
       }
