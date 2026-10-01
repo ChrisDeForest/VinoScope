@@ -58,8 +58,9 @@ describe("PairScene", () => {
 });
 
 describe("LearnScene", () => {
-  it("sets expectations that the guide is still coming", () => {
+  it("describes the How to Taste guide", () => {
     renderScene(LearnScene);
-    expect(screen.getByText(/the Learn guide is being poured now/i)).toBeInTheDocument();
+    expect(screen.getByText(/five things your mouth is measuring/i)).toBeInTheDocument();
+    expect(screen.queryByText(/being poured now/i)).not.toBeInTheDocument();
   });
 });
