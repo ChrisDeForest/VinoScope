@@ -58,21 +58,23 @@ Callout `style` values must be real dataset types: `red`, `white`, `rosé`, `spa
 
 **The vine grows with scroll.**
 
-- The spine is an SVG `<path pathLength={1}>` spanning the timeline's full height, stroked
-  `stroke-accent`. Its `stroke-dashoffset` is `1 - progress`, set directly on the element (via a
-  ref, not React state) so scrolling doesn't re-render the chapter.
+- The spine is a thin `bg-accent` bar spanning the timeline's full height over a faint
+  `bg-surface-border` track, grown with `transform: scaleY(progress)` from `transform-origin: top`.
+  (A straight line needs no SVG dash trick, and transform is the only animated property.) The
+  transform is set directly on the element via a ref, not React state, so scrolling doesn't
+  re-render the chapter.
 - `progress` comes from `useScrollProgress(ref, onProgress, enabled, throughProgress)`:
   `throughProgress({ top, height, viewportHeight, anchor = 0.6 })` = how far the line at
   `anchor × viewportHeight` has travelled through the element, clamped to 0–1:
   `clamp((anchor × viewportHeight − top) / height)`.
 - Each stage uses `useReveal` (Part 1): its node `pop`s and its art `draw`s in when the stage
   enters view.
-- First frame: when motion is allowed the spine renders with `stroke-dashoffset: 1` (undrawn), so
+- First frame: when motion is allowed the spine renders at `scaleY(0)` (undrawn), so
   there is no flash of a full vine before the first progress update; `useScrollProgress` then sets
   the real value immediately on mount.
 - Resting-state rule (same as Part 1): reduced motion or no `IntersectionObserver` shows finished
   stages. Under reduced motion `useScrollProgress` is not enabled (no scroll listener) and the
-  spine renders with `stroke-dashoffset: 0` (fully drawn).
+  spine renders at `scaleY(1)` (fully drawn).
 
 ## Chapter nav and the Part 1 deferred items
 
@@ -120,8 +122,8 @@ Vitest + Testing Library, test-first.
   `top + height ≤ anchor × viewportHeight`; linear between; clamped.
 - **`useScrollProgress`:** still defaults to `scrollProgress` (existing tests stay green); uses a
   passed `progressFn`.
-- **`VineChapter`:** renders 7 `<h3>`s in order; spine `stroke-dashoffset` follows a stubbed
-  progress callback; under reduced motion the spine offset is 0 and no scroll listener is added.
+- **`VineChapter`:** renders 7 `<h3>`s in order; spine `scaleY` follows the measured
+  scroll position; under reduced motion the spine is at `scaleY(1)` and no scroll listener is added.
 - **`VineStage`:** renders What happens / Why it matters and its callouts; art is `aria-hidden`.
 - **`StyleCallout`:** link `href` is `/explore?type=ros%C3%A9` for rosé and `/explore?type=red`
   for red; chip text names the style.
