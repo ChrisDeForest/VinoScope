@@ -166,4 +166,27 @@ describe("LearnPage", () => {
   it("survives a malformed hash", () => {
     expect(() => renderAt("/learn#%zz")).not.toThrow();
   });
+
+  it("lists all three chapters in the nav", () => {
+    renderAt("/learn");
+    const nav = screen.getByRole("navigation", { name: "Learn chapters" });
+    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "How to Taste",
+      "Vine to Glass",
+      "Key Grapes",
+    ]);
+  });
+
+  it("renders the Key Grapes chapter third", () => {
+    renderAt("/learn");
+    expect(screen.getByRole("region", { name: "Seven grapes to know" })).toHaveAttribute("id", "grapes");
+    expect(screen.getByText("03 · Key Grapes")).toBeInTheDocument();
+  });
+
+  it("opens and scrolls to a grape from the hash on arrival", () => {
+    renderAt("/learn#grape-pinot-noir");
+    const tab = screen.getByRole("tab", { name: "Pinot Noir" });
+    expect(tab).toHaveAttribute("aria-selected", "true");
+    expect(scrollIntoView.mock.instances[0]).toBe(tab);
+  });
 });
