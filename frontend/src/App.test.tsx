@@ -48,9 +48,9 @@ describe("App routing", () => {
     expect(screen.getByRole("heading", { name: "Compare" })).toBeInTheDocument();
   });
 
-  it("renders the Learn stub page at /learn", () => {
+  it("renders the Learn page at /learn", () => {
     renderAt("/learn");
-    expect(screen.getByRole("heading", { name: "Learn" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Learn what's in your glass." })).toBeInTheDocument();
   });
 
   it("renders nav links to all main pages", () => {

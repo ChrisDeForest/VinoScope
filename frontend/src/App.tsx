@@ -7,7 +7,7 @@ import { DiscoverPage } from "./pages/DiscoverPage";
 import { AdminPage } from "./pages/AdminPage";
 import { PairPage } from "./pages/PairPage";
 import { ComparePage } from "./pages/ComparePage";
-import { LearnPage } from "./pages/StubPages";
+import { LearnPage } from "./pages/LearnPage";
 
 export function App() {
   return (
