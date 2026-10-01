@@ -15,6 +15,10 @@ interface DimensionBlockProps {
   side: "left" | "right";
 }
 
+// Same height in every pair state, so content below (and /learn#<later-chapter> jumps) doesn't shift as pairs load.
+// Sized to the ready layout: two stacked cards on phones, side by side from `sm`.
+const PAIR_AREA_CLASS = "min-h-[18rem] sm:min-h-[9.5rem]";
+
 function markersFor(content: TasteDimensionContent, pair: PairState): ScaleMarker[] {
   if (pair.status !== "ready") return [];
   const { dimension } = content;
@@ -77,7 +81,9 @@ export function DimensionBlock({ content, pair, side }: DimensionBlockProps) {
           </div>
         </dl>
         <DimensionScale dimension={content.dimension} markers={markersFor(content, pair)} />
-        <Pair content={content} pair={pair} />
+        <div data-testid="pair-area" className={PAIR_AREA_CLASS}>
+          <Pair content={content} pair={pair} />
+        </div>
       </div>
     </article>
   );

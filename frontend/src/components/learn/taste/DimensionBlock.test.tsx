@@ -83,4 +83,15 @@ describe("DimensionBlock", () => {
     renderBlock({ status: "hidden" }, "left");
     expect(screen.getByTestId("dimension-art")).not.toHaveClass("md:order-last");
   });
+
+  it.each([
+    ["loading", { status: "loading" } as PairState],
+    ["ready", { status: "ready", low: wine(3, "Light Red", 2), high: wine(4, "Big Red", 5) } as PairState],
+    ["hidden", { status: "hidden" } as PairState],
+  ])("reserves the same pair-area height while %s", (_label, pair) => {
+    renderBlock(pair);
+    const area = screen.getByTestId("pair-area");
+    expect(area).toHaveClass("min-h-[18rem]");
+    expect(area).toHaveClass("sm:min-h-[9.5rem]");
+  });
 });

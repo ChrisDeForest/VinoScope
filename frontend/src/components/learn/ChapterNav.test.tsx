@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ChapterNav } from "./ChapterNav";
+import { stubIntersectionObserver } from "../../test/stubs";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -30,5 +31,17 @@ describe("ChapterNav", () => {
     expect(vine).toHaveAttribute("href", "#vine");
     expect(taste).toHaveAttribute("aria-current", "true");
     expect(vine).not.toHaveAttribute("aria-current");
+  });
+
+  it("does not observe chapters while hidden", () => {
+    const { instances } = stubIntersectionObserver();
+    // The section must exist, or the hook would skip observing for that reason instead.
+    render(
+      <>
+        <section id="taste" />
+        <ChapterNav chapters={[{ id: "taste", label: "How to Taste" }]} />
+      </>
+    );
+    expect(instances).toHaveLength(0);
   });
 });

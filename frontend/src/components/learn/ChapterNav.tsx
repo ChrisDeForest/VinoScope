@@ -6,9 +6,10 @@ export interface ChapterLink {
 }
 
 export function ChapterNav({ chapters }: { chapters: readonly ChapterLink[] }) {
-  const active = useActiveChapter(chapters.map((chapter) => chapter.id));
-  // A one-item bar is noise; it appears once a second chapter ships.
-  if (chapters.length < 2) return null;
+  // A one-item bar is noise; it appears once a second chapter ships. Until then, observe nothing.
+  const visible = chapters.length >= 2;
+  const active = useActiveChapter(visible ? chapters.map((chapter) => chapter.id) : []);
+  if (!visible) return null;
 
   return (
     <nav aria-label="Learn chapters" className="sticky top-0 z-10 -mx-4 px-4 bg-surface border-b border-surface-border">
