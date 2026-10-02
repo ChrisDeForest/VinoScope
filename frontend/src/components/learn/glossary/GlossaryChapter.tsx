@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { GLOSSARY_TERMS } from "../../../content/learn/glossary";
 import { usePrefersReducedMotion } from "../../../hooks/usePrefersReducedMotion";
@@ -24,6 +24,8 @@ export function GlossaryChapter() {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [pendingJump, setPendingJump] = useState<Jump | null>(null);
   const [flash, setFlash] = useState<Jump | null>(null);
+  const flashRef = useRef<Jump | null>(null);
+  const frameRef = useRef<number | null>(null);
   const visible = useMemo(() => filterTerms(GLOSSARY_TERMS, query, category), [query, category]);
 
   function clearFilters() {
@@ -46,9 +48,32 @@ export function GlossaryChapter() {
       block: "start",
     });
     document.getElementById(termHeadingId(pendingJump.id))?.focus({ preventScroll: true });
-    setFlash(pendingJump);
+    const target = pendingJump;
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (flashRef.current?.id === target.id) {
+      // Already flashing: drop the class for a frame so the animation replays.
+      setFlash(null);
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        setFlash(target);
+      });
+    } else {
+      frameRef.current = null;
+      setFlash(target);
+    }
     setPendingJump(null);
   }, [pendingJump, reducedMotion]);
+
+  useEffect(() => {
+    flashRef.current = flash;
+  }, [flash]);
+
+  useEffect(
+    () => () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!flash) return;

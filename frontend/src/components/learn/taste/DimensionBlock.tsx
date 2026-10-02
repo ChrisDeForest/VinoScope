@@ -63,7 +63,7 @@ export function DimensionBlock({ content, pair, side }: DimensionBlockProps) {
         <Art />
       </div>
       <div>
-        <h3 id={titleId} className="font-serif text-2xl text-ink mb-4">
+        <h3 id={titleId} className="scroll-mt-24 font-serif text-2xl text-ink mb-4">
           {DIMENSION_TITLES[content.dimension]}
         </h3>
         <dl className="grid gap-3">

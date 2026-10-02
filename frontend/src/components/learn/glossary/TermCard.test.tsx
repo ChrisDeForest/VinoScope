@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { termById } from "../../../content/learn/glossary";
@@ -66,6 +66,21 @@ describe("TermCard", () => {
     expect(screen.getByRole("link", { name: "Oak aging" })).toHaveAttribute("href", "#term-oak-aging");
     await userEvent.click(chip);
     expect(onJump).toHaveBeenCalledWith("maceration");
+  });
+
+  it("leaves modified clicks on related chips to the browser", () => {
+    const onJump = renderCard("tannin");
+    const chip = screen.getByRole("link", { name: "Maceration" });
+    for (const mods of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }]) {
+      const notCancelled = fireEvent.click(chip, mods);
+      expect(notCancelled).toBe(true);
+    }
+    expect(onJump).not.toHaveBeenCalled();
+  });
+
+  it("gives related chips a roomy tap target", () => {
+    renderCard("tannin");
+    expect(screen.getByRole("link", { name: "Maceration" })).toHaveClass("py-1");
   });
 
   it("has no related row for a term without related terms", () => {

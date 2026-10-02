@@ -37,7 +37,8 @@ export function TermCard({ term, flash, onJump }: TermCardProps) {
   const { seeAlso } = term;
 
   function jump(event: MouseEvent<HTMLAnchorElement>, id: string) {
-    // The href stays real for copy-link and new tabs; a plain click jumps in place.
+    // Modified clicks keep their browser meaning (new tab, new window); a plain click jumps in place.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     onJump(id);
   }
@@ -74,7 +75,7 @@ export function TermCard({ term, flash, onJump }: TermCardProps) {
               key={target.id}
               href={`#${termCardId(target.id)}`}
               onClick={(event) => jump(event, target.id)}
-              className="rounded-full border border-surface-border px-2.5 py-0.5 text-xs text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              className="rounded-full border border-surface-border px-2.5 py-1 text-xs text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             >
               {target.term}
             </a>

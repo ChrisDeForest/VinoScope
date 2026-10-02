@@ -28,7 +28,7 @@ export function VineStage({ stage, index }: { stage: VineStageContent; index: nu
       </div>
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-accent mb-2">Step {index + 1}</p>
-        <h3 id={titleId} className="font-serif text-2xl text-ink mb-4">
+        <h3 id={titleId} className="scroll-mt-24 font-serif text-2xl text-ink mb-4">
           {stage.title}
         </h3>
         <dl className="grid gap-3">

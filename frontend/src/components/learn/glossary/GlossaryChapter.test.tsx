@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation, useNavigationType } from "react-router-dom";
 import { GlossaryChapter } from "./GlossaryChapter";
@@ -103,6 +103,46 @@ describe("GlossaryChapter", () => {
     await userEvent.click(within(dry).getByRole("link", { name: "Off-dry" }));
     expect(screen.getByRole("button", { name: "Tasting" })).toHaveAttribute("aria-pressed", "true");
     expect(cards()).toHaveLength(11);
+  });
+
+  it("scrolls instantly under reduced motion", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      renderAt();
+      await userEvent.click(within(screen.getByRole("article", { name: "Tannin" })).getByRole("link", { name: "Maceration" }));
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it("scrolls smoothly otherwise", async () => {
+    renderAt();
+    await userEvent.click(within(screen.getByRole("article", { name: "Tannin" })).getByRole("link", { name: "Maceration" }));
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+  });
+
+  it("restarts the flash on a repeat jump to the same term", async () => {
+    renderAt();
+    const link = () => within(screen.getByRole("article", { name: "Tannin" })).getByRole("link", { name: "Maceration" });
+    await userEvent.click(link());
+    const target = document.getElementById("term-maceration")!;
+    expect(target).toHaveClass("term-flash");
+    const states: boolean[] = [];
+    const observer = new MutationObserver(() => states.push(target.classList.contains("term-flash")));
+    observer.observe(target, { attributes: true, attributeFilter: ["class"] });
+    await userEvent.click(link());
+    await waitFor(() => expect(target).toHaveClass("term-flash"));
+    observer.disconnect();
+    // The class was dropped and re-added, so the CSS animation replays.
+    expect(states).toContain(false);
+    expect(states[states.length - 1]).toBe(true);
   });
 
   it("stops flashing after a moment", async () => {

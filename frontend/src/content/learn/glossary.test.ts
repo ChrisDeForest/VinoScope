@@ -92,6 +92,15 @@ describe("Glossary content", () => {
     expect(termById("noble-rot")!.seeAlso).toMatchObject({ params: { type: "dessert" } });
   });
 
+  it("keeps the Bordeaux caveat on Grand Cru / Premier Cru", () => {
+    expect(termById("cru")!.definition).toMatch(/Bordeaux/);
+  });
+
+  it("does not promise a Vine to Glass view for sulfites or serving temperature", () => {
+    expect(termById("sulfites")!.seeAlso).toBeUndefined();
+    expect(termById("serving-temperature")!.seeAlso).toBeUndefined();
+  });
+
   it("looks terms up by id", () => {
     expect(termById("tannin")!.term).toBe("Tannin");
     expect(termById("nope")).toBeUndefined();

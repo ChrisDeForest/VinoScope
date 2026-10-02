@@ -43,6 +43,7 @@ describe("DimensionBlock", () => {
     renderBlock({ status: "hidden" });
     const article = screen.getByRole("article", { name: "Tannin" });
     expect(within(article).getByRole("heading", { level: 3, name: "Tannin" })).toBeInTheDocument();
+    expect(within(article).getByRole("heading", { level: 3, name: "Tannin" })).toHaveClass("scroll-mt-24");
     expect(article).toHaveTextContent(TANNIN.what);
     expect(article).toHaveTextContent(TANNIN.feel);
     expect(article).toHaveTextContent(TANNIN.tip);

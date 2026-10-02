@@ -21,6 +21,7 @@ describe("VineStage", () => {
   it("renders the step number, heading and copy", () => {
     renderStage();
     // Callouts are nested list items, so find the stage item through its heading.
+    expect(screen.getByRole("heading", { level: 3, name: "Crush & Press" })).toHaveClass("scroll-mt-24");
     const item = screen.getByRole("heading", { level: 3, name: "Crush & Press" }).closest("li")!;
     expect(within(item).getByText("Step 3")).toBeInTheDocument();
     expect(item).toHaveTextContent("What happens");
