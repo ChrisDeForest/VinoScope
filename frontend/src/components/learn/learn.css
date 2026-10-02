@@ -83,3 +83,25 @@
     scroll-behavior: smooth;
   }
 }
+
+/* A related-term jump briefly outlines the card it lands on; static under reduced motion. */
+.term-flash {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .term-flash {
+    animation: term-flash 1.5s ease-out forwards;
+  }
+}
+
+@keyframes term-flash {
+  0%,
+  40% {
+    outline-color: var(--color-accent);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
