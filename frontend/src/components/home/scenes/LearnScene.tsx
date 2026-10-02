@@ -51,7 +51,7 @@ export function LearnScene() {
     <Scene id="learn" index={5} label="Learn" title="Learn what's in your glass." side="left" art={<LearnArt />}>
       <p className="text-ink-muted mb-6">
         Learn the five things your mouth is measuring, with real wines to taste the difference — then follow a grape
-        from the vineyard to your glass, and meet the seven grapes worth knowing.
+        from the vineyard to your glass, meet the seven grapes worth knowing, and look up any word in the glossary.
       </p>
       <SceneCta to="/learn">Start Learning</SceneCta>
     </Scene>

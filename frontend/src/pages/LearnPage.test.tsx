@@ -167,14 +167,27 @@ describe("LearnPage", () => {
     expect(() => renderAt("/learn#%zz")).not.toThrow();
   });
 
-  it("lists all three chapters in the nav", () => {
+  it("lists all four chapters in the nav", () => {
     renderAt("/learn");
     const nav = screen.getByRole("navigation", { name: "Learn chapters" });
     expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
       "How to Taste",
       "Vine to Glass",
       "Key Grapes",
+      "Glossary",
     ]);
+  });
+
+  it("renders the Glossary chapter fourth", () => {
+    renderAt("/learn");
+    expect(screen.getByRole("region", { name: "Words to know" })).toHaveAttribute("id", "glossary");
+    expect(screen.getByText("04 · Glossary")).toBeInTheDocument();
+  });
+
+  it("scrolls to a glossary term from the hash on arrival", () => {
+    renderAt("/learn#term-tannin");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.instances[0]).toBe(document.getElementById("term-tannin"));
   });
 
   it("renders the Key Grapes chapter third", () => {

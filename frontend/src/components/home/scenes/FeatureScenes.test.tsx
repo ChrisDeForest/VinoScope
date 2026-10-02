@@ -63,5 +63,6 @@ describe("LearnScene", () => {
     expect(screen.getByText(/five things your mouth is measuring/i)).toBeInTheDocument();
     expect(screen.getByText(/from the vineyard to your glass/i)).toBeInTheDocument();
     expect(screen.getByText(/seven grapes worth knowing/i)).toBeInTheDocument();
+    expect(screen.getByText(/glossary/i)).toBeInTheDocument();
   });
 });

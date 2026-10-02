@@ -81,7 +81,7 @@ describe("GlossaryChapter", () => {
     await userEvent.click(within(tannin).getByRole("link", { name: "Maceration" }));
     expect(screen.getByTestId("location")).toHaveTextContent("/learn?x=1#term-maceration REPLACE");
     const target = document.getElementById("term-maceration")!;
-    expect(scrollIntoView.mock.instances.at(-1)).toBe(target);
+    expect(scrollIntoView.mock.instances[scrollIntoView.mock.instances.length - 1]).toBe(target);
     expect(document.activeElement).toBe(document.getElementById("term-maceration-title"));
     expect(target).toHaveClass("term-flash");
   });
