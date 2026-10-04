@@ -160,3 +160,84 @@
     transform: none;
   }
 }
+
+/* Wine Regions map. The zoom is a CSS transform on one <g>; strokes don't scale with it. */
+.map-zoom {
+  transform-origin: 0 0;
+}
+
+.map-zoom-animate {
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.map-country {
+  fill: var(--color-accent);
+  fill-opacity: 0.16;
+  cursor: pointer;
+}
+
+/* Keeps the shared draw-in transition and adds the hover wash. */
+.scene .map-country {
+  transition:
+    stroke-dashoffset 1.2s ease var(--delay, 0s),
+    fill-opacity 0.2s ease;
+}
+
+.map-country.is-dim {
+  fill-opacity: 0.08;
+}
+
+.map-country.is-selected {
+  fill-opacity: 0.28;
+}
+
+.map-country:hover,
+.map-country:focus-visible {
+  fill-opacity: 0.34;
+}
+
+.map-country:focus-visible {
+  outline: none;
+  stroke-width: 2.5;
+}
+
+.map-pin {
+  cursor: pointer;
+}
+
+.map-pin:focus-visible {
+  outline: none;
+}
+
+.map-pin-halo {
+  fill: var(--color-accent);
+  fill-opacity: 0.16;
+}
+
+.map-pin:focus-visible .map-pin-halo {
+  fill-opacity: 0.4;
+}
+
+.map-pin-core {
+  fill: var(--color-wine-red);
+  stroke: var(--color-accent);
+}
+
+.map-pin.is-selected .map-pin-core {
+  fill: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .map-pin {
+    animation: map-pin-in 0.45s ease var(--delay, 0s) both;
+  }
+}
+
+@keyframes map-pin-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
