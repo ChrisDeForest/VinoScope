@@ -167,7 +167,7 @@ describe("LearnPage", () => {
     expect(() => renderAt("/learn#%zz")).not.toThrow();
   });
 
-  it("lists all four chapters in the nav", () => {
+  it("lists all five chapters in the nav", () => {
     renderAt("/learn");
     const nav = screen.getByRole("navigation", { name: "Learn chapters" });
     expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
@@ -175,7 +175,20 @@ describe("LearnPage", () => {
       "Vine to Glass",
       "Key Grapes",
       "Glossary",
+      "Wine Regions",
     ]);
+  });
+
+  it("renders the Wine Regions chapter fifth", () => {
+    renderAt("/learn");
+    expect(screen.getByRole("region", { name: "Where wine comes from" })).toHaveAttribute("id", "regions");
+    expect(screen.getByText("05 · Wine Regions")).toBeInTheDocument();
+  });
+
+  it("scrolls to the map for a region deep link on arrival", () => {
+    renderAt("/learn#region-bordeaux");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.instances[0]).toBe(document.getElementById("region-bordeaux"));
   });
 
   it("renders the Glossary chapter fourth", () => {
