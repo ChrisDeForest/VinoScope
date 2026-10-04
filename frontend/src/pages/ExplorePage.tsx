@@ -25,6 +25,7 @@ const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: st
   { key: "q", name: "search", describe: (value) => `Search: "${value}"` },
   { key: "type", name: "type", describe: (value) => `Type: ${TYPE_LABELS[value] ?? value}` },
   { key: "country", name: "country", describe: (value) => `Country: ${value}` },
+  { key: "region", name: "region", describe: (value) => `Region: ${value}` },
   { key: "grape", name: "grape", describe: (value) => `Grape: ${value}` },
   { key: "minPrice", name: "min price", describe: (value) => `Min price: $${value}` },
   { key: "maxPrice", name: "max price", describe: (value) => `Max price: $${value}` },

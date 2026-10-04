@@ -489,4 +489,21 @@ describe("ExplorePage scroll position", () => {
     renderExplore(["/explore"]);
     expect(scrollTo).toHaveBeenCalledWith(0, 900);
   });
+
+  it("filters by a region from the URL and shows a removable region chip", async () => {
+    listWinesMock.mockResolvedValue({ total: 1, items: [makeWine(1)] });
+    renderExplore(["/explore?region=Bordeaux"]);
+
+    await waitFor(() => expect(listWinesMock).toHaveBeenCalledWith(expect.objectContaining({ region: "Bordeaux" })));
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    expect(screen.getByText("Region: Bordeaux")).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    listWinesMock.mockResolvedValue({ total: 2, items: [makeWine(2)] });
+    await user.click(screen.getByRole("button", { name: /remove region filter/i }));
+
+    await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
+    expect(listWinesMock.mock.calls[listWinesMock.mock.calls.length - 1][0]).not.toHaveProperty("region");
+    expect(screen.queryByText("Region: Bordeaux")).not.toBeInTheDocument();
+  });
 });

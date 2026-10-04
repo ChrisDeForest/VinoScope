@@ -51,6 +51,7 @@ export interface ListWinesParams {
   q?: string;
   type?: string;
   country?: string;
+  region?: string;
   grape?: string;
   min_price?: number;
   max_price?: number;

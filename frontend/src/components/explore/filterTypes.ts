@@ -4,6 +4,7 @@ export interface FilterValues {
   q: string;
   type: string;
   country: string;
+  region: string;
   grape: string;
   minPrice: string;
   maxPrice: string;
@@ -21,6 +22,7 @@ export const DEFAULT_FILTERS: FilterValues = {
   q: "",
   type: "",
   country: "",
+  region: "",
   grape: "",
   minPrice: "",
   maxPrice: "",
@@ -32,6 +34,7 @@ export function countActiveFilters(filters: FilterValues): number {
   if (filters.q) count++;
   if (filters.type) count++;
   if (filters.country) count++;
+  if (filters.region) count++;
   if (filters.grape) count++;
   if (filters.minPrice) count++;
   if (filters.maxPrice) count++;
@@ -43,6 +46,7 @@ export function filtersToApiParams(filters: FilterValues, limit: number, offset:
   if (filters.q) params.q = filters.q;
   if (filters.type) params.type = filters.type;
   if (filters.country) params.country = filters.country;
+  if (filters.region) params.region = filters.region;
   if (filters.grape) params.grape = filters.grape;
   if (filters.minPrice !== "") params.min_price = Number(filters.minPrice);
   if (filters.maxPrice !== "") params.max_price = Number(filters.maxPrice);
@@ -53,6 +57,7 @@ const SEARCH_PARAM_NAMES: Record<keyof FilterValues, string> = {
   q: "q",
   type: "type",
   country: "country",
+  region: "region",
   grape: "grape",
   minPrice: "min_price",
   maxPrice: "max_price",
@@ -77,6 +82,7 @@ export function filtersFromSearchParams(params: URLSearchParams): FilterValues {
     q: params.get("q") ?? DEFAULT_FILTERS.q,
     type: params.get("type") ?? DEFAULT_FILTERS.type,
     country: params.get("country") ?? DEFAULT_FILTERS.country,
+    region: params.get("region") ?? DEFAULT_FILTERS.region,
     grape: params.get("grape") ?? DEFAULT_FILTERS.grape,
     minPrice: params.get("min_price") ?? DEFAULT_FILTERS.minPrice,
     maxPrice: params.get("max_price") ?? DEFAULT_FILTERS.maxPrice,
