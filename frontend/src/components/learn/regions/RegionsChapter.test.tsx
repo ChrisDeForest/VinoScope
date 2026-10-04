@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { act, fireEvent } from "@testing-library/react";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import * as api from "../../../services/api";
 import { RegionsChapter } from "./RegionsChapter";
 import { clearCatalogCountCache } from "./useCatalogCount";
@@ -16,7 +17,10 @@ beforeEach(() => {
   vi.mocked(api.listWines).mockResolvedValue({ total: 5, items: [] });
 });
 
+let navigateProbe: ReturnType<typeof useNavigate>;
+
 function HashProbe() {
+  navigateProbe = useNavigate();
   return <p data-testid="hash">{useLocation().hash}</p>;
 }
 
@@ -31,7 +35,8 @@ async function renderAt(path = "/learn") {
 }
 
 const chips = () => screen.getByRole("group", { name: "Wine countries" });
-const status = () => screen.getByRole("status").textContent;
+const status = () => screen.getByTestId("map-breadcrumb").textContent;
+const chip = (name: string) => within(chips()).getByRole("button", { name });
 
 describe("RegionsChapter", () => {
   it("opens on the world with chips, the map and no drawer", async () => {
@@ -67,6 +72,54 @@ describe("RegionsChapter", () => {
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     expect(status()).toBe("World · 13 wine countries");
     expect(screen.getByTestId("hash")).toHaveTextContent("#regions");
+    expect(document.activeElement).toBe(chip("France"));
+  });
+
+  it("returns focus to the chip after browsing inside the drawer and closing it", async () => {
+    await renderAt();
+    await userEvent.click(chip("France"));
+    await userEvent.click(within(screen.getByRole("list")).getByRole("button", { name: /Bordeaux/ }));
+    await userEvent.click(screen.getByRole("button", { name: "All of France" }));
+    await userEvent.click(within(screen.getByRole("list")).getByRole("button", { name: /Alsace/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Close details" }));
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(chip("France"));
+  });
+
+  it("returns focus to the newly chosen country's chip when switching countries with the drawer open", async () => {
+    await renderAt();
+    await userEvent.click(chip("France"));
+    await userEvent.click(chip("Italy"));
+    await userEvent.click(screen.getByRole("button", { name: "Close details" }));
+    expect(document.activeElement).toBe(chip("Italy"));
+  });
+
+  it("falls back to the country's chip when the pin that opened the drawer is gone", async () => {
+    await renderAt();
+    await userEvent.click(chip("France"));
+    await userEvent.click(screen.getByRole("button", { name: "Close details" }));
+    await userEvent.click(within(screen.getByRole("group", { name: "World wine map" })).getByRole("button", { name: "Rhône" }));
+    expect(screen.getByRole("complementary", { name: "Rhône details" })).toBeInTheDocument();
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(chip("France"));
+  });
+
+  it("announces changes once, through the drawer heading rather than a live breadcrumb", async () => {
+    await renderAt();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("reopens the drawer when Back returns to a map hash", async () => {
+    await renderAt("/learn#region-rhone");
+    act(() => navigateProbe({ hash: "#grape-syrah" }));
+    await userEvent.click(screen.getByRole("button", { name: "Close details" }));
+    await userEvent.click(screen.getByRole("button", { name: "World" }));
+    expect(screen.getByTestId("hash")).toHaveTextContent("#regions");
+    act(() => navigateProbe(-1));
+    expect(screen.getByTestId("hash")).toHaveTextContent("#region-rhone");
+    expect(screen.getByRole("complementary", { name: "Rhône details" })).toBeInTheDocument();
   });
 
   it("closes the drawer without leaving the country, returning focus to the chip", async () => {
@@ -86,6 +139,7 @@ describe("RegionsChapter", () => {
     await userEvent.click(screen.getByRole("button", { name: "World" }));
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     expect(status()).toBe("World · 13 wine countries");
+    expect(document.activeElement).toBe(chip("Italy"));
   });
 
   it("arrives on a region from a deep link", async () => {

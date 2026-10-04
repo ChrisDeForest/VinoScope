@@ -209,6 +209,20 @@
   outline: none;
 }
 
+/* An invisible, finger-sized tap target around each pin. */
+.map-pin-hit {
+  fill: transparent;
+}
+
+/* A thin backing in the map's color keeps labels readable where they cross a border. */
+.map-pin-label {
+  paint-order: stroke;
+  stroke: var(--color-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
 .map-pin-halo {
   fill: var(--color-accent);
   fill-opacity: 0.16;

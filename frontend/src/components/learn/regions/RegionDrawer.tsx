@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import {
   countryById,
@@ -28,11 +28,17 @@ const EXPLORE =
 export function RegionDrawer({ countryId, regionId, headingRef, onClose, onSelectRegion, onBackToCountry }: RegionDrawerProps) {
   const country = countryById(countryId);
   const region = regionId ? regionById(regionId) : undefined;
+  const scrollRef = useRef<HTMLElement>(null);
+  // The drawer is reused between views; each new view starts at its heading, not where the last one was scrolled.
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [countryId, regionId]);
   if (!country) return null;
   const title = region?.name ?? country.name;
 
   return (
     <aside
+      ref={scrollRef}
       aria-label={`${title} details`}
       className="region-drawer overflow-y-auto rounded-lg border border-surface-border bg-surface-raised p-5 shadow-2xl"
     >
@@ -87,7 +93,7 @@ function CountryView({
         ))}
       </ul>
       <Link to={`/explore?country=${encodeURIComponent(country.exploreCountry)}`} className={EXPLORE}>
-        {count ? `Explore ${count} wines from ${country.name}` : `Explore wines from ${country.name}`}{" "}
+        {count ? `Explore ${count} ${count === 1 ? "wine" : "wines"} from ${country.name}` : `Explore wines from ${country.name}`}{" "}
         <span aria-hidden="true">→</span>
       </Link>
     </>

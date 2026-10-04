@@ -46,25 +46,49 @@ function Legend() {
   );
 }
 
+type Focusable = HTMLElement | SVGElement;
+
 export function RegionsChapter() {
   const location = useLocation();
-  const { selection, selectCountry, selectRegion, showWorld, stepBack } = useMapSelection();
+  const { selection, popCount, selectCountry, selectRegion, showWorld, stepBack } = useMapSelection();
   const wide = useWideLayout();
   const [drawerOpen, setDrawerOpen] = useState(() => selection.countryId !== null);
   // Only the hash present on arrival gets an anchor, so LearnPage's arrival scroll lands on the map.
   const [anchorId] = useState(() => (selectionFromHash(location.hash) ? location.hash.slice(1) : null));
+  const rootRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
+  /** The chip, country or pin that opened the drawer: focus goes back to it when the drawer closes. */
+  const openerRef = useRef<Focusable | null>(null);
   const focusHeading = useRef(false);
+  /** Set when the drawer closes or the map leaves a country: focus returns after the next render. */
+  const restoreFocusFrom = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!focusHeading.current || !drawerOpen) return;
-    focusHeading.current = false;
-    headingRef.current?.focus({ preventScroll: true });
+    if (focusHeading.current && drawerOpen) {
+      focusHeading.current = false;
+      headingRef.current?.focus({ preventScroll: true });
+    }
+    const countryId = restoreFocusFrom.current;
+    if (countryId === null) return;
+    restoreFocusFrom.current = null;
+    // The opener may be gone (a pin, once the map leaves its country); the country's chip always stays.
+    const opener = openerRef.current;
+    const target = opener?.isConnected ? opener : rootRef.current?.querySelector<HTMLElement>(`[data-country-id="${countryId}"]`);
+    target?.focus({ preventScroll: true });
   });
 
+  // Back/Forward onto a map hash shows that place's drawer again; it doesn't move focus.
+  const [seenPops, setSeenPops] = useState(popCount);
+  if (popCount !== seenPops) {
+    setSeenPops(popCount);
+    setDrawerOpen(selection.countryId !== null);
+  }
+
   function openWith(action: () => void) {
-    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // Moving around inside the drawer keeps the original opener; its buttons vanish as the view changes.
+    const active = document.activeElement;
+    const focusable = active instanceof HTMLElement || active instanceof SVGElement;
+    if (focusable && active !== document.body && !active.closest(".region-drawer")) openerRef.current = active;
     focusHeading.current = true;
     action();
     setDrawerOpen(true);
@@ -72,11 +96,11 @@ export function RegionsChapter() {
 
   function closeDrawer() {
     setDrawerOpen(false);
-    const opener = openerRef.current;
-    if (opener?.isConnected) opener.focus({ preventScroll: true });
+    restoreFocusFrom.current = selection.countryId;
   }
 
   function goToWorld() {
+    restoreFocusFrom.current = selection.countryId;
     setDrawerOpen(false);
     showWorld();
   }
@@ -108,29 +132,37 @@ export function RegionsChapter() {
       />
     ) : null;
 
+  // On wide screens the breadcrumb floats over the map's corner (the zoom keeps clear of it);
+  // on phones it gets its own row above the map, where it can't cover the pins.
+  const breadcrumb = (
+    <div className="flex min-h-[2.25rem] items-center gap-3 px-3 pt-2 md:absolute md:left-3 md:top-3 md:z-[2] md:min-h-0 md:p-0">
+      {country ? (
+        <button
+          type="button"
+          onClick={goToWorld}
+          className="rounded-full border border-accent bg-surface-raised px-3 py-1 text-sm text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <span aria-hidden="true">← </span>World
+        </button>
+      ) : null}
+      {/* Not a live region: every change already moves focus to something that announces it. */}
+      <p data-testid="map-breadcrumb" className="text-xs uppercase tracking-[0.15em] text-ink-muted">
+        {crumb}
+      </p>
+    </div>
+  );
+
   return (
-    <div className="mt-8" onKeyDown={onKeyDown}>
+    <div ref={rootRef} className="mt-8" onKeyDown={onKeyDown}>
       <CountryChips selectedId={selection.countryId} onSelect={(id) => openWith(() => selectCountry(id))} />
       <div className="relative mt-4 overflow-hidden rounded-lg border border-surface-border bg-surface">
         {anchorId ? <span id={anchorId} aria-hidden="true" className="absolute left-0 top-0 scroll-mt-24" /> : null}
-        <div className="absolute left-3 top-3 z-[2] flex items-center gap-3">
-          {country ? (
-            <button
-              type="button"
-              onClick={goToWorld}
-              className="rounded-full border border-accent bg-surface-raised px-3 py-1 text-sm text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              <span aria-hidden="true">← </span>World
-            </button>
-          ) : null}
-          <p role="status" className="text-xs uppercase tracking-[0.15em] text-ink-muted">
-            {crumb}
-          </p>
-        </div>
+        {breadcrumb}
         <Suspense fallback={<MapPlaceholder />}>
           <RegionsMap
             selection={selection}
             inset={wide && drawerOpen}
+            overlayTop={wide}
             onSelectCountry={(id) => openWith(() => selectCountry(id))}
             onSelectRegion={(id) => openWith(() => selectRegion(id))}
           />

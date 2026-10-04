@@ -16,6 +16,7 @@ export function CountryChips({ selectedId, onSelect }: CountryChipsProps) {
             key={country.id}
             type="button"
             aria-pressed={pressed}
+            data-country-id={country.id}
             onClick={() => onSelect(country.id)}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
               pressed ? "border-accent text-accent" : "border-surface-border text-ink-muted hover:text-ink"

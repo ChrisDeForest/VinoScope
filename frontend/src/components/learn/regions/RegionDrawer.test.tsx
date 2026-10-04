@@ -26,12 +26,13 @@ beforeEach(() => {
 function renderDrawer(countryId: string, regionId: string | null) {
   const handlers = { onClose: vi.fn(), onSelectRegion: vi.fn(), onBackToCountry: vi.fn() };
   const headingRef = createRef<HTMLHeadingElement>();
-  render(
+  const ui = (country: string, region: string | null) => (
     <MemoryRouter>
-      <RegionDrawer countryId={countryId} regionId={regionId} headingRef={headingRef} {...handlers} />
+      <RegionDrawer countryId={country} regionId={region} headingRef={headingRef} {...handlers} />
     </MemoryRouter>
   );
-  return { ...handlers, headingRef };
+  const view = render(ui(countryId, regionId));
+  return { ...handlers, headingRef, rerender: (country: string, region: string | null) => view.rerender(ui(country, region)) };
 }
 
 describe("RegionDrawer — country view", () => {
@@ -53,6 +54,23 @@ describe("RegionDrawer — country view", () => {
     expect(await within(rows[0]).findByText("13 in catalog")).toBeInTheDocument();
     expect(within(rows[4]).getByText("—")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "Explore 30 wines from France" })).toHaveAttribute("href", "/explore?country=France");
+  });
+
+  it("says wine, not wines, for a single bottle", async () => {
+    renderDrawer("south-africa", null);
+    expect(await screen.findByRole("link", { name: "Explore 1 wine from South Africa" })).toBeInTheDocument();
+  });
+
+  it("opens each new view scrolled to the top", () => {
+    const { rerender } = renderDrawer("france", null);
+    const drawer = screen.getByRole("complementary");
+    Object.defineProperty(drawer, "scrollTop", { value: 175, writable: true, configurable: true });
+    rerender("france", "provence");
+    expect(screen.getByRole("complementary", { name: "Provence details" })).toBe(drawer);
+    expect(drawer.scrollTop).toBe(0);
+    drawer.scrollTop = 175;
+    rerender("france", null);
+    expect(drawer.scrollTop).toBe(0);
   });
 
   it("selects a region from the list and closes", async () => {

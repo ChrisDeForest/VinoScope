@@ -98,4 +98,16 @@ describe("useMapSelection", () => {
     act(() => navigateProbe(-1));
     expect(selection()).toBe("hungary/tokaj");
   });
+
+  it("counts the Back/Forward arrivals at a map hash, so the chapter can reopen the drawer", () => {
+    renderAt("/learn#country-spain");
+    expect(api.popCount).toBe(0);
+    act(() => api.selectCountry("italy"));
+    act(() => navigateProbe({ hash: "#grape-merlot" }));
+    act(() => navigateProbe(-1));
+    expect(selection()).toBe("italy/-");
+    expect(api.popCount).toBe(1);
+    act(() => navigateProbe(1));
+    expect(api.popCount).toBe(1);
+  });
 });

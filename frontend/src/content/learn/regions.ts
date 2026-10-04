@@ -26,6 +26,8 @@ export interface MapRegion {
   countryId: string;
   /** Pin position, `[longitude, latitude]`. */
   coords: LonLat;
+  /** Which side of the pin its map label sits on (default right); "left" where a neighbor's pin would cover it. */
+  labelSide?: "left" | "right";
   /** Value for Explore's `region` filter (the catalog's own region name), or null when the catalog has none. */
   exploreRegion: string | null;
   /** Link wording when the catalog's name differs from the display name (e.g. "California" for "Napa & Sonoma"). */
@@ -54,7 +56,7 @@ export const MAP_COUNTRIES: readonly MapCountry[] = [
     name: "United States",
     atlasName: "United States of America",
     exploreCountry: "United States",
-    overview: "Wine is made in all fifty states, but California makes most of it, with Oregon and Washington close behind. Labels usually name the grape, and sunny weather gives ripe, generous wines.",
+    overview: "Wine is made in all fifty states, but California makes most of it, about four bottles in five; Washington and Oregon are the next best known. Labels usually name the grape, and sunny weather gives ripe, generous wines.",
     fitBounds: [[-125, 24.5], [-66.9, 49.4]],
     source: "general",
   },
@@ -99,7 +101,7 @@ export const MAP_COUNTRIES: readonly MapCountry[] = [
     name: "Spain",
     atlasName: "Spain",
     exploreCountry: "Spain",
-    overview: "Spain has more land under vine than any other country. Tempranillo leads its reds, and the hot south makes Sherry, the world's most famous fortified white.",
+    overview: "Spain has more land under vine than any other country. Tempranillo leads its reds, and the hot south makes Sherry, the world's most famous fortified wine from white grapes.",
     fitBounds: [[-9.4, 35.9], [3.4, 43.8]],
     source: "general",
   },
@@ -135,7 +137,7 @@ export const MAP_COUNTRIES: readonly MapCountry[] = [
     name: "Chile",
     atlasName: "Chile",
     exploreCountry: "Chile",
-    overview: "A long, thin country squeezed between the Andes and the Pacific, with sunny valleys cooled by ocean breezes. It's known for good-value Cabernet Sauvignon and its own Carménère.",
+    overview: "A long, thin country squeezed between the Andes and the Pacific, with sunny valleys cooled by ocean breezes. It's known for good-value Cabernet Sauvignon and its adopted signature, Carménère.",
     fitBounds: [[-75.7, -55.9], [-66.4, -17.5]],
     source: "general",
   },
@@ -222,8 +224,8 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     coords: [8.0, 44.7],
     exploreRegion: "Piedmont",
     about: "In Italy's northwest, at the foot of the Alps, fog rolls over the hills each autumn. Nebbiolo, named after that fog (nebbia), makes Barolo and Barbaresco.",
-    climate: 2,
-    climateLabel: "Cool to moderate, with foggy autumns",
+    climate: 3,
+    climateLabel: "Moderate continental, with foggy autumns",
     grapes: ["Nebbiolo", "Barbera", "Moscato"],
     styles: ["Tannic, age-worthy reds", "Sweet, fizzy Moscato d'Asti"],
     fact: "Barolo is nicknamed “the king of wines” and must age for at least three years before release.",
@@ -309,7 +311,7 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     about: "France's northernmost classic region, so cool that the grapes barely ripen, which suits sparkling wine perfectly. Only sparkling wine from here may be called Champagne.",
     climate: 1,
     climateLabel: "Cold, continental",
-    grapes: ["Chardonnay", "Pinot Noir", "Pinot Meunier"],
+    grapes: ["Chardonnay", "Pinot Noir", "Meunier"],
     styles: ["Brut Champagne", "Blanc de blancs", "Rosé Champagne"],
     fact: "Miles of chalk cellars run beneath the towns of Reims and Épernay, keeping the bottles cool as they age.",
     source: "general",
@@ -365,7 +367,7 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     exploreRegion: "Provence",
     about: "Sunny southeastern France along the Mediterranean, scented with wild herbs. It's the world's most famous home of dry, pale rosé.",
     climate: 4,
-    climateLabel: "Hot and dry, Mediterranean",
+    climateLabel: "Warm and dry, Mediterranean",
     grapes: ["Grenache", "Cinsault", "Mourvèdre"],
     styles: ["Pale, dry rosé"],
     fact: "Roughly nine in ten bottles from Provence are rosé.",
@@ -377,6 +379,8 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     name: "Mosel",
     countryId: "germany",
     coords: [6.9, 49.9],
+    // Rheingau's pin sits just east, on the same line.
+    labelSide: "left",
     exploreRegion: "Mosel",
     about: "Vineyards cling to some of the world's steepest slopes along the winding Mosel River. Slate soils soak up the day's heat, helping Riesling ripen this far north.",
     climate: 1,
@@ -426,7 +430,7 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     climateLabel: "Warm and humid, subtropical",
     grapes: ["Sercial", "Verdelho", "Bual", "Malmsey"],
     styles: ["Fortified Madeira, dry to sweet"],
-    fact: "Madeira was the wine used to toast the US Declaration of Independence in 1776.",
+    fact: "Madeira is said to have been the wine used to toast the US Declaration of Independence in 1776.",
     source: "general",
   },
   // Spain
@@ -500,7 +504,7 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     about: "About 70% of Argentina's wine comes from here, in high desert at the foot of the Andes. Snowmelt waters the vines, and strong sun with cool nights makes bold reds.",
     climate: 4,
     climateLabel: "Sunny and dry, at high altitude",
-    grapes: ["Malbec", "Cabernet Sauvignon", "Torrontés"],
+    grapes: ["Malbec", "Cabernet Sauvignon", "Bonarda"],
     styles: ["Rich Malbec"],
     fact: "Some vineyards sit more than 1,500 meters (about 5,000 feet) above sea level.",
     source: "general",
@@ -576,7 +580,7 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     exploreRegion: "Western Cape",
     exploreLabel: "Western Cape",
     about: "Mountains and valleys near Cape Town, cooled by breezes off False Bay. It's South Africa's best-known region for reds.",
-    climate: 3,
+    climate: 4,
     climateLabel: "Warm, cooled by the ocean",
     grapes: ["Cabernet Sauvignon", "Pinotage", "Chenin Blanc"],
     styles: ["Red blends", "Pinotage"],

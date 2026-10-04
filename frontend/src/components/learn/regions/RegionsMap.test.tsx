@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { stubMatchMedia } from "../../../test/stubs";
 import { RegionsMap } from "./RegionsMap";
@@ -7,6 +7,8 @@ import type { MapSelection } from "./useMapSelection";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 function renderMap(selection: MapSelection, inset = false) {
@@ -83,10 +85,90 @@ describe("RegionsMap", () => {
     expect(zoom()).not.toHaveClass("map-zoom-animate");
   });
 
-  it("gives every outline a normalized path length for the draw-in", () => {
+  it("draws the outlines in on first reveal at world view", () => {
     renderMap(WORLD);
     const outlines = map().querySelectorAll("path.draw");
     expect(outlines.length).toBeGreaterThan(150);
     outlines.forEach((outline) => expect(outline.getAttribute("pathLength")).toBe("1"));
+  });
+
+  // The draw-in's dash is one outline long in user space, but non-scaling strokes dash in screen space,
+  // so a zoomed outline would break into dashes. The dash goes once the draw-in has played.
+  it("drops the draw-in dash once the outlines are drawn", () => {
+    vi.useFakeTimers();
+    renderMap(WORLD);
+    expect(map().querySelectorAll("path.draw").length).toBeGreaterThan(150);
+    act(() => vi.advanceTimersByTime(2000));
+    expect(map().querySelectorAll("path.draw, [pathLength]")).toHaveLength(0);
+  });
+
+  it("never dashes an outline while zoomed, even mid draw-in", () => {
+    const { view } = renderMap(WORLD);
+    view.rerender(<RegionsMap selection={{ countryId: "france", regionId: null }} inset={false} onSelectCountry={vi.fn()} onSelectRegion={vi.fn()} />);
+    expect(map().querySelectorAll("path.draw, [pathLength]")).toHaveLength(0);
+    view.rerender(<RegionsMap selection={WORLD} inset={false} onSelectCountry={vi.fn()} onSelectRegion={vi.fn()} />);
+    expect(map().querySelectorAll("path.draw, [pathLength]")).toHaveLength(0);
+  });
+
+  it("arrives zoomed from a deep link without any dash", () => {
+    renderMap({ countryId: "germany", regionId: null });
+    expect(map().querySelectorAll("path.draw, [pathLength]")).toHaveLength(0);
+  });
+
+  it("skips the draw-in under reduced motion", () => {
+    stubMatchMedia({ reducedMotion: true });
+    renderMap(WORLD);
+    expect(map().querySelectorAll("path.draw, [pathLength]")).toHaveLength(0);
+  });
+
+  it("zooms the graticule with the countries, with a hairline stroke and no draw-in", () => {
+    renderMap(WORLD);
+    const graticule = within(zoom()).getByTestId("graticule");
+    expect(graticule).toHaveAttribute("vector-effect", "non-scaling-stroke");
+    expect(graticule).not.toHaveClass("draw");
+    expect(graticule).not.toHaveAttribute("pathLength");
+  });
+
+  it("keeps only the selected country in the tab order while zoomed", () => {
+    const first = renderMap(WORLD);
+    within(map())
+      .getAllByRole("button")
+      .forEach((button) => expect(button).toHaveAttribute("tabindex", "0"));
+    first.view.unmount();
+    renderMap({ countryId: "france", regionId: null });
+    expect(within(map()).getByRole("button", { name: "France" })).toHaveAttribute("tabindex", "0");
+    expect(within(map()).getByRole("button", { name: "Italy" })).toHaveAttribute("tabindex", "-1");
+    expect(within(map()).getByRole("button", { name: "Bordeaux" })).toHaveAttribute("tabindex", "0");
+  });
+
+  function haloRadius(width: number): number {
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width, height: width / 2 } as DOMRect);
+    const { view } = renderMap({ countryId: "france", regionId: null });
+    const k = Number(/scale\(([\d.]+)\)/.exec(zoom().style.transform)![1]);
+    const r = Number(within(map()).getByRole("button", { name: "Bordeaux" }).querySelector(".map-pin-halo")!.getAttribute("r"));
+    view.unmount();
+    vi.restoreAllMocks();
+    return r * k * (width / 1200);
+  }
+
+  it("keeps pins the same size on screen whatever the map's width", () => {
+    expect(haloRadius(1200)).toBeCloseTo(10);
+    expect(haloRadius(390)).toBeCloseTo(10);
+  });
+
+  it("gives every pin a tap target of at least 24px", () => {
+    renderMap({ countryId: "france", regionId: null });
+    const k = Number(/scale\(([\d.]+)\)/.exec(zoom().style.transform)![1]);
+    for (const name of ["Bordeaux", "Alsace"]) {
+      const hit = within(map()).getByRole("button", { name }).querySelector(".map-pin-hit")!;
+      expect(Number(hit.getAttribute("r")) * k * 2).toBeGreaterThanOrEqual(24);
+    }
+  });
+
+  it("puts Mosel's label on the left so Rheingau's pin doesn't cover it", () => {
+    renderMap({ countryId: "germany", regionId: null });
+    const label = (name: string) => within(map()).getByRole("button", { name }).querySelector("text")!;
+    expect(label("Mosel")).toHaveAttribute("text-anchor", "end");
+    expect(label("Rheingau")).toHaveAttribute("text-anchor", "start");
   });
 });

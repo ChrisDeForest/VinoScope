@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { countryById, regionById } from "../../../content/learn/regions";
 
@@ -28,13 +28,23 @@ export function useMapSelection() {
   const navigationType = useNavigationType();
   const navigate = useNavigate();
   const [selection, setSelection] = useState<MapSelection>(() => selectionFromHash(location.hash) ?? WORLD);
+  // How many times Back/Forward has landed on a map hash: the chapter reopens the drawer on each.
+  const [popCount, setPopCount] = useState(0);
 
   // Back/Forward to a map hash drives the map; other hashes (grapes, glossary, chapters) leave it alone.
+  // The arrival itself (also a POP) is already the initial selection.
+  const arrived = useRef(false);
   useEffect(() => {
+    if (!arrived.current) {
+      arrived.current = true;
+      return;
+    }
     if (navigationType !== "POP") return;
     const next = selectionFromHash(location.hash);
-    if (next) setSelection(next);
-  }, [location.hash, navigationType]);
+    if (!next) return;
+    setSelection(next);
+    setPopCount((count) => count + 1);
+  }, [location.key, location.hash, navigationType]);
 
   function go(next: MapSelection) {
     setSelection(next);
@@ -44,6 +54,7 @@ export function useMapSelection() {
 
   return {
     selection,
+    popCount,
     selectCountry: (id: string) => go({ countryId: id, regionId: null }),
     selectRegion: (id: string) => {
       const region = regionById(id);
