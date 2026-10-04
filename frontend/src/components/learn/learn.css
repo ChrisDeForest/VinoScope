@@ -105,3 +105,58 @@
     outline-color: transparent;
   }
 }
+
+/*
+ * Wine Regions drawer. On phones it sits below the map (the map is too short to cover);
+ * from md up it floats over the map's right edge. It slides in except under reduced motion.
+ */
+.region-drawer {
+  position: relative;
+  margin-top: 0.75rem;
+  max-height: 70vh;
+}
+
+@media (min-width: 768px) {
+  .region-drawer {
+    position: absolute;
+    top: 0.875rem;
+    right: 0.875rem;
+    bottom: 0.875rem;
+    z-index: 3;
+    width: 340px;
+    max-height: none;
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .region-drawer {
+    animation: region-drawer-up 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  @media (min-width: 768px) {
+    .region-drawer {
+      animation-name: region-drawer-in;
+    }
+  }
+}
+
+@keyframes region-drawer-in {
+  from {
+    transform: translateX(calc(100% + 1rem));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes region-drawer-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
