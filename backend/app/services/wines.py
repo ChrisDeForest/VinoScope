@@ -108,6 +108,7 @@ def list_wines(
     *,
     type: Optional[str] = None,
     country: Optional[str] = None,
+    region: Optional[str] = None,
     grape: Optional[str] = None,
     q: Optional[str] = None,
     min_price: Optional[float] = None,
@@ -128,6 +129,8 @@ def list_wines(
         stmt = stmt.where(func.lower(Wine.type) == type.lower())
     if country is not None:
         stmt = stmt.where(func.lower(Wine.country) == country.lower())
+    if region is not None:
+        stmt = stmt.where(func.lower(Wine.region) == region.lower())
     if grape is not None:
         stmt = stmt.where(
             Wine.id.in_(

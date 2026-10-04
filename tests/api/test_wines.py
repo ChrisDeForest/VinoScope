@@ -793,3 +793,32 @@ def test_update_grapes_unknown_wine_returns_404(client, admin_headers):
 def test_update_grapes_missing_admin_key_returns_401(client, seeded_wines):
     response = client.put(f"/api/wines/{seeded_wines['wine1']}/grapes", json={"grapes": []})
     assert response.status_code == 401
+
+
+def _set_region(db_session, wine_id, region):
+    db_session.get(Wine, wine_id).region = region
+    db_session.commit()
+
+
+def test_list_wines_filters_by_region_case_insensitive(client, db_session, seeded_wines):
+    _set_region(db_session, seeded_wines["wine3"], "Bordeaux")
+    _set_region(db_session, seeded_wines["wine1"], "California")
+    response = client.get("/api/wines", params={"region": "bORDEAUX"})
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == seeded_wines["wine3"]
+
+
+def test_list_wines_region_combines_with_country(client, db_session, seeded_wines):
+    _set_region(db_session, seeded_wines["wine1"], "California")
+    mismatch = client.get("/api/wines", params={"region": "California", "country": "France"}).json()
+    match = client.get("/api/wines", params={"region": "California", "country": "United States"}).json()
+    assert mismatch["total"] == 0
+    assert match["total"] == 1
+    assert match["items"][0]["id"] == seeded_wines["wine1"]
+
+
+def test_list_wines_unknown_region_returns_nothing(client, seeded_wines):
+    body = client.get("/api/wines", params={"region": "Atlantis"}).json()
+    assert body["total"] == 0
+    assert body["items"] == []

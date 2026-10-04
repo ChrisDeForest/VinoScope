@@ -25,6 +25,7 @@ router = APIRouter()
 def list_wines(
     type: Optional[str] = None,
     country: Optional[str] = None,
+    region: Optional[str] = None,
     grape: Optional[str] = None,
     q: Optional[str] = None,
     min_price: Optional[float] = Query(default=None, ge=0),
@@ -40,6 +41,7 @@ def list_wines(
         db,
         type=type,
         country=country,
+        region=region,
         grape=grape,
         q=q,
         min_price=min_price,
