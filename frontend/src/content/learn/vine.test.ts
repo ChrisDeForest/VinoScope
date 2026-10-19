@@ -43,6 +43,13 @@ describe("Vine to Glass content", () => {
     expect(styles("bottle")).toEqual(["sparkling"]);
   });
 
+  it("is written from the course notes", () => {
+    for (const stage of VINE_STAGES) expect(stage.source, stage.id).toBe("course");
+    expect(VINE_CHAPTER.source).toBe("course");
+    expect(VINE_STAGES.find((stage) => stage.id === "ferment")!.what).toMatch(/sugar \+ yeast = alcohol \+ CO₂/i);
+    expect(VINE_STAGES.find((stage) => stage.id === "vineyard")!.what).toMatch(/véraison/i);
+  });
+
   it("ends by pointing back to How to Taste", () => {
     expect(VINE_STAGES[VINE_STAGES.length - 1].link).toEqual({ href: "#taste", label: "Now taste it: How to Taste" });
   });

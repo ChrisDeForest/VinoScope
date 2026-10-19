@@ -8,6 +8,8 @@ describe("How to Taste content", () => {
     expect(TASTE_CHAPTER.label).toBe("How to Taste");
     expect(TASTE_CHAPTER.title).toBe("Five things your mouth is measuring");
     expect(TASTE_CHAPTER.lead.length).toBeGreaterThan(0);
+    expect(TASTE_CHAPTER.lead).toMatch(/six S's/i);
+    expect(TASTE_CHAPTER.source).toBe("course");
   });
 
   it("covers every dimension once, in DIMENSIONS order", () => {

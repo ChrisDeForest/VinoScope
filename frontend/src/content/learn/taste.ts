@@ -24,8 +24,8 @@ export const TASTE_CHAPTER = {
   id: "taste",
   label: "How to Taste",
   title: "Five things your mouth is measuring",
-  lead: "These are the same five scales Discover and Compare use. Learn what each one feels like, then try real wines from either end.",
-  source: "general",
+  lead: "Class tasting follows the six S's: see, smell, swirl, sip, swallow or spit, and savor. Here are the same five scales Discover and Compare use: learn what each one feels like on the sip, then try real wines from either end.",
+  source: "course",
 } as const satisfies { id: "taste"; label: string; title: string; lead: string; source: ContentSource };
 
 export const TASTE_DIMENSIONS: readonly TasteDimensionContent[] = [
