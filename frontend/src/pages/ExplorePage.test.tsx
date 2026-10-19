@@ -506,4 +506,22 @@ describe("ExplorePage scroll position", () => {
     expect(listWinesMock.mock.calls[listWinesMock.mock.calls.length - 1][0]).not.toHaveProperty("region");
     expect(screen.queryByText("Region: Bordeaux")).not.toBeInTheDocument();
   });
+
+  it("shows chips for alcohol, vintage, NV and taste filters and sends them to the API", async () => {
+    listWinesMock.mockResolvedValue({ total: 1, items: [makeWine(1)] });
+    renderExplore(["/explore?sweetness=2-4&fruitiness=2&min_abv=12&vintage_from=2019&exclude_nv=1"]);
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+
+    for (const text of ["Sweetness: Dry – Sweet", "Fruit Intensity: Light", "Min alcohol: 12%", "Vintage from: 2019", "No NV wines"]) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+    expect(listWinesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ min_sweetness: 2, max_sweetness: 4, min_fruitiness: 2, max_fruitiness: 2, min_abv: 12, vintage_from: 2019, include_nv: false })
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Remove sweetness filter" }));
+    await waitFor(() => expect(screen.queryByText("Sweetness: Dry – Sweet")).not.toBeInTheDocument());
+    expect(listWinesMock.mock.lastCall![0]).not.toHaveProperty("min_sweetness");
+  });
 });

@@ -8,7 +8,9 @@ import { FilterDrawer } from "../components/explore/FilterDrawer";
 import { LoadMoreButton } from "../components/explore/LoadMoreButton";
 import { EmptyState } from "../components/explore/EmptyState";
 import { ErrorMessage } from "../components/common/ErrorMessage";
-import { TYPE_LABELS } from "../constants/wineOptions";
+import { typeLabel } from "../constants/wineOptions";
+import { DIMENSIONS, DIMENSION_TITLES } from "../utils/dimensionLabels";
+import { describeTasteRange } from "../utils/tasteRange";
 import {
   DEFAULT_FILTERS,
   FILTER_PARAM_NAMES,
@@ -23,12 +25,22 @@ import { readPageState, writePageState } from "../utils/pageState";
 
 const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: string) => string }[] = [
   { key: "q", name: "search", describe: (value) => `Search: "${value}"` },
-  { key: "type", name: "type", describe: (value) => `Type: ${TYPE_LABELS[value] ?? value}` },
+  { key: "type", name: "type", describe: (value) => `Type: ${typeLabel(value)}` },
   { key: "country", name: "country", describe: (value) => `Country: ${value}` },
   { key: "region", name: "region", describe: (value) => `Region: ${value}` },
   { key: "grape", name: "grape", describe: (value) => `Grape: ${value}` },
   { key: "minPrice", name: "min price", describe: (value) => `Min price: $${value}` },
   { key: "maxPrice", name: "max price", describe: (value) => `Max price: $${value}` },
+  { key: "minAbv", name: "min alcohol", describe: (value) => `Min alcohol: ${value}%` },
+  { key: "maxAbv", name: "max alcohol", describe: (value) => `Max alcohol: ${value}%` },
+  { key: "vintageFrom", name: "vintage from", describe: (value) => `Vintage from: ${value}` },
+  { key: "vintageTo", name: "vintage to", describe: (value) => `Vintage to: ${value}` },
+  { key: "excludeNv", name: "non-vintage", describe: () => "No NV wines" },
+  ...DIMENSIONS.map((dimension) => ({
+    key: dimension,
+    name: DIMENSION_TITLES[dimension].toLowerCase(),
+    describe: (value: string) => `${DIMENSION_TITLES[dimension]}: ${describeTasteRange(dimension, value)}`,
+  })),
 ];
 
 type PageSize = number | "all";
