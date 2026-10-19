@@ -1,13 +1,15 @@
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Grape, Retailer, RetailerListing, Wine, WineGrape, Winery
 from app.services.currency import CURRENCY_RATES, approx_usd
 
 SortOption = Literal["price_asc", "price_desc", "vintage", "winery"]
+TASTE_DIMENSIONS = ("sweetness", "acidity", "tannin", "body", "fruitiness")
+TasteRanges = dict[str, tuple[Optional[int], Optional[int]]]
 
 
 def _rate_case():
@@ -113,6 +115,12 @@ def list_wines(
     q: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
+    min_abv: Optional[float] = None,
+    max_abv: Optional[float] = None,
+    vintage_from: Optional[int] = None,
+    vintage_to: Optional[int] = None,
+    include_nv: bool = True,
+    taste_ranges: Optional[TasteRanges] = None,
     sort: SortOption = "winery",
     limit: int = 20,
     offset: int = 0,
@@ -146,6 +154,27 @@ def list_wines(
         stmt = stmt.where(price_sq.c.usd_price >= min_price)
     if max_price is not None:
         stmt = stmt.where(price_sq.c.usd_price <= max_price)
+    if min_abv is not None:
+        stmt = stmt.where(Wine.abv >= min_abv)
+    if max_abv is not None:
+        stmt = stmt.where(Wine.abv <= max_abv)
+    if vintage_from is not None or vintage_to is not None:
+        bounds = []
+        if vintage_from is not None:
+            bounds.append(Wine.vintage >= vintage_from)
+        if vintage_to is not None:
+            bounds.append(Wine.vintage <= vintage_to)
+        in_range = and_(*bounds)
+        # Non-vintage wines have no year to compare, so they ride along unless the user drops them.
+        stmt = stmt.where(or_(in_range, Wine.vintage.is_(None)) if include_nv else in_range)
+    elif not include_nv:
+        stmt = stmt.where(Wine.vintage.isnot(None))
+    for dimension, (low, high) in (taste_ranges or {}).items():
+        column = getattr(Wine, dimension)
+        if low is not None:
+            stmt = stmt.where(column >= low)
+        if high is not None:
+            stmt = stmt.where(column <= high)
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
 

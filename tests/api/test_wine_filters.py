@@ -54,3 +54,60 @@ def test_facets_on_empty_catalog(client, db_session):
         "vintage": {"min": None, "max": None},
         "abv": {"min": None, "max": None},
     }
+
+
+def test_min_abv_excludes_lower_and_unknown_abv(client, filterable_wines):
+    assert names(client.get("/api/wines", params={"min_abv": 12.5})) == ["NV Bubbles", "Old Red", "Port"]
+
+
+def test_max_abv(client, filterable_wines):
+    assert names(client.get("/api/wines", params={"max_abv": 12.5})) == ["NV Bubbles", "Young White"]
+
+
+def test_vintage_range_keeps_nv_by_default(client, filterable_wines):
+    response = client.get("/api/wines", params={"vintage_from": 2019, "vintage_to": 2020})
+    assert names(response) == ["Mystery", "NV Bubbles", "Port"]
+
+
+def test_vintage_range_can_drop_nv(client, filterable_wines):
+    response = client.get("/api/wines", params={"vintage_from": 2019, "vintage_to": 2020, "include_nv": "false"})
+    assert names(response) == ["Mystery", "Port"]
+
+
+def test_include_nv_false_alone_drops_only_nv(client, filterable_wines):
+    assert names(client.get("/api/wines", params={"include_nv": "false"})) == [
+        "Mystery", "Old Red", "Port", "Young White",
+    ]
+
+
+def test_taste_range_single_level(client, filterable_wines):
+    response = client.get("/api/wines", params={"min_sweetness": 2, "max_sweetness": 2})
+    assert names(response) == ["NV Bubbles", "Young White"]
+
+
+def test_taste_bound_excludes_unscored_wines(client, filterable_wines):
+    assert names(client.get("/api/wines", params={"min_tannin": 1})) == ["Old Red", "Port", "Young White"]
+
+
+def test_taste_ranges_combine(client, filterable_wines):
+    response = client.get("/api/wines", params={"min_body": 4, "max_acidity": 3})
+    assert names(response) == ["Old Red", "Port"]
+
+
+@pytest.mark.parametrize(
+    "params, detail",
+    [
+        ({"min_abv": 14, "max_abv": 12}, "min_abv must not exceed max_abv"),
+        ({"vintage_from": 2022, "vintage_to": 2019}, "vintage_from must not exceed vintage_to"),
+        ({"min_body": 4, "max_body": 2}, "min_body must not exceed max_body"),
+    ],
+)
+def test_inverted_ranges_return_422(client, filterable_wines, params, detail):
+    response = client.get("/api/wines", params=params)
+    assert response.status_code == 422
+    assert response.json()["detail"] == detail
+
+
+@pytest.mark.parametrize("params", [{"min_acidity": 0}, {"max_fruitiness": 6}, {"min_abv": -1}])
+def test_out_of_range_values_return_422(client, filterable_wines, params):
+    assert client.get("/api/wines", params=params).status_code == 422

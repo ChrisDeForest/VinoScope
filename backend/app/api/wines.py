@@ -17,9 +17,11 @@ from app.schemas.wine import (
 )
 from app.services import wines as wines_service
 from app.services.wines import SortOption
-from app.validation import PRICE_RANGE_ERROR, price_range_invalid
+from app.validation import PRICE_RANGE_ERROR, price_range_invalid, range_invalid
 
 router = APIRouter()
+
+TasteLevel = Optional[int]
 
 
 @router.get("/wines", response_model=WineListResponse)
@@ -31,6 +33,21 @@ def list_wines(
     q: Optional[str] = None,
     min_price: Optional[float] = Query(default=None, ge=0),
     max_price: Optional[float] = Query(default=None, ge=0),
+    min_abv: Optional[float] = Query(default=None, ge=0),
+    max_abv: Optional[float] = Query(default=None, ge=0),
+    vintage_from: Optional[int] = None,
+    vintage_to: Optional[int] = None,
+    include_nv: bool = True,
+    min_sweetness: TasteLevel = Query(default=None, ge=1, le=5),
+    max_sweetness: TasteLevel = Query(default=None, ge=1, le=5),
+    min_acidity: TasteLevel = Query(default=None, ge=1, le=5),
+    max_acidity: TasteLevel = Query(default=None, ge=1, le=5),
+    min_tannin: TasteLevel = Query(default=None, ge=1, le=5),
+    max_tannin: TasteLevel = Query(default=None, ge=1, le=5),
+    min_body: TasteLevel = Query(default=None, ge=1, le=5),
+    max_body: TasteLevel = Query(default=None, ge=1, le=5),
+    min_fruitiness: TasteLevel = Query(default=None, ge=1, le=5),
+    max_fruitiness: TasteLevel = Query(default=None, ge=1, le=5),
     sort: SortOption = "winery",
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -38,6 +55,18 @@ def list_wines(
 ) -> WineListResponse:
     if price_range_invalid(min_price, max_price):
         raise HTTPException(status_code=422, detail=PRICE_RANGE_ERROR)
+    taste_ranges = {
+        "sweetness": (min_sweetness, max_sweetness),
+        "acidity": (min_acidity, max_acidity),
+        "tannin": (min_tannin, max_tannin),
+        "body": (min_body, max_body),
+        "fruitiness": (min_fruitiness, max_fruitiness),
+    }
+    pairs = [("min_abv", min_abv, "max_abv", max_abv), ("vintage_from", vintage_from, "vintage_to", vintage_to)]
+    pairs += [(f"min_{name}", low, f"max_{name}", high) for name, (low, high) in taste_ranges.items()]
+    for low_name, low, high_name, high in pairs:
+        if range_invalid(low, high):
+            raise HTTPException(status_code=422, detail=f"{low_name} must not exceed {high_name}")
     total, items = wines_service.list_wines(
         db,
         type=type,
@@ -47,6 +76,12 @@ def list_wines(
         q=q,
         min_price=min_price,
         max_price=max_price,
+        min_abv=min_abv,
+        max_abv=max_abv,
+        vintage_from=vintage_from,
+        vintage_to=vintage_to,
+        include_nv=include_nv,
+        taste_ranges=taste_ranges,
         sort=sort,
         limit=limit,
         offset=offset,
