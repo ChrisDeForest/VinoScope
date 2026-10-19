@@ -31,21 +31,23 @@ export function TasteRangeField({ dimension, value, onChange }: {
     <div role="group" aria-labelledby={titleId} className="flex min-w-0 flex-col gap-1">
       <div className="flex items-center justify-between text-sm text-ink-muted">
         <span id={titleId}>{title}</span>
-        {value ? (
-          <button
-            type="button"
-            onClick={() => {
-              setAnchor(null);
-              onChange("");
-            }}
-            aria-label={`Any ${title.toLowerCase()}`}
-            className="text-xs text-accent hover:underline"
-          >
-            Any
-          </button>
-        ) : (
-          <span className="text-xs">Any</span>
-        )}
+        {/* Always mounted (aria-disabled, not disabled) so focus on it survives a reset
+            and can't fall out of the Filters dialog's focus trap. */}
+        <button
+          type="button"
+          aria-disabled={!value}
+          onClick={() => {
+            if (!value) return;
+            setAnchor(null);
+            onChange("");
+          }}
+          aria-label={`Any ${title.toLowerCase()}`}
+          className={`text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
+            value ? "text-accent hover:underline" : "cursor-default text-ink-muted"
+          }`}
+        >
+          Any
+        </button>
       </div>
       <div className="grid grid-cols-5 overflow-hidden rounded border border-surface-border">
         {LEVELS.map((level) => {

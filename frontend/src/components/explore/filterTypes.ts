@@ -122,7 +122,11 @@ export function filtersFromSearchParams(params: URLSearchParams): FilterValues {
   });
   // Hand-edited or stale links can carry junk the API would reject; drop it instead of erroring.
   for (const key of NUMERIC_KEYS) {
-    if (filters[key] !== "" && !Number.isFinite(Number(filters[key]))) filters[key] = "";
+    if (filters[key] === "") continue;
+    const n = Number(filters[key]);
+    const isVintage = key === "vintageFrom" || key === "vintageTo";
+    // The API rejects negatives (ge=0) and non-integer vintages with a 422.
+    if (!Number.isFinite(n) || n < 0 || (isVintage && !Number.isInteger(n))) filters[key] = "";
   }
   for (const dimension of DIMENSIONS) {
     if (filters[dimension] && !parseTasteRange(filters[dimension])) filters[dimension] = "";

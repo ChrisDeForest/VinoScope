@@ -20,6 +20,20 @@ const level = (name: string) => within(group()).getByRole("button", { name });
 const value = () => screen.getByTestId("value").textContent;
 
 describe("TasteRangeField", () => {
+  it("keeps focus on Any after clearing so it stays inside a dialog", async () => {
+    const user = userEvent.setup();
+    render(<Harness initial="2-4" />);
+    const any = within(group()).getByRole("button", { name: "Any sweetness" });
+    any.focus();
+    await user.keyboard("{Enter}");
+    expect(value()).toBe("");
+    const after = within(group()).getByRole("button", { name: "Any sweetness" });
+    expect(after).toHaveFocus();
+    expect(after).toHaveAttribute("aria-disabled", "true");
+    await user.tab();
+    expect(group().contains(document.activeElement)).toBe(true);
+  });
+
   it("picks a range from two taps in either order", async () => {
     const user = userEvent.setup();
     render(<Harness />);

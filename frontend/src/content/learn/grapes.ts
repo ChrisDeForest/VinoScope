@@ -82,7 +82,7 @@ export const GRAPES: readonly GrapeContent[] = [
     about: "Syrah makes deeply colored, full-bodied wines, and Shiraz is the very same grape. In Australia it is ripe, jammy and high in alcohol, and it joins Grenache and Mourvèdre in GSM blends, a tribute to France's Rhône.",
     notes: ["blackberry", "black pepper", "smoked meat"],
     profile: { sweetness: 1, acidity: 3, tannin: 4, body: [4, 5], fruitiness: 4 },
-    regions: ["Barossa Valley", "Hunter Valley", "Washington", "Casablanca Valley"],
+    regions: ["Northern Rhône", "Barossa Valley", "Hunter Valley", "Washington"],
     source: "course",
   },
   {
@@ -94,7 +94,7 @@ export const GRAPES: readonly GrapeContent[] = [
     about: "Cabernet Franc brings pepper, tobacco and finesse to a blend, and it is the second red grape of Bordeaux's Right Bank after Merlot. It also does well in New York's cooler climate, where it grows around the state.",
     notes: ["red currant", "raspberry", "green bell pepper", "violet"],
     profile: { sweetness: 1, acidity: 4, tannin: 3, body: 3, fruitiness: 3 },
-    regions: ["Bordeaux (Right Bank blends)", "Finger Lakes", "Long Island", "Washington"],
+    regions: ["Loire (Chinon)", "Bordeaux (Right Bank blends)", "Finger Lakes", "Long Island"],
     source: "course",
   },
   {
@@ -106,7 +106,7 @@ export const GRAPES: readonly GrapeContent[] = [
     about: "Malbec is the star of Argentina, where most vineyards sit in Mendoza, high in the foothills of the Andes. Altitude and sunshine make ripe, showy wines. In Bordeaux it plays only a small part in blends.",
     notes: ["plum", "blackberry", "violet", "cocoa"],
     profile: { sweetness: 1, acidity: 3, tannin: 4, body: 4, fruitiness: 4 },
-    regions: ["Mendoza", "Uco Valley", "Luján de Cuyo", "Bordeaux (minor blending grape)"],
+    regions: ["Mendoza", "Uco Valley", "Cahors", "Bordeaux (minor blending grape)"],
     source: "course",
   },
   {
@@ -151,10 +151,10 @@ export const GRAPES: readonly GrapeContent[] = [
     color: "red",
     exploreGrape: "Grenache",
     tagline: "Soft, fruity and spicy, and a team player.",
-    about: "Grenache is called Garnacha in Spain, where it is often blended with Tempranillo in Rioja. It is the \"G\" in the GSM blends of Australia and California, which pay tribute to France's Rhône.",
+    about: "Grenache is called Garnacha in Spain, where it is often blended with Tempranillo in Rioja. In France it is the backbone of the Southern Rhône, including Châteauneuf-du-Pape. It is the \"G\" in the GSM blends of Australia and California, which pay tribute to France's Rhône.",
     notes: ["strawberry", "raspberry", "white pepper", "dried herbs"],
     profile: { sweetness: 1, acidity: 2, tannin: 2, body: 4, fruitiness: 4 },
-    regions: ["Spain (as Garnacha)", "Barossa Valley (GSM blends)", "San Luis Obispo (Rhône blends)", "Rioja"],
+    regions: ["Southern Rhône (Châteauneuf-du-Pape)", "Spain (as Garnacha)", "Barossa Valley (GSM blends)", "San Luis Obispo (Rhône blends)"],
     source: "course",
   },
   {
@@ -178,7 +178,7 @@ export const GRAPES: readonly GrapeContent[] = [
     about: "Sauvignon Blanc is high in acid and pungent, with citrus, gooseberry and grassy notes. New Zealand's Marlborough is famous for it, usually unoaked. In California it is also sold as Fumé Blanc, a name Robert Mondavi created.",
     notes: ["grapefruit", "green apple", "cut grass", "passion fruit"],
     profile: { sweetness: 1, acidity: 5, tannin: 1, body: 2, fruitiness: 4 },
-    regions: ["Marlborough", "Bordeaux (blended with Sémillon)", "California (Fumé Blanc)"],
+    regions: ["Marlborough", "Loire (Sancerre)", "Bordeaux (blended with Sémillon)", "California (Fumé Blanc)"],
     source: "course",
   },
   {
@@ -190,7 +190,7 @@ export const GRAPES: readonly GrapeContent[] = [
     about: "Riesling is high in acid and light to medium in body, and it is usually unoaked. It is made in styles from dry to dessert, including late harvest and ice wine, and the best age for a long time, picking up honey and petrol notes.",
     notes: ["lime", "green apple", "peach", "honey", "petrol (with age)"],
     profile: { sweetness: [1, 5], acidity: 5, tannin: 1, body: 2, fruitiness: 4 },
-    regions: ["Germany", "Finger Lakes", "Washington", "Australia"],
+    regions: ["Germany (Mosel)", "Alsace", "Finger Lakes", "Washington"],
     source: "course",
   },
   {

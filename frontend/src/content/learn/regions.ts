@@ -296,7 +296,7 @@ export const MAP_REGIONS: readonly MapRegion[] = [
     countryId: "italy",
     coords: [11.9, 45.5],
     exploreRegion: "Veneto",
-    about: "Northeast Italy, around Venice and Verona, and one of the top producing regions. It makes light Pinot Grigio, fizzy Prosecco from Glera, easy Valpolicella reds, and Amarone, a high-alcohol, Port-like red made from grapes dried on mats.",
+    about: "Northeast Italy, around Venice and Verona, and one of the top producing regions. It makes light Pinot Grigio, fizzy Prosecco from Glera, easy Valpolicella reds, and Amarone, a dry, rich, high-alcohol red made from grapes dried on mats, sometimes compared to Port for its intensity.",
     climate: 3,
     climateLabel: "Moderate, cooled by the Alps and Lake Garda",
     grapes: ["Glera", "Corvina", "Garganega"],

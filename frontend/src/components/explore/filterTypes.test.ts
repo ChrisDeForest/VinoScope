@@ -101,6 +101,18 @@ describe("ABV, vintage and taste filters", () => {
     expect(filters).toEqual(DEFAULT_FILTERS);
   });
 
+  it("drops values the API would reject with a 422", () => {
+    const filters = filtersFromSearchParams(
+      new URLSearchParams("min_abv=-1&max_abv=-2&min_price=-5&max_price=-1&vintage_from=2019.5&vintage_to=2020.1")
+    );
+    expect(filters).toEqual(DEFAULT_FILTERS);
+    expect(filtersFromSearchParams(new URLSearchParams("min_abv=0&min_price=12.5&vintage_from=2019"))).toMatchObject({
+      minAbv: "0",
+      minPrice: "12.5",
+      vintageFrom: "2019",
+    });
+  });
+
   it("map to API params", () => {
     expect(filtersToApiParams(full, 12, 0)).toMatchObject({
       min_abv: 12,
