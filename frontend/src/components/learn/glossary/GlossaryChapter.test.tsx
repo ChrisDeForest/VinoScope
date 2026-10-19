@@ -43,14 +43,14 @@ const count = () => screen.getByRole("status").textContent;
 describe("GlossaryChapter", () => {
   it("shows every term A–Z with a count", () => {
     renderAt();
-    expect(cards()).toHaveLength(43);
-    expect(count()).toBe("43 terms");
+    expect(cards()).toHaveLength(71);
+    expect(count()).toBe("71 terms");
     expect(within(cards()[0]).getByRole("heading").textContent).toBe("Acidity");
   });
 
   it("narrows by search and updates the count", async () => {
     renderAt();
-    await userEvent.type(screen.getByRole("searchbox", { name: "Search terms" }), "phylloxera");
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search terms" }), "trichloroanisole");
     expect(cards()).toHaveLength(1);
     expect(count()).toBe("1 term");
   });
@@ -58,8 +58,8 @@ describe("GlossaryChapter", () => {
   it("narrows by category", async () => {
     renderAt();
     await userEvent.click(screen.getByRole("button", { name: "Serving" }));
-    expect(cards()).toHaveLength(6);
-    expect(count()).toBe("6 terms");
+    expect(cards()).toHaveLength(7);
+    expect(count()).toBe("7 terms");
   });
 
   it("shows an empty state that clears back to everything", async () => {
@@ -70,7 +70,7 @@ describe("GlossaryChapter", () => {
     expect(count()).toBe("No terms match");
     expect(screen.getByText("No terms match “zzzz”.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
-    expect(cards()).toHaveLength(43);
+    expect(cards()).toHaveLength(71);
     expect(screen.getByRole("searchbox")).toHaveValue("");
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
   });
@@ -93,7 +93,7 @@ describe("GlossaryChapter", () => {
     await userEvent.click(within(tannin).getByRole("link", { name: "Maceration" }));
     expect(screen.getByRole("article", { name: "Maceration" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
-    expect(cards()).toHaveLength(43);
+    expect(cards()).toHaveLength(71);
   });
 
   it("keeps filters when the related term is already visible", async () => {
@@ -102,7 +102,7 @@ describe("GlossaryChapter", () => {
     const dry = screen.getByRole("article", { name: "Dry" });
     await userEvent.click(within(dry).getByRole("link", { name: "Off-dry" }));
     expect(screen.getByRole("button", { name: "Tasting" })).toHaveAttribute("aria-pressed", "true");
-    expect(cards()).toHaveLength(11);
+    expect(cards()).toHaveLength(13);
   });
 
   it("scrolls instantly under reduced motion", async () => {

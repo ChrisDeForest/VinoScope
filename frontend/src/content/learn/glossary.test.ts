@@ -34,8 +34,8 @@ describe("Glossary content", () => {
     ]);
   });
 
-  it("has 43 terms with unique, URL-safe ids", () => {
-    expect(GLOSSARY_TERMS).toHaveLength(43);
+  it("has 71 terms with unique, URL-safe ids", () => {
+    expect(GLOSSARY_TERMS).toHaveLength(71);
     const ids = GLOSSARY_TERMS.map((term) => term.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z0-9-]+$/);
@@ -45,7 +45,7 @@ describe("Glossary content", () => {
     const counts = Object.fromEntries(
       GLOSSARY_CATEGORIES.map((category) => [category, GLOSSARY_TERMS.filter((term) => term.category === category).length])
     );
-    expect(counts).toEqual({ tasting: 11, winemaking: 10, vineyard: 8, label: 8, serving: 6 });
+    expect(counts).toEqual({ tasting: 13, winemaking: 21, vineyard: 14, label: 16, serving: 7 });
   });
 
   it.each(GLOSSARY_TERMS.map((term) => [term.id, term] as const))("%s has copy and a source", (_id, term) => {
@@ -92,8 +92,21 @@ describe("Glossary content", () => {
     expect(termById("noble-rot")!.seeAlso).toMatchObject({ params: { type: "dessert" } });
   });
 
-  it("keeps the Bordeaux caveat on Grand Cru / Premier Cru", () => {
-    expect(termById("cru")!.definition).toMatch(/Bordeaux/);
+  it("uses the course wording for Grand Cru, with the Champagne and Bordeaux notes", () => {
+    const definition = termById("cru")!.definition;
+    expect(definition).toMatch(/highest classification of rated vineyards/i);
+    expect(definition).toMatch(/Champagne/);
+    expect(definition).toMatch(/villages/);
+    expect(definition).toMatch(/Bordeaux/);
+    expect(termById("cru")!.source).toBe("course");
+  });
+
+  it("adds the class terms", () => {
+    for (const id of ["autolysis", "dosage", "solera", "flor", "veraison", "diurnal-swing", "ava", "doc-docg", "pradikat", "punt"]) {
+      expect(termById(id), id).toBeDefined();
+      expect(termById(id)!.source).toBe("course");
+    }
+    expect(termById("ice-wine")!.seeAlso).toEqual({ kind: "explore", params: { type: "dessert" }, label: "Browse dessert wines" });
   });
 
   it("does not promise a Vine to Glass view for sulfites or serving temperature", () => {

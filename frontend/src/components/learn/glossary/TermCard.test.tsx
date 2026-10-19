@@ -38,7 +38,7 @@ describe("TermCard", () => {
   it("shows the category and definition", () => {
     renderCard("tannin");
     expect(screen.getByText("Tasting")).toBeInTheDocument();
-    expect(screen.getByText(/grip your tongue/)).toBeInTheDocument();
+    expect(screen.getByText(/astringency/)).toBeInTheDocument();
   });
 
   it("links a Learn see-also to the in-page anchor", () => {
