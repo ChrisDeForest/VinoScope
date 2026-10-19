@@ -9,7 +9,7 @@ import type { WineListItem } from "../types/wine";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
-  return { ...actual, listWines: vi.fn() };
+  return { ...actual, listWines: vi.fn(), getWineFacets: vi.fn(() => Promise.reject(new Error("offline"))) };
 });
 
 function makeWine(id: number, overrides: Partial<WineListItem> = {}): WineListItem {
@@ -90,7 +90,7 @@ describe("ExplorePage", () => {
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
     await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
 
     await waitFor(() => expect(screen.getByTestId("location").textContent).toContain("type=white"));
   });
@@ -213,7 +213,7 @@ describe("ExplorePage", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Filters" });
     await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
 
     await waitFor(() =>
       expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ type: "white", offset: 0, limit: 12 }))
@@ -251,7 +251,7 @@ describe("ExplorePage", () => {
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
     await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
     await waitFor(() => expect(screen.getByText("Wine 3")).toBeInTheDocument());
 
     await user.click(screen.getByRole("button", { name: "Load more" }));
@@ -280,7 +280,7 @@ describe("ExplorePage", () => {
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
     await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
     await waitFor(() => expect(screen.getByText("Wine 3")).toBeInTheDocument());
 
     staleLoad.reject(new Error("stale load failed"));
@@ -386,7 +386,7 @@ describe("ExplorePage", () => {
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
     await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
 
     // The filter-B fetch is still pending (deferred): Show must be disabled so
     // it can't be changed against the stale items/total from filters A.
