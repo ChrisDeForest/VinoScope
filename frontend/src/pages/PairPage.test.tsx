@@ -57,8 +57,13 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+/** A food tile is a button named by its label plus blurb; the wine-type select also has a "Dessert" option, so match the tile name. */
+function foodTile(label: string) {
+  return screen.getByRole("button", { name: (name) => name === label || name.startsWith(`${label} `) });
+}
+
 async function selectFood(user: ReturnType<typeof userEvent.setup>, label: string) {
-  await user.click(screen.getByText(label));
+  await user.click(foodTile(label));
 }
 
 describe("PairPage", () => {
@@ -126,7 +131,7 @@ describe("PairPage", () => {
     renderPage();
     expect(screen.getByRole("heading", { name: "Pair" })).toBeInTheDocument();
     expect(screen.getByText(FOOD_PAIRINGS.steak.label)).toBeInTheDocument();
-    expect(screen.getByText(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
+    expect(foodTile(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
   });
 
   it("selecting a food fetches recommendations with that food's vector and switches to results mode", async () => {
@@ -159,7 +164,7 @@ describe("PairPage", () => {
     await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
 
     await user.click(screen.getByRole("button", { name: "Choose a different food" }));
-    expect(screen.getByText(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
+    expect(foodTile(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
   });
 
   it("disables food tiles while a request is in flight", async () => {
@@ -169,7 +174,7 @@ describe("PairPage", () => {
     const user = userEvent.setup();
     await selectFood(user, FOOD_PAIRINGS.steak.label);
 
-    const dessertTile = screen.getByText(FOOD_PAIRINGS.dessert.label).closest("button");
+    const dessertTile = foodTile(FOOD_PAIRINGS.dessert.label);
     expect(dessertTile).toBeDisabled();
 
     pending.resolve({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
@@ -244,7 +249,7 @@ describe("PairPage", () => {
 
     await waitFor(() => expect(screen.getByText(/no wines available to pair right now/i)).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: "Choose a different food" }));
-    expect(screen.getByText(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
+    expect(foodTile(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
   });
 
   it("shows a status line naming the food while a request is in flight", async () => {

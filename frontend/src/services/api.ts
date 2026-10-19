@@ -3,6 +3,7 @@ import type {
   RecommendationRequest,
   RecommendationResponse,
   WineDetail,
+  WineFacets,
   WineListResponse,
 } from "../types/wine";
 
@@ -31,6 +32,14 @@ export async function listWines(params: ListWinesParams = {}): Promise<WineListR
   const response = await fetch(`${API_BASE_URL}/api/wines${buildQueryString(params)}`);
   if (!response.ok) {
     throw new ApiError(response.status, `Failed to load wines (${response.status})`);
+  }
+  return response.json();
+}
+
+export async function getWineFacets(): Promise<WineFacets> {
+  const response = await fetch(`${API_BASE_URL}/api/wines/facets`);
+  if (!response.ok) {
+    throw new ApiError(response.status, `Failed to load filter options (${response.status})`);
   }
   return response.json();
 }

@@ -47,7 +47,9 @@ export interface WineDetail extends WineListItem {
 
 export type SortOption = "price_asc" | "price_desc" | "vintage" | "winery";
 
-export interface ListWinesParams {
+type TasteBound = `${"min" | "max"}_${"sweetness" | "acidity" | "tannin" | "body" | "fruitiness"}`;
+
+export interface ListWinesParams extends Partial<Record<TasteBound, number>> {
   q?: string;
   type?: string;
   country?: string;
@@ -55,9 +57,23 @@ export interface ListWinesParams {
   grape?: string;
   min_price?: number;
   max_price?: number;
+  min_abv?: number;
+  max_abv?: number;
+  vintage_from?: number;
+  vintage_to?: number;
+  /** Defaults to true on the server; only `false` is ever sent. */
+  include_nv?: boolean;
   sort?: SortOption;
   limit?: number;
   offset?: number;
+}
+
+/** Filter options read from the catalog (`GET /api/wines/facets`). */
+export interface WineFacets {
+  types: string[];
+  countries: { name: string; regions: string[] }[];
+  vintage: { min: number | null; max: number | null };
+  abv: { min: number | null; max: number | null };
 }
 
 export interface RecommendationAnswers {

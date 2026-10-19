@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { listWines, getWine, getRecommendations, ApiError } from "./api";
+import { listWines, getWine, getRecommendations, getWineFacets, ApiError } from "./api";
 
 describe("api service", () => {
   const originalFetch = globalThis.fetch;
@@ -63,6 +63,26 @@ describe("api service", () => {
 
     await expect(getWine(999)).rejects.toMatchObject({ status: 404 });
   });
+
+  it("getWineFacets fetches the facets endpoint", async () => {
+    const facets = { types: ["red"], countries: [], vintage: { min: null, max: null }, abv: { min: null, max: null } };
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => facets });
+    await expect(getWineFacets()).resolves.toEqual(facets);
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]).toContain("/api/wines/facets");
+  });
+
+  it("getWineFacets throws ApiError on failure", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    await expect(getWineFacets()).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("listWines sends include_nv=false", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ total: 0, items: [] }) });
+    await listWines({ include_nv: false, min_sweetness: 2 });
+    const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    expect(calledUrl).toContain("include_nv=false");
+    expect(calledUrl).toContain("min_sweetness=2");
+  });
 });
 
 describe("getRecommendations", () => {
@@ -94,4 +114,5 @@ describe("getRecommendations", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
     await expect(getRecommendations({})).rejects.toBeInstanceOf(ApiError);
   });
+
 });
