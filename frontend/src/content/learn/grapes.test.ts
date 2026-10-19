@@ -6,22 +6,31 @@ describe("Key Grapes content", () => {
   it("has chapter strings", () => {
     expect(GRAPES_CHAPTER.id).toBe("grapes");
     expect(GRAPES_CHAPTER.label).toBe("Key Grapes");
-    expect(GRAPES_CHAPTER.title).toBe("Seven grapes to know");
+    expect(GRAPES_CHAPTER.title).toBe("Grapes to know");
     expect(GRAPES_CHAPTER.lead.trim()).not.toBe("");
   });
 
-  it("lists the classic seven, reds then whites", () => {
+  it("lists the class grapes, reds then whites", () => {
     expect(GRAPES.map((grape) => grape.id)).toEqual([
       "cabernet-sauvignon",
       "merlot",
       "pinot-noir",
       "syrah",
+      "cabernet-franc",
+      "malbec",
+      "sangiovese",
+      "tempranillo",
+      "zinfandel",
+      "grenache",
       "chardonnay",
       "sauvignon-blanc",
       "riesling",
+      "semillon",
+      "moscato",
     ]);
-    expect(GRAPES.map((grape) => grape.color)).toEqual(["red", "red", "red", "red", "white", "white", "white"]);
+    expect(GRAPES.map((grape) => grape.color)).toEqual([...Array(10).fill("red"), ...Array(5).fill("white")]);
     expect(GRAPES[0].id).toBe(DEFAULT_GRAPE_ID);
+    for (const grape of GRAPES) expect(grape.source).toBe("course");
   });
 
   it("uses unique, URL-safe slugs", () => {

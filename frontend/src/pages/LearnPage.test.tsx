@@ -205,7 +205,7 @@ describe("LearnPage", () => {
 
   it("renders the Key Grapes chapter third", () => {
     renderAt("/learn");
-    expect(screen.getByRole("region", { name: "Seven grapes to know" })).toHaveAttribute("id", "grapes");
+    expect(screen.getByRole("region", { name: "Grapes to know" })).toHaveAttribute("id", "grapes");
     expect(screen.getByText("03 · Key Grapes")).toBeInTheDocument();
   });
 

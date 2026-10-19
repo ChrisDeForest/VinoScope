@@ -52,7 +52,7 @@ describe("grapeIdFromHash", () => {
   it("falls back to the default for anything else", () => {
     expect(grapeIdFromHash("")).toBe("cabernet-sauvignon");
     expect(grapeIdFromHash("#vine")).toBe("cabernet-sauvignon");
-    expect(grapeIdFromHash("#grape-zinfandel")).toBe("cabernet-sauvignon");
+    expect(grapeIdFromHash("#grape-nebbiolo")).toBe("cabernet-sauvignon");
   });
 });
 
@@ -70,7 +70,7 @@ describe("GrapesChapter", () => {
   });
 
   it("falls back to the default for an unknown grape", () => {
-    renderAt("/learn#grape-zinfandel");
+    renderAt("/learn#grape-nebbiolo");
     expect(selectedName()).toBe("Cabernet Sauvignon");
   });
 

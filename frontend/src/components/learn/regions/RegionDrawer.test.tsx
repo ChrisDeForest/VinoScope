@@ -91,8 +91,7 @@ describe("RegionDrawer — region view", () => {
     expect(screen.getByText(/Gironde estuary/)).toBeInTheDocument();
     expect(screen.getByText("Climate: Moderate, maritime, 3 of 5 from cool to hot")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Cabernet Sauvignon" })).toHaveAttribute("href", "#grape-cabernet-sauvignon");
-    expect(screen.getByText("Cabernet Franc")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Cabernet Franc" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cabernet Franc" })).toHaveAttribute("href", "#grape-cabernet-franc");
     expect(screen.getByText("Sweet Sauternes")).toBeInTheDocument();
     expect(screen.getByText(/1855 classification/)).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "Explore 13 Bordeaux wines" })).toHaveAttribute("href", "/explore?region=Bordeaux");

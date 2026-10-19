@@ -22,7 +22,7 @@ function Harness({ initial = "cabernet-sauvignon", onSelect = vi.fn() }: { initi
 const selectedName = () => screen.getByRole("tab", { selected: true }).textContent;
 
 describe("GrapePicker", () => {
-  it("renders one tablist with the seven grapes in order", () => {
+  it("renders one tablist with the class grapes in order", () => {
     render(<Harness />);
     const tablist = screen.getByRole("tablist", { name: "Grapes" });
     expect(within(tablist).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
@@ -30,9 +30,17 @@ describe("GrapePicker", () => {
       "Merlot",
       "Pinot Noir",
       "Syrah / Shiraz",
+      "Cabernet Franc",
+      "Malbec",
+      "Sangiovese",
+      "Tempranillo",
+      "Zinfandel",
+      "Grenache",
       "Chardonnay",
       "Sauvignon Blanc",
       "Riesling",
+      "Sémillon",
+      "Moscato / Muscat",
     ]);
   });
 
@@ -68,18 +76,18 @@ describe("GrapePicker", () => {
     expect(selectedName()).toBe("Merlot");
     expect(screen.getByRole("tab", { name: "Merlot" })).toHaveFocus();
     await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
-    expect(selectedName()).toBe("Riesling");
+    expect(selectedName()).toBe("Moscato / Muscat");
     await userEvent.keyboard("{ArrowDown}");
     expect(selectedName()).toBe("Cabernet Sauvignon");
     await userEvent.keyboard("{ArrowUp}");
-    expect(selectedName()).toBe("Riesling");
+    expect(selectedName()).toBe("Moscato / Muscat");
   });
 
   it("jumps with Home and End", async () => {
     render(<Harness initial="pinot-noir" />);
     screen.getByRole("tab", { name: "Pinot Noir" }).focus();
     await userEvent.keyboard("{End}");
-    expect(selectedName()).toBe("Riesling");
+    expect(selectedName()).toBe("Moscato / Muscat");
     await userEvent.keyboard("{Home}");
     expect(selectedName()).toBe("Cabernet Sauvignon");
   });
