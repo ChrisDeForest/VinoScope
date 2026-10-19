@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { RecommendationAnswers } from "../../types/wine";
 import { TYPE_OPTIONS, TYPE_LABELS, COUNTRY_OPTIONS } from "../../constants/wineOptions";
 import { DIMENSIONS } from "../../utils/dimensionLabels";
-import { PriceField } from "./PriceField";
+import { NumberStepperField } from "../common/NumberStepperField";
 import { DimensionField } from "./DimensionField";
 import { priceRangeError } from "../../utils/priceRange";
 
@@ -71,8 +71,8 @@ export function DiscoverForm({
       </div>
 
       <div className="flex gap-2">
-        <PriceField id="discover-min-price" label="Min price" value={draft.min_price} onChange={(value) => update("min_price", value)} />
-        <PriceField id="discover-max-price" label="Max price" value={draft.max_price} onChange={(value) => update("max_price", value)} />
+        <NumberStepperField id="discover-min-price" label="Min price" value={draft.min_price} onChange={(value) => update("min_price", value)} />
+        <NumberStepperField id="discover-max-price" label="Max price" value={draft.max_price} onChange={(value) => update("max_price", value)} />
       </div>
 
       {DIMENSIONS.map((dimension) => (

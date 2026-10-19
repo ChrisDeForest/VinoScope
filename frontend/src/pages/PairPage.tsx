@@ -6,7 +6,7 @@ import { LoadMoreButton } from "../components/explore/LoadMoreButton";
 import { ErrorMessage } from "../components/common/ErrorMessage";
 import { ProfileSummary } from "../components/discover/ProfileSummary";
 import { FoodPicker } from "../components/pair/FoodPicker";
-import { PriceField } from "../components/discover/PriceField";
+import { NumberStepperField } from "../components/common/NumberStepperField";
 import { TYPE_OPTIONS, TYPE_LABELS } from "../constants/wineOptions";
 import { FOOD_PAIRINGS, type FoodKey } from "../constants/foodPairings";
 import { readPageState, writePageState } from "../utils/pageState";
@@ -153,7 +153,7 @@ export function PairPage() {
               ))}
             </select>
           </div>
-          <PriceField id="pair-max-price" label="Max price" value={maxPrice} onChange={setMaxPrice} />
+          <NumberStepperField id="pair-max-price" label="Max price" value={maxPrice} onChange={setMaxPrice} />
         </div>
         <FoodPicker onSelect={handleSelectFood} loading={loading} />
       </div>

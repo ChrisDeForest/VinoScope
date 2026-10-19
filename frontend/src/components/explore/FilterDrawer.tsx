@@ -3,6 +3,15 @@ import type { SortOption } from "../../types/wine";
 import { DEFAULT_FILTERS, SORT_OPTIONS, type FilterValues } from "./filterTypes";
 import { TYPE_OPTIONS, TYPE_LABELS, COUNTRY_OPTIONS } from "../../constants/wineOptions";
 import { priceRangeError } from "../../utils/priceRange";
+import { NumberStepperField } from "../common/NumberStepperField";
+
+function toNumber(value: string): number | undefined {
+  return value === "" ? undefined : Number(value);
+}
+
+function fromNumber(value: number | undefined): string {
+  return value === undefined ? "" : String(value);
+}
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -159,28 +168,8 @@ export function FilterDrawer({
         </div>
 
         <div className="flex gap-2 min-w-0">
-          <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-ink-muted">
-            <label htmlFor="filter-min-price">Min price</label>
-            <input
-              id="filter-min-price"
-              type="number"
-              min={0}
-              value={draft.minPrice}
-              onChange={(e) => update("minPrice", e.target.value)}
-              className="w-full min-w-0 bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-            />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-ink-muted">
-            <label htmlFor="filter-max-price">Max price</label>
-            <input
-              id="filter-max-price"
-              type="number"
-              min={0}
-              value={draft.maxPrice}
-              onChange={(e) => update("maxPrice", e.target.value)}
-              className="w-full min-w-0 bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-            />
-          </div>
+          <NumberStepperField id="filter-min-price" label="Min price" value={toNumber(draft.minPrice)} onChange={(value) => update("minPrice", fromNumber(value))} />
+          <NumberStepperField id="filter-max-price" label="Max price" value={toNumber(draft.maxPrice)} onChange={(value) => update("maxPrice", fromNumber(value))} />
         </div>
 
         <div className="flex flex-col gap-1 text-sm text-ink-muted">
@@ -211,7 +200,7 @@ export function FilterDrawer({
           <button
             type="button"
             onClick={() => {
-              const error = priceRangeError(draft.minPrice === "" ? undefined : Number(draft.minPrice), draft.maxPrice === "" ? undefined : Number(draft.maxPrice));
+              const error = priceRangeError(toNumber(draft.minPrice), toNumber(draft.maxPrice));
               setValidationError(error);
               if (!error) onApply({ ...draft, q: draft.q.trim(), grape: draft.grape.trim() });
             }}

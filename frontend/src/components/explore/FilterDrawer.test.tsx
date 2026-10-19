@@ -96,4 +96,12 @@ describe("FilterDrawer", () => {
       expect(input.parentElement).toHaveClass("min-w-0");
     }
   });
+
+  it("uses the themed stepper for price", async () => {
+    const onApply = vi.fn();
+    render(<FilterDrawer open initialFilters={DEFAULT_FILTERS} onApply={onApply} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Increase max price" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Apply/ }));
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ maxPrice: "1" }));
+  });
 });

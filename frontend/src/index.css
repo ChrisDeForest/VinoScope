@@ -17,13 +17,39 @@ html.home-scroll-padding {
   scroll-padding-top: 4rem;
 }
 
-.discover-price {
+.stepper-input {
   appearance: textfield;
   -moz-appearance: textfield;
 }
 
-.discover-price::-webkit-inner-spin-button,
-.discover-price::-webkit-outer-spin-button {
+.stepper-input::-webkit-inner-spin-button,
+.stepper-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* Thin, theme-coloured scrollbars everywhere (page, drawers, sideways chip rows). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-surface-border);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-accent);
 }
