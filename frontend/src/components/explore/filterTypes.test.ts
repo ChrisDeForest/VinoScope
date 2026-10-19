@@ -60,3 +60,60 @@ describe("region filter", () => {
     expect(filtersToApiParams(DEFAULT_FILTERS, 12, 0)).not.toHaveProperty("region");
   });
 });
+
+describe("ABV, vintage and taste filters", () => {
+  const full = {
+    ...DEFAULT_FILTERS,
+    minAbv: "12",
+    maxAbv: "14.5",
+    vintageFrom: "2019",
+    vintageTo: "2022",
+    excludeNv: "1",
+    sweetness: "2-4",
+    tannin: "3",
+  };
+
+  it("default to empty", () => {
+    for (const key of ["minAbv", "maxAbv", "vintageFrom", "vintageTo", "excludeNv", "sweetness", "acidity", "tannin", "body", "fruitiness"] as const) {
+      expect(DEFAULT_FILTERS[key]).toBe("");
+    }
+  });
+
+  it("count once each", () => {
+    expect(countActiveFilters(full)).toBe(7);
+  });
+
+  it("round-trip through the URL with snake_case names", () => {
+    const params = filtersToSearchParams(full);
+    expect(params.toString()).toBe(
+      "min_abv=12&max_abv=14.5&vintage_from=2019&vintage_to=2022&exclude_nv=1&sweetness=2-4&tannin=3"
+    );
+    expect(filtersFromSearchParams(params)).toEqual(full);
+    for (const name of ["min_abv", "max_abv", "vintage_from", "vintage_to", "exclude_nv", "sweetness", "fruitiness"]) {
+      expect(FILTER_PARAM_NAMES).toContain(name);
+    }
+  });
+
+  it("drop junk from hand-edited links", () => {
+    const filters = filtersFromSearchParams(
+      new URLSearchParams("sweetness=9&acidity=4-2&min_abv=abc&vintage_to=soon&exclude_nv=yes&min_price=x")
+    );
+    expect(filters).toEqual(DEFAULT_FILTERS);
+  });
+
+  it("map to API params", () => {
+    expect(filtersToApiParams(full, 12, 0)).toMatchObject({
+      min_abv: 12,
+      max_abv: 14.5,
+      vintage_from: 2019,
+      vintage_to: 2022,
+      include_nv: false,
+      min_sweetness: 2,
+      max_sweetness: 4,
+      min_tannin: 3,
+      max_tannin: 3,
+    });
+    const plain = filtersToApiParams(DEFAULT_FILTERS, 12, 0);
+    for (const key of ["include_nv", "min_abv", "vintage_from", "min_sweetness", "max_body"]) expect(plain).not.toHaveProperty(key);
+  });
+});
