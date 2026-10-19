@@ -168,6 +168,27 @@ def list_wines(
     return total, items
 
 
+def wine_facets(db: Session) -> dict:
+    """The filter options Explore offers, read from the catalog so new wines show up on their own."""
+    types = list(db.scalars(select(Wine.type).distinct().order_by(Wine.type)))
+
+    regions_by_country: dict[str, set[str]] = {}
+    for country, region in db.execute(select(Wine.country, Wine.region).where(Wine.country.isnot(None)).distinct()):
+        regions = regions_by_country.setdefault(country, set())
+        if region:
+            regions.add(region)
+
+    vintage_min, vintage_max = db.execute(select(func.min(Wine.vintage), func.max(Wine.vintage))).one()
+    abv_min, abv_max = db.execute(select(func.min(Wine.abv), func.max(Wine.abv))).one()
+    return {
+        "types": types,
+        "countries": [
+            {"name": name, "regions": sorted(regions)} for name, regions in sorted(regions_by_country.items())
+        ],
+        "vintage": {"min": vintage_min, "max": vintage_max},
+        "abv": {"min": abv_min, "max": abv_max},
+    }
+
 def get_wine(db: Session, wine_id: int) -> Optional[dict]:
     price_sq = _cheapest_listing_subquery()
     stmt = (

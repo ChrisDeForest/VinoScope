@@ -156,3 +156,25 @@ class WineDetail(WineListItem):
     abv: Optional[float] = None
     description: Optional[str] = None
     listings: list[RetailerListingOut]
+
+
+class IntRange(BaseModel):
+    min: Optional[int]
+    max: Optional[int]
+
+
+class FloatRange(BaseModel):
+    min: Optional[float]
+    max: Optional[float]
+
+
+class CountryFacet(BaseModel):
+    name: str
+    regions: list[str]
+
+
+class WineFacets(BaseModel):
+    types: list[str]
+    countries: list[CountryFacet]
+    vintage: IntRange
+    abv: FloatRange

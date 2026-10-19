@@ -11,6 +11,7 @@ from app.schemas.wine import (
     RetailerListingOut,
     RetailerListingUpdate,
     WineDetail,
+    WineFacets,
     WineListResponse,
     WineUpdate,
 )
@@ -52,6 +53,10 @@ def list_wines(
     )
     return WineListResponse(total=total, items=items)
 
+
+@router.get("/wines/facets", response_model=WineFacets)
+def wine_facets(db: Session = Depends(get_db)) -> WineFacets:
+    return WineFacets(**wines_service.wine_facets(db))
 
 @router.get("/wines/{wine_id}", response_model=WineDetail)
 def get_wine(wine_id: int, db: Session = Depends(get_db)) -> WineDetail:
