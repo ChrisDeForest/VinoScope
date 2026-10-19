@@ -35,17 +35,21 @@ describe("Wine Regions content", () => {
     ]);
   });
 
-  it("lists 28 regions grouped by country", () => {
+  it("lists 39 regions grouped by country", () => {
     expect(MAP_REGIONS.map((region) => region.id)).toEqual([
       "napa-sonoma",
+      "paso-robles",
       "willamette",
       "washington",
+      "finger-lakes",
+      "long-island",
       "piedmont",
       "tuscany",
       "veneto",
       "emilia-romagna",
       "bordeaux",
       "burgundy",
+      "beaujolais",
       "champagne",
       "rhone",
       "loire",
@@ -54,16 +58,23 @@ describe("Wine Regions content", () => {
       "mosel",
       "rheingau",
       "douro",
+      "vinho-verde",
       "madeira",
       "rioja",
       "ribera-del-duero",
       "jerez",
       "niagara",
       "mendoza",
+      "salta",
       "tokaj",
+      "casablanca",
+      "maipo",
       "colchagua",
       "barossa",
+      "hunter-valley",
       "marlborough",
+      "hawkes-bay",
+      "central-otago",
       "stellenbosch",
     ]);
   });
@@ -80,7 +91,7 @@ describe("Wine Regions content", () => {
     expect(west).toBeLessThan(east);
     expect(south).toBeLessThan(north);
     expect(regionsOf(country.id).length).toBeGreaterThan(0);
-    expect(country.source).toBe("general");
+    expect(["general", "course"]).toContain(country.source);
   });
 
   it.each(MAP_REGIONS.map((region) => [region.id, region] as const))("%s is complete and sits inside its country's fit box", (_id, region) => {
@@ -90,7 +101,7 @@ describe("Wine Regions content", () => {
     expect([1, 2, 3, 4, 5]).toContain(region.climate);
     expect(region.grapes.length).toBeGreaterThan(0);
     expect(region.styles.length).toBeGreaterThan(0);
-    expect(region.source).toBe("general");
+    expect(["general", "course"]).toContain(region.source);
     const [lon, lat] = region.coords;
     const [[west, south], [east, north]] = country!.fitBounds;
     expect(lon).toBeGreaterThanOrEqual(west);
@@ -103,6 +114,7 @@ describe("Wine Regions content", () => {
     expect(countryById("france")!.name).toBe("France");
     expect(regionById("bordeaux")!.countryId).toBe("france");
     expect(regionsOf("germany").map((region) => region.id)).toEqual(["mosel", "rheingau"]);
+    expect(regionsOf("chile").map((region) => region.id)).toEqual(["casablanca", "maipo", "colchagua"]);
     expect(countryById("atlantis")).toBeUndefined();
     expect(regionById("atlantis")).toBeUndefined();
   });
@@ -112,11 +124,20 @@ describe("Wine Regions content", () => {
     expect(keyGrapeId("Shiraz")).toBe("syrah");
     expect(keyGrapeId("Syrah")).toBe("syrah");
     expect(keyGrapeId("Nebbiolo")).toBeNull();
+    expect(keyGrapeId("Garnacha")).toBe("grenache");
+    expect(keyGrapeId("Semillon")).toBe("semillon");
+    expect(keyGrapeId("Sémillon")).toBe("semillon");
+    expect(keyGrapeId("Moscatel")).toBe("moscato");
+    expect(keyGrapeId("Muscat")).toBe("moscato");
+    expect(keyGrapeId("Malbec")).toBe("malbec");
   });
 
   it("links catalog-name regions with their catalog wording", () => {
     expect(regionById("napa-sonoma")).toMatchObject({ exploreRegion: "California", exploreLabel: "California" });
     expect(regionById("ribera-del-duero")).toMatchObject({ exploreRegion: "Castilla y Leon", exploreLabel: "Castilla y León" });
-    expect(regionById("loire")!.exploreRegion).toBeNull();
+    expect(regionById("loire")!.exploreRegion).toBe("Loire");
+    expect(regionById("finger-lakes")).toMatchObject({ exploreRegion: "New York", exploreLabel: "New York" });
+    expect(regionById("hunter-valley")).toMatchObject({ exploreRegion: "New South Wales", exploreLabel: "New South Wales" });
+    for (const region of MAP_REGIONS) expect(region.exploreRegion, region.id).toBeTruthy();
   });
 });

@@ -129,7 +129,6 @@ function RegionView({
 }) {
   const count = useCatalogCount(region.exploreRegion ? { region: region.exploreRegion } : null);
   const label = region.exploreLabel ?? region.name;
-  const none = !region.exploreRegion || count === 0;
 
   return (
     <>
@@ -164,14 +163,11 @@ function RegionView({
       </div>
       <p className={LABEL}>Worth knowing</p>
       <p className="mt-1 text-sm leading-relaxed text-ink">{region.fact}</p>
-      {none ? (
-        <p className="mt-5 text-sm text-ink-muted">No {region.name} wines in the catalog yet.</p>
-      ) : (
-        <Link to={`/explore?region=${encodeURIComponent(region.exploreRegion!)}`} className={EXPLORE}>
-          {count ? `Explore ${count} ${label} ${count === 1 ? "wine" : "wines"}` : `Explore ${label} wines`}{" "}
-          <span aria-hidden="true">→</span>
-        </Link>
-      )}
+      <Link to={`/explore?region=${encodeURIComponent(region.exploreRegion!)}`} className={EXPLORE}>
+        {count ? `Explore ${count} ${label} ${count === 1 ? "wine" : "wines"}` : `Explore ${label} wines`}{" "}
+        <span aria-hidden="true">→</span>
+      </Link>
+      {count === 0 ? <p className="mt-1 text-sm text-ink-muted">No {region.name} wines in the catalog yet.</p> : null}
       <p className="mt-4">
         <button
           type="button"

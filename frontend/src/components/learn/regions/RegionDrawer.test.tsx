@@ -13,7 +13,7 @@ vi.mock("../../../services/api", async () => {
   return { ...actual, listWines: vi.fn() };
 });
 
-const TOTALS: Record<string, number> = { "region:Bordeaux": 13, "region:Provence": 0, "region:California": 32, "country:France": 30 };
+const TOTALS: Record<string, number> = { "region:Bordeaux": 13, "region:Provence": 0, "region:Loire": 0, "region:California": 32, "country:France": 30 };
 
 beforeEach(() => {
   clearCatalogCountCache();
@@ -45,6 +45,7 @@ describe("RegionDrawer — country view", () => {
     expect(rows.map((row) => row.querySelector("[data-name]")!.textContent)).toEqual([
       "Bordeaux",
       "Burgundy",
+      "Beaujolais",
       "Champagne",
       "Rhône",
       "Loire",
@@ -52,7 +53,7 @@ describe("RegionDrawer — country view", () => {
       "Provence",
     ]);
     expect(await within(rows[0]).findByText("13 in catalog")).toBeInTheDocument();
-    expect(within(rows[4]).getByText("—")).toBeInTheDocument();
+    expect(within(rows[5]).getByText("—")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "Explore 30 wines from France" })).toHaveAttribute("href", "/explore?country=France");
   });
 
@@ -108,15 +109,16 @@ describe("RegionDrawer — region view", () => {
     expect(screen.getByRole("link", { name: /Castilla y León wine/ })).toHaveAttribute("href", "/explore?region=Castilla%20y%20Leon");
   });
 
-  it("says so when the catalog has none", async () => {
+  it("still links to Explore when the catalog has no wines there yet", async () => {
     renderDrawer("france", "loire");
-    expect(screen.getByText("No Loire wines in the catalog yet.")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Explore/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Explore Loire wines/ })).toHaveAttribute("href", "/explore?region=Loire");
+    expect(await screen.findByText("No Loire wines in the catalog yet.")).toBeInTheDocument();
   });
 
   it("says so when the count comes back zero", async () => {
     renderDrawer("france", "provence");
     expect(await screen.findByText("No Provence wines in the catalog yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Explore Provence wines/ })).toBeInTheDocument();
   });
 
   it("goes back to the country", async () => {
