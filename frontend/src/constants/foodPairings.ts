@@ -118,3 +118,7 @@ export const FOOD_PAIRINGS: Record<FoodKey, FoodPairing> = {
     vector: { sweetness: range(4, 5), acidity: range(1, 3), tannin: range(1, 2), body: range(2, 4), fruitiness: range(3, 5) },
   },
 };
+
+export function foodImage(food: FoodKey): string {
+  return `/foods/${food}.webp`;
+}
