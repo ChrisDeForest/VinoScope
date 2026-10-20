@@ -38,7 +38,7 @@ export function DiscoverForm({
       <ComboBox
         id="discover-type"
         label="Wine type"
-        value={draft.type ?? ""}
+        value={typeof draft.type === "string" ? draft.type : ""}
         options={TYPE_OPTIONS.map((value) => ({ value, label: value === "" ? "No preference" : TYPE_LABELS[value] }))}
         onChange={(value) => update("type", value || undefined)}
         searchable={false}
@@ -47,7 +47,7 @@ export function DiscoverForm({
       <ComboBox
         id="discover-country"
         label="Country"
-        value={draft.country ?? ""}
+        value={typeof draft.country === "string" ? draft.country : ""}
         options={COUNTRY_OPTIONS.map((value) => ({ value, label: value === "" ? "No preference" : value }))}
         onChange={(value) => update("country", value || undefined)}
       />

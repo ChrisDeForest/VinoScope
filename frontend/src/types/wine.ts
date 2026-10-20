@@ -82,8 +82,8 @@ export interface RecommendationAnswers {
   tannin?: number | number[];
   body?: number | number[];
   fruitiness?: number | number[];
-  type?: string;
-  country?: string;
+  type?: string | string[];
+  country?: string | string[];
   min_price?: number;
   max_price?: number;
 }
