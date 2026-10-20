@@ -6,7 +6,6 @@ import { PairPage } from "./PairPage";
 import * as api from "../services/api";
 import { FOOD_PAIRINGS } from "../constants/foodPairings";
 import type { RecommendationItem, RecommendationResponse } from "../types/wine";
-import { chooseOption } from "../test/combobox";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
@@ -58,67 +57,100 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-/** A food tile is a button named by its label plus blurb; the wine-type select also has a "Dessert" option, so match the tile name. */
-function foodTile(label: string) {
-  return screen.getByRole("button", { name: (name) => name === label || name.startsWith(`${label} `) });
+type User = ReturnType<typeof userEvent.setup>;
+
+function question(name: string) {
+  return screen.getByRole("heading", { level: 2, name });
 }
 
-async function selectFood(user: ReturnType<typeof userEvent.setup>, label: string) {
-  await user.click(foodTile(label));
+/** Picks a food and presses through the remaining steps with their current answers. */
+async function findWines(user: User, label: string) {
+  await user.click(screen.getByRole("button", { name: label }));
+  await user.click(screen.getByRole("button", { name: `Continue with ${label.toLowerCase()}` }));
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(screen.getByRole("button", { name: "Find my wines" }));
 }
 
 describe("PairPage", () => {
-  it("keeps the food picker open when an earlier load-more completes", async () => {
-    const pending = deferred<RecommendationResponse>();
-    getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] })
-      .mockReturnValueOnce(pending.promise);
-    renderPage();
-    const user = userEvent.setup();
-    await selectFood(user, "Steak");
-    await screen.findByText("Wine 1");
-    await user.click(screen.getByRole("button", { name: "Load more" }));
-    await user.click(screen.getByRole("button", { name: "Choose a different food" }));
-    await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
-    expect(screen.getByText("Steak").closest("button")).toBeEnabled();
-  });
-
-  it("uses the chosen budget and wine type for a specific dish", async () => {
-    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
-    renderPage();
-    const user = userEvent.setup();
-    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
-    await user.type(screen.getByLabelText("Max price"), "30");
-    await selectFood(user, "Cream pasta");
-    await screen.findByText("Wine 1");
-    expect(getRecommendationsMock).toHaveBeenLastCalledWith(expect.objectContaining({ type: "white", max_price: 30 }));
-    expect(screen.getByRole("heading", { name: /Pairing with Cream pasta/ })).toBeInTheDocument();
-  });
   beforeEach(() => {
     getRecommendationsMock.mockReset();
     sessionStorage.clear();
   });
 
-  it("falls back to the picker instead of crashing when a saved snapshot names an unknown food key", () => {
-    sessionStorage.setItem(
-      "vinoscope-pair-state",
-      JSON.stringify({
-        mode: "results",
-        selectedFood: "pasta",
-        profile: [],
-        items: [makeItem(1)],
-        total: 1,
-      })
-    );
+  it("starts on the food question with Continue disabled until a dish is chosen", async () => {
     renderPage();
     expect(screen.getByRole("heading", { name: "Pair" })).toBeInTheDocument();
-    expect(screen.getByText(FOOD_PAIRINGS.steak.label)).toBeInTheDocument();
+    expect(question("What are you eating?")).toBeInTheDocument();
+    expect(screen.getByText("Question 1 of 3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Steak" }));
+    expect(screen.getByText(FOOD_PAIRINGS.steak.blurb)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue with steak" })).toBeEnabled();
+  });
+
+  it("sends only the food's taste profile when type and budget are left open", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: ["High tannin"] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await findWines(user, "Steak");
+    await screen.findByText("Wine 1");
+    expect(getRecommendationsMock).toHaveBeenCalledWith({ ...FOOD_PAIRINGS.steak.vector, limit: 20, offset: 0 });
+    expect(screen.getByText("High tannin")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /pairing with steak/i })).toBeInTheDocument();
+  });
+
+  it("uses the chosen wine types and budget", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Cream pasta" }));
+    await user.click(screen.getByRole("button", { name: "Continue with cream pasta" }));
+    await user.click(screen.getByRole("button", { name: "White" }));
+    await user.click(screen.getByRole("button", { name: "Rosé" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "$20–40" }));
+    await user.click(screen.getByRole("button", { name: "Find my wines" }));
+    await screen.findByText("Wine 1");
+    expect(getRecommendationsMock).toHaveBeenLastCalledWith({
+      ...FOOD_PAIRINGS.cream_pasta.vector,
+      type: ["white", "rosé"],
+      min_price: 20,
+      max_price: 40,
+      limit: 20,
+      offset: 0,
+    });
+    expect(screen.getByRole("heading", { name: /Pairing with Cream pasta/ })).toBeInTheDocument();
+  });
+
+  it("falls back to the quiz instead of crashing when a saved snapshot names an unknown food key", () => {
+    sessionStorage.setItem(
+      "vinoscope-pair-state",
+      JSON.stringify({ mode: "results", selectedFood: "pasta", profile: [], items: [makeItem(1)], total: 1 })
+    );
+    renderPage();
+    expect(question("What are you eating?")).toBeInTheDocument();
+  });
+
+  it("maps a snapshot saved by the old picker", async () => {
+    sessionStorage.setItem(
+      "vinoscope-pair-state",
+      JSON.stringify({ mode: "picker", selectedFood: "salmon", type: "white", maxPrice: 30, profile: [], items: [], total: 0 })
+    );
+    renderPage();
+    const user = userEvent.setup();
+    expect(screen.getByRole("button", { name: "Salmon" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Continue with salmon" }));
+    expect(screen.getByRole("button", { name: "White" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByRole("button", { name: "Under $20" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "$20–40" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("restores previously loaded results without refetching when remounted", async () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     const { unmount } = renderPage();
     const user = userEvent.setup();
-    await selectFood(user, "Steak");
+    await findWines(user, "Steak");
     await screen.findByText("Wine 1");
     unmount();
 
@@ -128,78 +160,39 @@ describe("PairPage", () => {
     expect(getRecommendationsMock).not.toHaveBeenCalled();
   });
 
-  it("starts in picker mode showing all food tiles", () => {
-    renderPage();
-    expect(screen.getByRole("heading", { name: "Pair" })).toBeInTheDocument();
-    expect(screen.getByText(FOOD_PAIRINGS.steak.label)).toBeInTheDocument();
-    expect(foodTile(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
-  });
-
-  it("selecting a food fetches recommendations with that food's vector and switches to results mode", async () => {
-    getRecommendationsMock.mockResolvedValue({
-      profile: { description: ["High tannin"] },
-      total: 1,
-      items: [makeItem(1)],
-    } satisfies RecommendationResponse);
-    renderPage();
-
-    const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
-    expect(getRecommendationsMock).toHaveBeenCalledWith({
-      ...FOOD_PAIRINGS.steak.vector,
-      limit: 20,
-      offset: 0,
-    });
-    expect(screen.getByText("High tannin")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /pairing with steak/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Choose a different food" })).toBeInTheDocument();
-  });
-
-  it("clicking Choose a different food returns to the picker", async () => {
+  it("Choose a different food returns to the first question with the answers kept", async () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     renderPage();
     const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
-
+    await findWines(user, "Steak");
+    await screen.findByText("Wine 1");
     await user.click(screen.getByRole("button", { name: "Choose a different food" }));
-    expect(foodTile(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
+    expect(question("What are you eating?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Steak" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("disables food tiles while a request is in flight", async () => {
+  it("disables the find button and names the food while a request is in flight", async () => {
     const pending = deferred<RecommendationResponse>();
     getRecommendationsMock.mockReturnValue(pending.promise);
     renderPage();
     const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-
-    const dessertTile = foodTile(FOOD_PAIRINGS.dessert.label);
-    expect(dessertTile).toBeDisabled();
-
+    await findWines(user, "Steak");
+    expect(screen.getByRole("button", { name: "Finding wines…" })).toBeDisabled();
+    expect(screen.getByText(/finding wines for steak/i)).toBeInTheDocument();
     pending.resolve({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    await screen.findByText("Wine 1");
   });
 
-  it("shows an error message with retry when the request fails", async () => {
+  it("shows an error, and retrying refetches the same request", async () => {
     getRecommendationsMock.mockRejectedValueOnce(new Error("network error"));
     renderPage();
     const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-    await waitFor(() => expect(screen.getByText(/failed to load recommendations/i)).toBeInTheDocument());
-  });
-
-  it("retrying after a failed request refetches the same food", async () => {
-    getRecommendationsMock.mockRejectedValueOnce(new Error("network error"));
-    renderPage();
-    const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-    await waitFor(() => expect(screen.getByText(/failed to load recommendations/i)).toBeInTheDocument());
+    await findWines(user, "Steak");
+    await screen.findByText(/failed to load recommendations/i);
 
     getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     await user.click(screen.getByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    await screen.findByText("Wine 1");
     expect(getRecommendationsMock).toHaveBeenLastCalledWith({ ...FOOD_PAIRINGS.steak.vector, limit: 20, offset: 0 });
   });
 
@@ -207,15 +200,30 @@ describe("PairPage", () => {
     getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] });
     renderPage();
     const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
-
+    await findWines(user, "Steak");
+    await screen.findByText("Wine 1");
     getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(2)] });
     await user.click(screen.getByRole("button", { name: "Load more" }));
-    await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
+    await screen.findByText("Wine 2");
   });
 
-  it("ignores a stale load-more response when a different food is selected before it resolves", async () => {
+  it("keeps the quiz open when an earlier load-more completes", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock
+      .mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] })
+      .mockReturnValueOnce(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await findWines(user, "Steak");
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+    await user.click(screen.getByRole("button", { name: "Choose a different food" }));
+    await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
+    expect(question("What are you eating?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dessert" })).toBeEnabled();
+  });
+
+  it("ignores a stale load-more response when a different food is chosen before it resolves", async () => {
     const staleLoadMore = deferred<RecommendationResponse>();
     getRecommendationsMock
       .mockResolvedValueOnce({ profile: { description: ["High tannin"] }, total: 2, items: [makeItem(1)] })
@@ -224,16 +232,16 @@ describe("PairPage", () => {
 
     renderPage();
     const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    await findWines(user, "Steak");
+    await screen.findByText("Wine 1");
 
     await user.click(screen.getByRole("button", { name: "Load more" }));
     expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Choose a different food" }));
-    await selectFood(user, FOOD_PAIRINGS.dessert.label);
+    await findWines(user, "Dessert");
 
-    await waitFor(() => expect(screen.getByText("Wine 9")).toBeInTheDocument());
+    await screen.findByText("Wine 9");
     expect(screen.queryByText("Wine 1")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load more" })).not.toBeDisabled();
 
@@ -242,27 +250,13 @@ describe("PairPage", () => {
     expect(screen.getByRole("button", { name: "Load more" })).not.toBeDisabled();
   });
 
-  it("shows an empty-results state with a way back to the picker when a food has no matches", async () => {
+  it("shows an empty-results state with a way back to the food question", async () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 0, items: [] });
     renderPage();
     const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-
-    await waitFor(() => expect(screen.getByText(/no wines available to pair right now/i)).toBeInTheDocument());
+    await findWines(user, "Steak");
+    await screen.findByText(/no wines available to pair right now/i);
     await user.click(screen.getByRole("button", { name: "Choose a different food" }));
-    expect(foodTile(FOOD_PAIRINGS.dessert.label)).toBeInTheDocument();
-  });
-
-  it("shows a status line naming the food while a request is in flight", async () => {
-    const pending = deferred<RecommendationResponse>();
-    getRecommendationsMock.mockReturnValue(pending.promise);
-    renderPage();
-    const user = userEvent.setup();
-    await selectFood(user, FOOD_PAIRINGS.steak.label);
-
-    expect(screen.getByText(/finding wines for steak/i)).toBeInTheDocument();
-
-    pending.resolve({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    expect(question("What are you eating?")).toBeInTheDocument();
   });
 });
