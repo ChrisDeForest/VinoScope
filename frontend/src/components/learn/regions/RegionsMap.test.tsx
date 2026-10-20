@@ -22,6 +22,13 @@ const map = () => screen.getByRole("group", { name: "World wine map" });
 const zoom = () => screen.getByTestId("map-zoom");
 const WORLD: MapSelection = { countryId: null, regionId: null };
 
+/** Checks the id and, by identity, the element passed as the opener (Vitest's DOM equality trips on SVG elements). */
+function expectLastCall(mock: ReturnType<typeof vi.fn>, id: string, opener: Element) {
+  const [calledId, calledOpener] = mock.mock.calls[mock.mock.calls.length - 1];
+  expect(calledId).toBe(id);
+  expect(calledOpener === opener).toBe(true);
+}
+
 describe("RegionsMap", () => {
   it("offers the 13 wine countries as buttons and nothing else at world view", () => {
     renderMap(WORLD);
@@ -33,12 +40,13 @@ describe("RegionsMap", () => {
 
   it("selects a country by click, Enter or Space", async () => {
     const { onSelectCountry } = renderMap(WORLD);
-    await userEvent.click(within(map()).getByRole("button", { name: "France" }));
-    expect(onSelectCountry).toHaveBeenLastCalledWith("france");
+    const france = within(map()).getByRole("button", { name: "France" });
+    await userEvent.click(france);
+    expectLastCall(onSelectCountry, "france", france);
     fireEvent.keyDown(within(map()).getByRole("button", { name: "Italy" }), { key: "Enter" });
-    expect(onSelectCountry).toHaveBeenLastCalledWith("italy");
+    expectLastCall(onSelectCountry, "italy", within(map()).getByRole("button", { name: "Italy" }));
     fireEvent.keyDown(within(map()).getByRole("button", { name: "Spain" }), { key: " " });
-    expect(onSelectCountry).toHaveBeenLastCalledWith("spain");
+    expectLastCall(onSelectCountry, "spain", within(map()).getByRole("button", { name: "Spain" }));
   });
 
   it("zooms to the selected country and shows its pins", async () => {
@@ -49,8 +57,9 @@ describe("RegionsMap", () => {
     for (const name of ["Bordeaux", "Burgundy", "Champagne", "Rhône", "Loire", "Alsace", "Provence"]) {
       expect(within(map()).getByRole("button", { name })).toBeInTheDocument();
     }
-    await userEvent.click(within(map()).getByRole("button", { name: "Bordeaux" }));
-    expect(onSelectRegion).toHaveBeenCalledWith("bordeaux");
+    const bordeaux = within(map()).getByRole("button", { name: "Bordeaux" });
+    await userEvent.click(bordeaux);
+    expectLastCall(onSelectRegion, "bordeaux", bordeaux);
   });
 
   it("marks the selected region's pin", () => {
@@ -75,14 +84,134 @@ describe("RegionsMap", () => {
     expect(screen.getByTestId("us-states")).toBeInTheDocument();
   });
 
-  it("glides between views, except under reduced motion", () => {
+  /** Replaces requestAnimationFrame with one the test steps by hand, `ms` of animation at a time. */
+  function stubFrames() {
+    let now = 0;
+    let pending: FrameRequestCallback[] = [];
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => pending.push(callback));
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = [];
+    });
+    return (ms: number) =>
+      act(() => {
+        now += ms;
+        const due = pending;
+        pending = [];
+        due.forEach((callback) => callback(now));
+      });
+  }
+  const scale = () => Number(/scale\(([\d.]+)\)/.exec(zoom().style.transform)![1]);
+  const haloOnScreen = (name: string) =>
+    Number(within(map()).getByRole("button", { name }).querySelector(".map-pin-halo")!.getAttribute("r")) * scale();
+
+  it("glides between views, keeping pins the same size on screen the whole way", () => {
     stubMatchMedia({ reducedMotion: false });
-    const first = renderMap(WORLD);
-    expect(zoom()).toHaveClass("map-zoom-animate");
-    first.view.unmount();
+    const advance = stubFrames();
+    const { view } = renderMap({ countryId: "france", regionId: null });
+    const fitted = scale();
+    view.rerender(<RegionsMap selection={{ countryId: "italy", regionId: null }} inset={false} onSelectCountry={vi.fn()} onSelectRegion={vi.fn()} />);
+    advance(300);
+    const midway = scale();
+    expect(midway).not.toBe(fitted);
+    expect(haloOnScreen("Tuscany")).toBeCloseTo(10);
+    advance(2000);
+    expect(scale()).not.toBe(midway);
+    expect(haloOnScreen("Tuscany")).toBeCloseTo(10);
+  });
+
+  it("jumps between views under reduced motion", () => {
     stubMatchMedia({ reducedMotion: true });
+    stubFrames();
+    const { view } = renderMap(WORLD);
+    view.rerender(<RegionsMap selection={{ countryId: "italy", regionId: null }} inset={false} onSelectCountry={vi.fn()} onSelectRegion={vi.fn()} />);
+    expect(scale()).toBeGreaterThan(1);
+  });
+
+  it("zooms past the fitted view with the zoom buttons and fits again", async () => {
+    stubMatchMedia({ reducedMotion: true });
+    const user = userEvent.setup();
+    renderMap({ countryId: "hungary", regionId: null });
+    const fitted = scale();
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Fit Hungary" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(scale()).toBeCloseTo(fitted * 1.6);
+    expect(haloOnScreen("Tokaj")).toBeCloseTo(10);
+    await user.click(screen.getByRole("button", { name: `Fit Hungary` }));
+    expect(scale()).toBeCloseTo(fitted);
+  });
+
+  it("stops zooming in at the ceiling", async () => {
+    stubMatchMedia({ reducedMotion: true });
+    const user = userEvent.setup();
+    renderMap({ countryId: "hungary", regionId: null });
+    const zoomIn = screen.getByRole("button", { name: "Zoom in" });
+    for (let i = 0; i < 10 && !(zoomIn as HTMLButtonElement).disabled; i++) await user.click(zoomIn);
+    expect(zoomIn).toBeDisabled();
+    expect(scale()).toBeCloseTo(96);
+  });
+
+  it("zooms small countries in much further than before", () => {
+    renderMap({ countryId: "hungary", regionId: null });
+    expect(scale()).toBeGreaterThan(12);
+  });
+
+  it("offers no zoom buttons at world view", () => {
     renderMap(WORLD);
-    expect(zoom()).not.toHaveClass("map-zoom-animate");
+    expect(screen.queryByRole("group", { name: "Map zoom" })).not.toBeInTheDocument();
+  });
+
+  it("pans by dragging once zoomed in, without selecting what the drag started on", async () => {
+    stubMatchMedia({ reducedMotion: true });
+    const user = userEvent.setup();
+    const { onSelectRegion } = renderMap({ countryId: "france", regionId: null });
+    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    const before = zoom().style.transform;
+    const pin = within(map()).getByRole("button", { name: "Bordeaux" });
+    fireEvent.pointerDown(pin, { clientX: 100, clientY: 100, pointerType: "mouse", button: 0 });
+    fireEvent.pointerMove(pin, { clientX: 160, clientY: 130, pointerType: "mouse" });
+    fireEvent.pointerUp(pin, { clientX: 160, clientY: 130, pointerType: "mouse" });
+    fireEvent.click(pin);
+    expect(zoom().style.transform).not.toBe(before);
+    expect(onSelectRegion).not.toHaveBeenCalled();
+    fireEvent.click(pin);
+    expectLastCall(onSelectRegion, "bordeaux", pin);
+  });
+
+  it("doesn't pan at the fitted view", () => {
+    renderMap({ countryId: "france", regionId: null });
+    const before = zoom().style.transform;
+    fireEvent.pointerDown(map(), { clientX: 100, clientY: 100, pointerType: "mouse", button: 0 });
+    fireEvent.pointerMove(map(), { clientX: 200, clientY: 200, pointerType: "mouse" });
+    fireEvent.pointerUp(map());
+    expect(zoom().style.transform).toBe(before);
+  });
+
+  it("never lets neighboring pins' tap targets overlap", () => {
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width: 358, height: 179 } as DOMRect);
+    renderMap({ countryId: "chile", regionId: null });
+    const k = scale();
+    const circles = within(map())
+      .getAllByRole("button")
+      .flatMap((button) => Array.from(button.querySelectorAll(".map-pin-hit")))
+      .map((hit) => ({ x: Number(hit.getAttribute("cx")), y: Number(hit.getAttribute("cy")), r: Number(hit.getAttribute("r")) }));
+    expect(circles.length).toBeGreaterThan(2);
+    for (const a of circles)
+      for (const b of circles) {
+        if (a === b) continue;
+        expect(Math.hypot(a.x - b.x, a.y - b.y) * k).toBeGreaterThanOrEqual((a.r + b.r) * k - 1e-6);
+      }
+  });
+
+  it("lets a phone reader zoom in until every Italian region is labeled", async () => {
+    stubMatchMedia({ reducedMotion: true });
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width: 358, height: 179 } as DOMRect);
+    const user = userEvent.setup();
+    renderMap({ countryId: "italy", regionId: null });
+    const labeled = () => within(map()).getByRole("button", { name: "Emilia-Romagna" }).querySelector("text");
+    for (let i = 0; i < 4 && !labeled(); i++) await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(labeled()).not.toBeNull();
   });
 
   it("draws the outlines in on first reveal at world view", () => {
@@ -90,6 +219,17 @@ describe("RegionsMap", () => {
     const outlines = map().querySelectorAll("path.draw");
     expect(outlines.length).toBeGreaterThan(150);
     outlines.forEach((outline) => expect(outline.getAttribute("pathLength")).toBe("1"));
+  });
+
+  // A non-scaling stroke dashes in screen px while pathLength measures the path in viewBox units, so on
+  // a map drawn wider than its viewBox the one-outline dash would run out before the outline does.
+  it("draws in with ordinary strokes, sized to stay hairlines at any width", () => {
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width: 1800, height: 900 } as DOMRect);
+    renderMap(WORLD);
+    const outlines = Array.from(map().querySelectorAll("path.draw"));
+    outlines.forEach((outline) => expect(outline).not.toHaveAttribute("vector-effect"));
+    const france = within(map()).getByRole("button", { name: "France" });
+    expect(Number(france.getAttribute("stroke-width")) * 1.5).toBeCloseTo(1);
   });
 
   // The draw-in's dash is one outline long in user space, but non-scaling strokes dash in screen space,

@@ -33,6 +33,7 @@ export function useCatalogCount(filter: CountFilter | null): number | null {
       active = false;
     };
     // `key` captures everything about `filter` that matters; a new object with the same filter shouldn't refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   if (!key) return null;

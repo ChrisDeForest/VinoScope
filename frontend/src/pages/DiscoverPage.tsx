@@ -53,7 +53,6 @@ export function DiscoverPage() {
     return () => {
       requestIdRef.current += 1;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -95,11 +94,12 @@ export function DiscoverPage() {
         setError(message);
       }
     } finally {
-      if (requestId !== requestIdRef.current) return;
-      if (append) {
-        setLoadingMore(false);
-      } else {
-        setLoading(false);
+      if (requestId === requestIdRef.current) {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
       }
     }
   }

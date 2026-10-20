@@ -4,7 +4,8 @@ import { GLOSSARY_TERMS } from "../../../content/learn/glossary";
 import { usePrefersReducedMotion } from "../../../hooks/usePrefersReducedMotion";
 import { GlossaryControls } from "./GlossaryControls";
 import { filterTerms, type CategoryFilter } from "./glossarySearch";
-import { TermCard, termCardId, termHeadingId } from "./TermCard";
+import { TermCard } from "./TermCard";
+import { termCardId, termHeadingId } from "./termLinks";
 
 const FLASH_MS = 1500;
 

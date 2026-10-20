@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act, fireEvent } from "@testing-library/react";
@@ -11,6 +11,12 @@ vi.mock("../../../services/api", async () => {
   const actual = await vi.importActual<typeof import("../../../services/api")>("../../../services/api");
   return { ...actual, listWines: vi.fn() };
 });
+
+// The lazily loaded module is heavy; importing it once up front keeps its cold load (slow under a
+// busy full run) from eating into the first test's wait timeouts.
+beforeAll(async () => {
+  await import("./RegionsMap");
+}, 30_000);
 
 beforeEach(() => {
   clearCatalogCountCache();
@@ -84,6 +90,26 @@ describe("RegionsChapter", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close details" }));
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     expect(document.activeElement).toBe(chip("France"));
+  });
+
+  // Safari doesn't focus a button on click, so the focused element is still whatever had focus before.
+  it("returns focus to the clicked chip even when the click didn't focus it", async () => {
+    await renderAt();
+    chip("Italy").focus();
+    fireEvent.click(chip("France"));
+    fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+    expect(document.activeElement).toBe(chip("France"));
+  });
+
+  it("returns focus to the clicked pin even when the click didn't focus it", async () => {
+    await renderAt();
+    fireEvent.click(chip("France"));
+    fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+    chip("Italy").focus();
+    const pin = within(screen.getByRole("group", { name: "World wine map" })).getByRole("button", { name: "Rhône" });
+    fireEvent.click(pin);
+    fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+    expect(document.activeElement).toBe(pin);
   });
 
   it("returns focus to the newly chosen country's chip when switching countries with the drawer open", async () => {

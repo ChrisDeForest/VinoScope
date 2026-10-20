@@ -1,11 +1,6 @@
 import { Fragment, useRef, type KeyboardEvent } from "react";
 import type { GrapeContent } from "../../../content/learn/grapes";
-
-export const GRAPE_PANEL_ID = "grape-panel";
-
-export function grapeTabId(id: string): string {
-  return `grape-${id}`;
-}
+import { GRAPE_PANEL_ID, grapeTabId } from "./grapeIds";
 
 const DOT_CLASS = { red: "bg-wine-red", white: "bg-wine-white" } as const;
 const GROUP_LABEL = { red: "Reds", white: "Whites" } as const;

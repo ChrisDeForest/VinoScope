@@ -7,7 +7,7 @@ import raw from "../../components/learn/regions/mapData.json?raw";
 import { MAP_COUNTRIES, MAP_REGIONS, countryById } from "./regions";
 
 type Props = { name: string };
-const topo = JSON.parse(raw) as Topology<{ detail: GeometryCollection<Props> }>;
+const topo = (JSON.parse(raw) as { fine: Topology<{ detail: GeometryCollection<Props> }> }).fine;
 const detail = (feature(topo, topo.objects.detail) as FeatureCollection<Geometry, Props>).features;
 const outline = (atlasName: string): Feature<Geometry, Props> | undefined =>
   detail.find((f) => f.properties.name === atlasName);

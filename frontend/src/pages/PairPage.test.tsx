@@ -6,6 +6,7 @@ import { PairPage } from "./PairPage";
 import * as api from "../services/api";
 import { FOOD_PAIRINGS } from "../constants/foodPairings";
 import type { RecommendationItem, RecommendationResponse } from "../types/wine";
+import { chooseOption } from "../test/combobox";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
@@ -85,7 +86,7 @@ describe("PairPage", () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     renderPage();
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Wine type"), "white");
+    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
     await user.type(screen.getByLabelText("Max price"), "30");
     await selectFood(user, "Cream pasta");
     await screen.findByText("Wine 1");

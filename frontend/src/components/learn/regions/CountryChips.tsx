@@ -2,7 +2,8 @@ import { MAP_COUNTRIES } from "../../../content/learn/regions";
 
 interface CountryChipsProps {
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  /** `opener` is the clicked chip, so focus can return to it (Safari doesn't focus buttons on click). */
+  onSelect: (id: string, opener?: Element) => void;
 }
 
 // A non-map way in: easy to tap (tiny countries included) and fully keyboard-friendly.
@@ -17,7 +18,7 @@ export function CountryChips({ selectedId, onSelect }: CountryChipsProps) {
             type="button"
             aria-pressed={pressed}
             data-country-id={country.id}
-            onClick={() => onSelect(country.id)}
+            onClick={(event) => onSelect(country.id, event.currentTarget)}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
               pressed ? "border-accent text-accent" : "border-surface-border text-ink-muted hover:text-ink"
             }`}

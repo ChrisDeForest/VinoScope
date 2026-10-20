@@ -1,20 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
-import { DEFAULT_GRAPE_ID, GRAPES } from "../../../content/learn/grapes";
+import { GRAPES } from "../../../content/learn/grapes";
 import { GrapePanel } from "./GrapePanel";
-import { GrapePicker, grapeTabId } from "./GrapePicker";
-
-const HASH_PREFIX = "#grape-";
-
-function knownGrapeId(hash: string): string | null {
-  if (!hash.startsWith(HASH_PREFIX)) return null;
-  const id = hash.slice(HASH_PREFIX.length);
-  return GRAPES.some((grape) => grape.id === id) ? id : null;
-}
-
-export function grapeIdFromHash(hash: string): string {
-  return knownGrapeId(hash) ?? DEFAULT_GRAPE_ID;
-}
+import { GrapePicker } from "./GrapePicker";
+import { grapeIdFromHash, grapeTabId, knownGrapeId } from "./grapeIds";
 
 export function GrapesChapter() {
   const location = useLocation();

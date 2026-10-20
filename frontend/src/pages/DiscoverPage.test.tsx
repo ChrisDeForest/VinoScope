@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { DiscoverPage } from "./DiscoverPage";
 import * as api from "../services/api";
 import type { RecommendationItem, RecommendationResponse } from "../types/wine";
+import { chooseOption } from "../test/combobox";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
@@ -68,9 +69,9 @@ describe("DiscoverPage", () => {
     await screen.findByText("Wine 1");
     await user.click(screen.getByRole("button", { name: "Load more" }));
     await user.click(screen.getByRole("button", { name: "Edit preferences" }));
-    await user.selectOptions(screen.getByLabelText("Wine type"), "white");
+    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
     await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
-    expect(screen.getByLabelText("Wine type")).toHaveValue("white");
+    expect(screen.getByLabelText("Wine type")).toHaveValue("White");
   });
 
   it("rejects an inverted budget and lets the user reset saved preferences", async () => {
@@ -120,7 +121,7 @@ describe("DiscoverPage", () => {
     });
     const first = renderPage();
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Wine type"), "red");
+    await chooseOption(user, screen.getByLabelText("Wine type"), "Red");
     await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
     await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
     first.unmount();
@@ -157,12 +158,12 @@ describe("DiscoverPage", () => {
     });
     renderPage();
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Wine type"), "white");
+    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
     await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Edit preferences" })).toBeInTheDocument());
 
     await user.click(screen.getByRole("button", { name: "Edit preferences" }));
-    expect(screen.getByLabelText("Wine type")).toHaveValue("white");
+    expect(screen.getByLabelText("Wine type")).toHaveValue("White");
   });
 
   it("shows the empty-profile fallback message when profile.description is empty", async () => {
@@ -232,7 +233,7 @@ describe("DiscoverPage", () => {
     expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Edit preferences" }));
-    await user.selectOptions(screen.getByLabelText("Wine type"), "white");
+    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
     await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
 
     await waitFor(() => expect(screen.getByText("Wine 9")).toBeInTheDocument());

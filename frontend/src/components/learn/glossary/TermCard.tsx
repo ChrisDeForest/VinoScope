@@ -1,23 +1,7 @@
 import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { GLOSSARY_CATEGORY_LABELS, termById, type GlossaryTerm } from "../../../content/learn/glossary";
-
-export function termCardId(id: string): string {
-  return `term-${id}`;
-}
-
-export function termHeadingId(id: string): string {
-  return `term-${id}-title`;
-}
-
-// Built by hand so spaces encode as %20, matching the rest of the Learn links.
-export function exploreHref(params: { type?: string; country?: string }): string {
-  const query = Object.entries(params)
-    .filter(([, value]) => value)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value as string)}`)
-    .join("&");
-  return `/explore?${query}`;
-}
+import { exploreHref, termCardId, termHeadingId } from "./termLinks";
 
 const LINK_CLASS =
   "text-sm text-accent hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent";

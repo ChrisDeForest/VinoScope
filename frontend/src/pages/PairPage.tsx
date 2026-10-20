@@ -7,6 +7,7 @@ import { ErrorMessage } from "../components/common/ErrorMessage";
 import { ProfileSummary } from "../components/discover/ProfileSummary";
 import { FoodPicker } from "../components/pair/FoodPicker";
 import { NumberStepperField } from "../components/common/NumberStepperField";
+import { ComboBox } from "../components/common/ComboBox";
 import { TYPE_OPTIONS, TYPE_LABELS } from "../constants/wineOptions";
 import { FOOD_PAIRINGS, type FoodKey } from "../constants/foodPairings";
 import { readPageState, writePageState } from "../utils/pageState";
@@ -92,11 +93,12 @@ export function PairPage() {
         setError(message);
       }
     } finally {
-      if (requestId !== requestIdRef.current) return;
-      if (append) {
-        setLoadingMore(false);
-      } else {
-        setLoading(false);
+      if (requestId === requestIdRef.current) {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
       }
     }
   }
@@ -136,23 +138,15 @@ export function PairPage() {
           </p>
         ) : null}
         <div className="flex gap-2 max-w-xl">
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <label htmlFor="pair-type" className="text-sm text-ink-muted">
-              Wine type
-            </label>
-            <select
-              id="pair-type"
-              value={type ?? ""}
-              onChange={(e) => setType(e.target.value || undefined)}
-              className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-            >
-              {TYPE_OPTIONS.map((value) => (
-                <option key={value} value={value}>
-                  {value === "" ? "No preference" : TYPE_LABELS[value]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ComboBox
+            id="pair-type"
+            label="Wine type"
+            value={type ?? ""}
+            options={TYPE_OPTIONS.map((value) => ({ value, label: value === "" ? "No preference" : TYPE_LABELS[value] }))}
+            onChange={(value) => setType(value || undefined)}
+            searchable={false}
+            className="flex-1"
+          />
           <NumberStepperField id="pair-max-price" label="Max price" value={maxPrice} onChange={setMaxPrice} />
         </div>
         <FoodPicker onSelect={handleSelectFood} loading={loading} />

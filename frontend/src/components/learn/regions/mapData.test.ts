@@ -18,13 +18,25 @@ const WINE_COUNTRIES = [
 ];
 
 describe("prebuilt map data", () => {
-  const topo = JSON.parse(raw);
-  const names = (object: string): string[] =>
-    topo.objects[object].geometries.map((g: { properties: { name: string } }) => g.properties.name);
+  const { coarse, fine } = JSON.parse(raw);
+  const objects: Record<string, { geometries: { properties: { name: string } }[] }> = { ...coarse.objects, ...fine.objects };
+  const names = (object: string): string[] => objects[object].geometries.map((g) => g.properties.name);
 
-  it("is a topology with world, detail and states objects", () => {
-    expect(topo.type).toBe("Topology");
-    expect(Object.keys(topo.objects).sort()).toEqual(["detail", "states", "world"]);
+  it("is a coarse topology (world, states) and a fine one (detail, near)", () => {
+    expect(coarse.type).toBe("Topology");
+    expect(fine.type).toBe("Topology");
+    expect(Object.keys(coarse.objects).sort()).toEqual(["states", "world"]);
+    expect(Object.keys(fine.objects).sort()).toEqual(["detail", "near"]);
+  });
+
+  it("quantizes the zoomed-into outlines finely enough for deep zoom", () => {
+    expect(fine.transform.scale[0]).toBeLessThan(coarse.transform.scale[0] / 5);
+  });
+
+  it("has detailed outlines for the wine countries' land neighbors, and only those", () => {
+    for (const name of ["Switzerland", "Austria", "Slovakia", "Mexico", "Uruguay", "Namibia"]) expect(names("near")).toContain(name);
+    for (const name of WINE_COUNTRIES) expect(names("near")).not.toContain(name);
+    expect(names("near")).not.toContain("Japan");
   });
 
   it("has the whole world except Antarctica", () => {
@@ -44,6 +56,6 @@ describe("prebuilt map data", () => {
   });
 
   it("stays within its size budget", () => {
-    expect(raw.length).toBeLessThanOrEqual(350_000);
+    expect(raw.length).toBeLessThanOrEqual(450_000);
   });
 });

@@ -84,9 +84,13 @@ export function RegionsChapter() {
     setDrawerOpen(selection.countryId !== null);
   }
 
-  function openWith(action: () => void) {
+  /**
+   * `clicked` is the chip, country or pin that was clicked. Safari doesn't focus buttons on click, so
+   * the focused element alone could be stale; keyboard presses focus it first, so either way it's right.
+   */
+  function openWith(action: () => void, clicked?: Element) {
     // Moving around inside the drawer keeps the original opener; its buttons vanish as the view changes.
-    const active = document.activeElement;
+    const active = clicked ?? document.activeElement;
     const focusable = active instanceof HTMLElement || active instanceof SVGElement;
     if (focusable && active !== document.body && !active.closest(".region-drawer")) openerRef.current = active;
     focusHeading.current = true;
@@ -154,7 +158,7 @@ export function RegionsChapter() {
 
   return (
     <div ref={rootRef} className="mt-8" onKeyDown={onKeyDown}>
-      <CountryChips selectedId={selection.countryId} onSelect={(id) => openWith(() => selectCountry(id))} />
+      <CountryChips selectedId={selection.countryId} onSelect={(id, opener) => openWith(() => selectCountry(id), opener)} />
       <div className="relative mt-4 overflow-hidden rounded-lg border border-surface-border bg-surface">
         {anchorId ? <span id={anchorId} aria-hidden="true" className="absolute left-0 top-0 scroll-mt-24" /> : null}
         {breadcrumb}
@@ -163,8 +167,8 @@ export function RegionsChapter() {
             selection={selection}
             inset={wide && drawerOpen}
             overlayTop={wide}
-            onSelectCountry={(id) => openWith(() => selectCountry(id))}
-            onSelectRegion={(id) => openWith(() => selectRegion(id))}
+            onSelectCountry={(id, opener) => openWith(() => selectCountry(id), opener)}
+            onSelectRegion={(id, opener) => openWith(() => selectRegion(id), opener)}
           />
         </Suspense>
         <Legend />

@@ -77,8 +77,7 @@ export function AdminPage() {
       if (id !== winesRequestId.current) return;
       setLoadMoreError(err instanceof ApiError ? err.message : "Failed to load more wines");
     } finally {
-      if (id !== winesRequestId.current) return;
-      setLoadingMore(false);
+      if (id === winesRequestId.current) setLoadingMore(false);
     }
   }
 

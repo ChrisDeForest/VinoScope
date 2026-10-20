@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -13,6 +13,12 @@ vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
   return { ...actual, getWine: vi.fn(), listWines: vi.fn() };
 });
+
+// The lazily loaded module is heavy; importing it once up front keeps its cold load (slow under a
+// busy full run) from eating into the first test's wait timeouts.
+beforeAll(async () => {
+  await import("../components/compare/CompareRadarChart");
+}, 30_000);
 
 const getWineMock = api.getWine as unknown as ReturnType<typeof vi.fn>;
 const listWinesMock = api.listWines as unknown as ReturnType<typeof vi.fn>;

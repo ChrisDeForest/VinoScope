@@ -161,13 +161,10 @@
   }
 }
 
-/* Wine Regions map. The zoom is a CSS transform on one <g>; strokes don't scale with it. */
+/* Wine Regions map. The zoom is a CSS transform on one <g>, animated frame by frame in RegionsMap;
+   strokes don't scale with it. */
 .map-zoom {
   transform-origin: 0 0;
-}
-
-.map-zoom-animate {
-  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .map-country {

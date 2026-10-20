@@ -3,6 +3,7 @@ import type { WineDetail, WineUpdatePayload } from "../../types/wine";
 import { updateWine } from "../../services/adminApi";
 import { ApiError } from "../../services/api";
 import { clearAdminKey } from "../../services/adminAuth";
+import { ComboBox } from "../common/ComboBox";
 
 const WINE_TYPES = ["red", "white", "rosé", "sparkling", "dessert", "fortified"];
 const RATING_DIMENSIONS = ["sweetness", "acidity", "tannin", "body", "fruitiness"] as const;
@@ -90,16 +91,14 @@ export function WineFieldsSection({
           className={inputClass}
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm text-ink-muted">
-        Type
-        <select value={form.type} onChange={(e) => update("type", e.target.value)} className={inputClass}>
-          {WINE_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ComboBox
+        id="admin-wine-type"
+        label="Type"
+        value={form.type}
+        options={WINE_TYPES.map((t) => ({ value: t, label: t }))}
+        onChange={(value) => update("type", value)}
+        searchable={false}
+      />
       <label className="flex flex-col gap-1 text-sm text-ink-muted">
         Country
         <input value={form.country} onChange={(e) => update("country", e.target.value)} className={inputClass} />

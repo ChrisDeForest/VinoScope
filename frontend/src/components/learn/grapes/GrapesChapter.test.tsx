@@ -3,7 +3,8 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import * as api from "../../../services/api";
-import { GrapesChapter, grapeIdFromHash } from "./GrapesChapter";
+import { GrapesChapter } from "./GrapesChapter";
+import { grapeIdFromHash } from "./grapeIds";
 
 vi.mock("../../../services/api", async () => {
   const actual = await vi.importActual<typeof import("../../../services/api")>("../../../services/api");

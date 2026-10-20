@@ -3,7 +3,7 @@ import type { GrapeContent } from "../../../content/learn/grapes";
 import { useReveal } from "../../../hooks/useReveal";
 import { GrapeArt } from "./GrapeArt";
 import { GrapeExploreLink } from "./GrapeExploreLink";
-import { GRAPE_PANEL_ID, grapeTabId } from "./GrapePicker";
+import { GRAPE_PANEL_ID, grapeTabId } from "./grapeIds";
 import { ProfileBars } from "./ProfileBars";
 import "../../home/home.css";
 import "../learn.css";

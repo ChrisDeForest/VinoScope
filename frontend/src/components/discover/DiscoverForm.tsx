@@ -3,6 +3,7 @@ import type { RecommendationAnswers } from "../../types/wine";
 import { TYPE_OPTIONS, TYPE_LABELS, COUNTRY_OPTIONS } from "../../constants/wineOptions";
 import { DIMENSIONS } from "../../utils/dimensionLabels";
 import { NumberStepperField } from "../common/NumberStepperField";
+import { ComboBox } from "../common/ComboBox";
 import { DimensionField } from "./DimensionField";
 import { priceRangeError } from "../../utils/priceRange";
 
@@ -34,41 +35,22 @@ export function DiscoverForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-xl">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="discover-type" className="text-sm text-ink-muted">
-          Wine type
-        </label>
-        <select
-          id="discover-type"
-          value={draft.type ?? ""}
-          onChange={(e) => update("type", e.target.value || undefined)}
-          className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-        >
-          {TYPE_OPTIONS.map((value) => (
-            <option key={value} value={value}>
-              {value === "" ? "No preference" : TYPE_LABELS[value]}
-            </option>
-          ))}
-        </select>
-      </div>
+      <ComboBox
+        id="discover-type"
+        label="Wine type"
+        value={draft.type ?? ""}
+        options={TYPE_OPTIONS.map((value) => ({ value, label: value === "" ? "No preference" : TYPE_LABELS[value] }))}
+        onChange={(value) => update("type", value || undefined)}
+        searchable={false}
+      />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="discover-country" className="text-sm text-ink-muted">
-          Country
-        </label>
-        <select
-          id="discover-country"
-          value={draft.country ?? ""}
-          onChange={(e) => update("country", e.target.value || undefined)}
-          className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-        >
-          {COUNTRY_OPTIONS.map((value) => (
-            <option key={value} value={value}>
-              {value === "" ? "No preference" : value}
-            </option>
-          ))}
-        </select>
-      </div>
+      <ComboBox
+        id="discover-country"
+        label="Country"
+        value={draft.country ?? ""}
+        options={COUNTRY_OPTIONS.map((value) => ({ value, label: value === "" ? "No preference" : value }))}
+        onChange={(value) => update("country", value || undefined)}
+      />
 
       <div className="flex gap-2">
         <NumberStepperField id="discover-min-price" label="Min price" value={draft.min_price} onChange={(value) => update("min_price", value)} />

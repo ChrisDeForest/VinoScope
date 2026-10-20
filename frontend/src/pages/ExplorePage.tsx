@@ -8,6 +8,7 @@ import { FilterDrawer } from "../components/explore/FilterDrawer";
 import { LoadMoreButton } from "../components/explore/LoadMoreButton";
 import { EmptyState } from "../components/explore/EmptyState";
 import { ErrorMessage } from "../components/common/ErrorMessage";
+import { ComboBox } from "../components/common/ComboBox";
 import { typeLabel } from "../constants/wineOptions";
 import { DIMENSIONS, DIMENSION_TITLES } from "../utils/dimensionLabels";
 import { describeTasteRange } from "../utils/tasteRange";
@@ -190,7 +191,6 @@ export function ExplorePage() {
         if (requestId !== primaryRequestId.current) return;
         setLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedFilters]);
 
   useEffect(() => {
@@ -246,8 +246,7 @@ export function ExplorePage() {
       if (requestId !== loadMoreRequestId.current) return;
       setLoadMoreError(err instanceof ApiError ? err.message : "Failed to load more wines");
     } finally {
-      if (requestId !== loadMoreRequestId.current) return;
-      setLoadingMore(false);
+      if (requestId === loadMoreRequestId.current) setLoadingMore(false);
     }
   }
 
@@ -329,41 +328,28 @@ export function ExplorePage() {
             className="w-full min-w-0 bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
           />
         </form>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="explore-sort" className="text-sm text-ink-muted">
-            Sort by
-          </label>
-          <select
-            id="explore-sort"
-            value={appliedFilters.sort}
-            onChange={(e) => handleSortChange(e.target.value as SortOption)}
-            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="explore-page-size" className="text-sm text-ink-muted">
-            Show
-          </label>
-          <select
-            id="explore-page-size"
-            value={String(pageSize)}
-            onChange={(e) => handlePageSizeChange(e.target.value === "all" ? "all" : Number(e.target.value))}
-            disabled={loading}
-            className="bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink disabled:opacity-60"
-          >
-            {PAGE_SIZE_OPTIONS.map((option) => (
-              <option key={option} value={String(option)}>
-                {option === "all" ? (total > 0 ? `All (${total})` : "All") : option}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ComboBox
+          id="explore-sort"
+          label="Sort by"
+          value={appliedFilters.sort}
+          options={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+          onChange={(value) => handleSortChange(value as SortOption)}
+          searchable={false}
+          className="w-44"
+        />
+        <ComboBox
+          id="explore-page-size"
+          label="Show"
+          value={String(pageSize)}
+          options={PAGE_SIZE_OPTIONS.map((option) => ({
+            value: String(option),
+            label: option === "all" ? (total > 0 ? `All (${total})` : "All") : String(option),
+          }))}
+          onChange={(value) => handlePageSizeChange(value === "all" ? "all" : Number(value))}
+          searchable={false}
+          disabled={loading}
+          className="w-28"
+        />
       </div>
 
       {activeChips.length > 0 ? (

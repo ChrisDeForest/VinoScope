@@ -140,7 +140,7 @@ describe("ExplorePage", () => {
     await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
 
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Sort by"), "price_asc");
+    await chooseOption(user, screen.getByLabelText("Sort by"), "Price: Low to High");
     await waitFor(() =>
       expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "price_asc" }))
     );
@@ -335,7 +335,7 @@ describe("ExplorePage", () => {
     await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
 
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Show"), "48");
+    await chooseOption(user, screen.getByLabelText("Show"), "48");
     await waitFor(() => expect(screen.getByText("Showing 48 of 200")).toBeInTheDocument());
     expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 12, limit: 36 }));
 
@@ -349,7 +349,7 @@ describe("ExplorePage", () => {
     renderExplore();
     await waitFor(() => expect(screen.getByText("Showing 12 of 230")).toBeInTheDocument());
 
-    await userEvent.setup().selectOptions(screen.getByLabelText("Show"), "all");
+    await chooseOption(userEvent.setup(), screen.getByLabelText("Show"), /^All/);
     await waitFor(() => expect(screen.getByText("Showing 230 of 230")).toBeInTheDocument());
     for (const call of listWinesMock.mock.calls) expect(call[0].limit).toBeLessThanOrEqual(100);
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
@@ -360,11 +360,11 @@ describe("ExplorePage", () => {
     renderExplore();
     await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Show"), "48");
+    await chooseOption(user, screen.getByLabelText("Show"), "48");
     await waitFor(() => expect(screen.getByText("Showing 48 of 200")).toBeInTheDocument());
 
     listWinesMock.mockClear();
-    await user.selectOptions(screen.getByLabelText("Show"), "24");
+    await chooseOption(user, screen.getByLabelText("Show"), "24");
     expect(screen.getByText("Showing 24 of 200")).toBeInTheDocument();
     expect(screen.queryByText("Wine 25")).not.toBeInTheDocument();
     expect(listWinesMock).not.toHaveBeenCalled();
@@ -410,7 +410,7 @@ describe("ExplorePage", () => {
         items: Array.from({ length: count }, (_, i) => makeWine(2000 + params.offset + i, { type: "white" })),
       });
     });
-    await user.selectOptions(screen.getByLabelText("Show"), "48");
+    await chooseOption(user, screen.getByLabelText("Show"), "48");
 
     // The list must land on exactly the chosen, contiguous size -- no gap.
     await waitFor(() => expect(screen.getByText("Showing 48 of 200")).toBeInTheDocument());
@@ -424,7 +424,7 @@ describe("ExplorePage", () => {
     catalogue(200);
     const { unmount } = renderExplore();
     await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
-    await userEvent.setup().selectOptions(screen.getByLabelText("Show"), "24");
+    await chooseOption(userEvent.setup(), screen.getByLabelText("Show"), "24");
     await waitFor(() => expect(screen.getByText("Showing 24 of 200")).toBeInTheDocument());
     unmount();
 

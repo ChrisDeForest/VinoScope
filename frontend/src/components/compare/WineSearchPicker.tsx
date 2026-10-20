@@ -35,8 +35,7 @@ export function WineSearchPicker({
       if (requestId !== requestIdRef.current) return;
       setError(err instanceof ApiError ? err.message : "Failed to search wines");
     } finally {
-      if (requestId !== requestIdRef.current) return;
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }
 

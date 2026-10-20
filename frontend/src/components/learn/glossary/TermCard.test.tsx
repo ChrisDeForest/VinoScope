@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { termById } from "../../../content/learn/glossary";
-import { TermCard, exploreHref, termCardId, termHeadingId } from "./TermCard";
+import { TermCard } from "./TermCard";
+import { exploreHref, termCardId, termHeadingId } from "./termLinks";
 
 function renderCard(id: string, flash = false, onJump = vi.fn()) {
   render(

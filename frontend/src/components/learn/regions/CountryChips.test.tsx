@@ -28,7 +28,9 @@ describe("CountryChips", () => {
   it("selects on click", async () => {
     const onSelect = vi.fn();
     render(<CountryChips selectedId={null} onSelect={onSelect} />);
-    await userEvent.click(screen.getByRole("button", { name: "New Zealand" }));
-    expect(onSelect).toHaveBeenCalledWith("new-zealand");
+    const chip = screen.getByRole("button", { name: "New Zealand" });
+    await userEvent.click(chip);
+    // The chip itself is passed along so focus can return to it, even where clicks don't focus buttons.
+    expect(onSelect).toHaveBeenCalledWith("new-zealand", chip);
   });
 });

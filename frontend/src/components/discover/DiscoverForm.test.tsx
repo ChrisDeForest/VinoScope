@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DiscoverForm } from "./DiscoverForm";
+import { chooseOption } from "../../test/combobox";
 
 describe("DiscoverForm", () => {
   it("steps prices without going below zero or submitting the form", async () => {
@@ -33,7 +34,7 @@ describe("DiscoverForm", () => {
   });
   it("pre-fills from initialAnswers", () => {
     render(<DiscoverForm initialAnswers={{ type: "red", sweetness: 1 }} onSubmit={vi.fn()} />);
-    expect(screen.getByLabelText("Wine type")).toHaveValue("red");
+    expect(screen.getByLabelText("Wine type")).toHaveValue("Red");
     expect(screen.getByLabelText("Very dry")).toBeChecked();
   });
 
@@ -42,7 +43,7 @@ describe("DiscoverForm", () => {
     const user = userEvent.setup();
     render(<DiscoverForm initialAnswers={{}} onSubmit={onSubmit} />);
 
-    await user.selectOptions(screen.getByLabelText("Wine type"), "red");
+    await chooseOption(user, screen.getByLabelText("Wine type"), "Red");
     await user.click(screen.getByLabelText("High tannin"));
     await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
 

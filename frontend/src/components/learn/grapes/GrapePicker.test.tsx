@@ -3,7 +3,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { GRAPES } from "../../../content/learn/grapes";
-import { GRAPE_PANEL_ID, GrapePicker } from "./GrapePicker";
+import { GrapePicker } from "./GrapePicker";
+import { GRAPE_PANEL_ID } from "./grapeIds";
 
 function Harness({ initial = "cabernet-sauvignon", onSelect = vi.fn() }: { initial?: string; onSelect?: (id: string) => void }) {
   const [selected, setSelected] = useState(initial);

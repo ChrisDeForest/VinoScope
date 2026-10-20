@@ -50,6 +50,8 @@ export function LearnPage() {
     USER_INPUT_EVENTS.forEach((type) => window.addEventListener(type, stop, { passive: true }));
     observer.observe(page);
     return stop;
+    // Only the hash the page was opened with is scrolled to; later hash changes are in-page navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

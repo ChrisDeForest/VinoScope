@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { ExploreScene, pickWines } from "./ExploreScene";
+import { ExploreScene } from "./ExploreScene";
+import { pickWines } from "./pickWines";
 import * as api from "../../../services/api";
 import type { WineListItem } from "../../../types/wine";
 import type { ListWinesParams, WineListResponse } from "../../../types/wine";

@@ -31,6 +31,7 @@ export function ComboBox({
   options,
   onChange,
   searchable = true,
+  disabled = false,
   className = "",
 }: {
   id: string;
@@ -39,6 +40,7 @@ export function ComboBox({
   options: ComboBoxOption[];
   onChange: (value: string) => void;
   searchable?: boolean;
+  disabled?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -61,6 +63,12 @@ export function ComboBox({
     if (list && option) keepInView(list, option);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, open, shown]);
+
+  useEffect(() => {
+    if (!disabled) return;
+    setOpen(false);
+    setQuery("");
+  }, [disabled]);
 
   useEffect(() => {
     // Bring the whole list into view (scrolling the drawer if needed) instead of flipping it upward.
@@ -172,6 +180,7 @@ export function ComboBox({
           aria-activedescendant={open && shown[active] ? optionId(active) : undefined}
           autoComplete="off"
           readOnly={!searchable}
+          disabled={disabled}
           value={open && searchable ? query : selected?.label ?? value}
           placeholder={selected?.label ?? value}
           onChange={(event) => {
@@ -184,7 +193,7 @@ export function ComboBox({
           onMouseDown={() => (open && !searchable ? close() : !open && openList())}
           onKeyDown={handleKeyDown}
           onBlur={close}
-          className={`w-full min-w-0 rounded border border-surface-border bg-surface-raised py-1 pl-2 pr-8 text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none ${searchable ? "" : "cursor-pointer"}`}
+          className={`w-full min-w-0 rounded border border-surface-border bg-surface-raised py-1 pl-2 pr-8 text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${searchable ? "" : "cursor-pointer"}`}
         />
         <svg aria-hidden="true" viewBox="0 0 20 20" className={`pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-accent transition-transform ${open ? "rotate-180" : ""}`}>
           <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

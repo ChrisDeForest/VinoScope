@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { feature } from "topojson-client";
+import { feature, neighbors } from "topojson-client";
 import { topology } from "topojson-server";
 
 const require = createRequire(import.meta.url);
@@ -52,9 +52,21 @@ const detail = WINE_COUNTRIES.map((name) => {
   if (!match) throw new Error(`world-atlas has no 50m outline named "${name}"`);
   return slim(match);
 });
+// Countries sharing a land border with a wine country get the same 50m outline, so the borders
+// seen when zoomed into a wine country line up exactly.
+const fineGeometries = fine.objects.countries.geometries;
+const adjacency = neighbors(fineGeometries);
+const nearNames = new Set();
+fineGeometries.forEach((geometry, i) => {
+  if (WINE_COUNTRIES.includes(geometry.properties.name)) adjacency[i].forEach((j) => nearNames.add(fineGeometries[j].properties.name));
+});
+WINE_COUNTRIES.forEach((name) => nearNames.delete(name));
+const near = fineFeatures.filter((f) => nearNames.has(f.properties.name)).map(slim);
 const states = feature(us, us.objects.states).features.filter((f) => !NOT_LOWER_48.has(f.properties.name)).map(slim);
 
-// 1e4 quantization keeps the file under ~350 KB and is still crisp at the map's 12x maximum zoom.
-const topo = topology({ world: collection(world), detail: collection(detail), states: collection(states) }, 1e4);
-writeFileSync(OUT, JSON.stringify(topo));
-console.log(`wrote ${OUT}: ${world.length} countries, ${detail.length} detailed, ${states.length} states`);
+// Two topologies: the world view and US states are only seen at low zoom, so 1e4 quantization is
+// plenty; the wine countries and their neighbors are zoomed into deeply (up to ~100x), so they get 1e5.
+const coarseTopo = topology({ world: collection(world), states: collection(states) }, 1e4);
+const fineTopo = topology({ detail: collection(detail), near: collection(near) }, 1e5);
+writeFileSync(OUT, JSON.stringify({ coarse: coarseTopo, fine: fineTopo }));
+console.log(`wrote ${OUT}: ${world.length} countries, ${detail.length} detailed, ${near.length} neighbors, ${states.length} states`);
