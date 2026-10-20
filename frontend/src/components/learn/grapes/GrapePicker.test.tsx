@@ -99,4 +99,19 @@ describe("GrapePicker", () => {
       expect(label).toHaveAttribute("aria-hidden", "true");
     }
   });
+
+  it("puts the whites in their own section after the reds", () => {
+    render(<Harness />);
+    const redRow = screen.getByText("Reds").parentElement!;
+    const whiteRow = screen.getByText("Whites").parentElement!;
+    expect(redRow).not.toBe(whiteRow);
+    expect(within(redRow).getAllByRole("tab")).toHaveLength(10);
+    expect(within(whiteRow).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "Chardonnay",
+      "Sauvignon Blanc",
+      "Riesling",
+      "Sémillon",
+      "Moscato / Muscat",
+    ]);
+  });
 });
