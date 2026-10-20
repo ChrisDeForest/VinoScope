@@ -101,6 +101,33 @@ describe("Header", () => {
       expect(button).toHaveAttribute("aria-expanded", "false");
     });
 
+    it("closes when tapping outside the card but not inside it", async () => {
+      const user = userEvent.setup();
+      renderHeader();
+      const button = screen.getByRole("button", { name: "Menu" });
+      await user.click(button);
+      const panel = document.getElementById(button.getAttribute("aria-controls") as string) as HTMLElement;
+      await user.click(panel);
+      expect(button).toHaveAttribute("aria-expanded", "true");
+      await user.click(document.body);
+      expect(button).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("marks the current page in the card", async () => {
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter initialEntries={["/pair"]}>
+          <Header />
+        </MemoryRouter>
+      );
+      await user.click(screen.getByRole("button", { name: "Menu" }));
+      const panel = document.getElementById("mobile-menu") as HTMLElement;
+      const current = within(panel).getByRole("link", { name: "Pair" });
+      expect(current).toHaveAttribute("aria-current", "page");
+      expect(current).toHaveClass("text-accent", "bg-surface");
+      expect(within(panel).getByRole("link", { name: "Explore" })).not.toHaveClass("text-accent");
+    });
+
     it("closes when a link inside the panel is clicked", async () => {
       const user = userEvent.setup();
       renderHeader();
@@ -140,7 +167,7 @@ describe("Header", () => {
       const controlsId = screen.getByRole("button", { name: "Menu" }).getAttribute("aria-controls") as string;
       const panel = document.getElementById(controlsId) as HTMLElement;
       expect(panel).not.toHaveAttribute("hidden");
-      expect(panel).toHaveClass("bg-surface");
+      expect(panel).toHaveClass("bg-surface-raised");
     });
 
     it("closes the panel when the viewport crosses to >= 768px (M3)", async () => {

@@ -24,7 +24,7 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
   // of its own, so it's treated like "scrolled past" and rendered solid.
   const isOverlay = fixed && overlay && !menuOpen;
   const headerClass = !fixed
-    ? "border-b border-surface-border"
+    ? "relative border-b border-surface-border"
     : isOverlay
       ? "fixed inset-x-0 top-0 z-20 motion-safe:transition-colors"
       : "fixed inset-x-0 top-0 z-20 bg-surface backdrop-blur border-b border-surface-border motion-safe:transition-colors";
@@ -65,6 +65,18 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen]);
+
+  // The menu is a floating card, so a tap anywhere outside it closes it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (panelRef.current?.contains(target) || buttonRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [menuOpen]);
 
   function closeMenu() {
@@ -109,20 +121,39 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
         </div>
       </div>
 
-      <div ref={panelRef} id={MOBILE_MENU_ID} hidden={!menuOpen} className="md:hidden px-4 pb-4 bg-surface">
-        <nav className="flex flex-col gap-3 text-sm">
+      <div
+        ref={panelRef}
+        id={MOBILE_MENU_ID}
+        hidden={!menuOpen}
+        className="md:hidden absolute right-4 top-full z-30 mt-2 w-56 rounded-xl border border-surface-border bg-surface-raised p-1.5 shadow-xl"
+      >
+        <nav className="flex flex-col">
           {NAV_LINKS.map((link) => (
-            <NavLink key={link.to} to={link.to} onClick={closeMenu} className={navLinkClass}>
-              {link.label}
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] motion-safe:transition-colors ${
+                  isActive ? "bg-surface text-accent" : "text-ink hover:bg-surface"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+                  {link.label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
-        <div className="flex items-center justify-between gap-3 pt-3">
-          <ThemeSwitcher variant={isOverlay ? "overlay" : "default"} />
+        <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-surface-border px-1.5 pb-1 pt-2.5">
+          <ThemeSwitcher />
           <NavLink
             to="/admin"
             onClick={closeMenu}
-            className={({ isActive }) => `text-sm ${isActive ? "text-accent" : idleLinkClass}`}
+            className={({ isActive }) => `text-sm ${isActive ? "text-accent" : "text-ink-muted hover:text-ink"}`}
           >
             Admin
           </NavLink>
