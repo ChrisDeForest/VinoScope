@@ -387,7 +387,7 @@ export function ExplorePage() {
         </div>
       ) : null}
 
-      {loading ? (
+      {loading && items.length === 0 ? (
         <WineGrid wines={[]} skeletonCount={pageSize === "all" ? DEFAULT_PAGE_SIZE : pageSize} />
       ) : error ? (
         <ErrorMessage
@@ -397,14 +397,20 @@ export function ExplorePage() {
       ) : items.length === 0 ? (
         <EmptyState onClear={handleClearFilters} />
       ) : (
-        <>
+        // While new filters load, the current wines stay and gently dim instead of flashing to
+        // skeletons; the short delay keeps quick responses from dimming at all.
+        <div
+          aria-busy={loading}
+          data-testid="explore-results"
+          className={`flex flex-col gap-6 transition-opacity duration-200 motion-reduce:transition-none ${loading ? "pointer-events-none opacity-50 delay-150" : "opacity-100"}`}
+        >
           <p className="text-sm text-ink-muted">
             Showing {items.length} of {total}
           </p>
           <WineGrid wines={items} />
           {loadMoreError ? <ErrorMessage message={loadMoreError} onRetry={handleLoadMore} /> : null}
           {hasMore ? <LoadMoreButton onClick={handleLoadMore} loading={loadingMore} /> : null}
-        </>
+        </div>
       )}
 
       <FilterDrawer

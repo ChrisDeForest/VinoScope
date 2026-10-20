@@ -30,6 +30,38 @@ describe("useInView", () => {
     expect(screen.getByTestId("probe")).toHaveAttribute("data-in-view", "false");
   });
 
+  it("waits until half of the element is on screen", () => {
+    const { fire } = stubIntersectionObserver();
+    render(<Probe />);
+    fire(0, true, 0, 0.4);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-in-view", "false");
+    fire(0, true, 0, 0.5);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-in-view", "true");
+  });
+
+  it("counts an element taller than the screen once it fills half of the screen", () => {
+    const { instances } = stubIntersectionObserver();
+    render(<Probe />);
+    const deliver = (visibleHeight: number) =>
+      act(() => {
+        instances[0].callback(
+          [
+            {
+              isIntersecting: true,
+              intersectionRatio: visibleHeight / 2000,
+              intersectionRect: { height: visibleHeight } as DOMRect,
+              rootBounds: { height: 800 } as DOMRect,
+            } as IntersectionObserverEntry,
+          ],
+          instances[0] as unknown as IntersectionObserver
+        );
+      });
+    deliver(300);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-in-view", "false");
+    deliver(400);
+    expect(screen.getByTestId("probe")).toHaveAttribute("data-in-view", "true");
+  });
+
   it("stays true and disconnects after intersecting", () => {
     const { instances, fire } = stubIntersectionObserver();
     render(<Probe />);

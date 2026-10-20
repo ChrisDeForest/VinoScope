@@ -6,6 +6,7 @@ import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router-dom
 import { ExplorePage } from "./ExplorePage";
 import * as api from "../services/api";
 import type { WineListItem } from "../types/wine";
+import { chooseOption } from "../test/combobox";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
@@ -89,7 +90,7 @@ describe("ExplorePage", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
-    await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
+    await chooseOption(user, within(dialog).getByLabelText("Type"), "White");
     await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
 
     await waitFor(() => expect(screen.getByTestId("location").textContent).toContain("type=white"));
@@ -212,7 +213,7 @@ describe("ExplorePage", () => {
     await user.click(screen.getByRole("button", { name: /^filters/i }));
 
     const dialog = screen.getByRole("dialog", { name: "Filters" });
-    await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
+    await chooseOption(user, within(dialog).getByLabelText("Type"), "White");
     await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
 
     await waitFor(() =>
@@ -250,7 +251,7 @@ describe("ExplorePage", () => {
 
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
-    await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
+    await chooseOption(user, within(dialog).getByLabelText("Type"), "White");
     await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
     await waitFor(() => expect(screen.getByText("Wine 3")).toBeInTheDocument());
 
@@ -279,7 +280,7 @@ describe("ExplorePage", () => {
     await user.click(screen.getByRole("button", { name: "Load more" }));
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
-    await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
+    await chooseOption(user, within(dialog).getByLabelText("Type"), "White");
     await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
     await waitFor(() => expect(screen.getByText("Wine 3")).toBeInTheDocument());
 
@@ -385,12 +386,15 @@ describe("ExplorePage", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog", { name: "Filters" });
-    await user.selectOptions(within(dialog).getByLabelText("Type"), "white");
+    await chooseOption(user, within(dialog).getByLabelText("Type"), "White");
     await user.click(within(dialog).getByRole("button", { name: /^Apply/ }));
 
     // The filter-B fetch is still pending (deferred): Show must be disabled so
     // it can't be changed against the stale items/total from filters A.
     expect(screen.getByLabelText("Show")).toBeDisabled();
+    // The previous wines stay on screen (dimmed) instead of flashing to skeletons.
+    expect(screen.getByTestId("explore-results")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument();
 
     pendingFilterB.resolve({
       total: 200,

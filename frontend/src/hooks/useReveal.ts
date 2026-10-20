@@ -3,7 +3,7 @@ import { useInView } from "./useInView";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 // Let an element settle on screen before it animates, so the motion isn't over before the eye arrives.
-export const REVEAL_DELAY_MS = 400;
+export const REVEAL_DELAY_MS = 200;
 
 /**
  * Classes for the shared reveal contract in `components/home/home.css`:

@@ -63,9 +63,9 @@ export interface StubIntersectionObserverResult {
   /**
    * Invokes the callback of `instances[index]` with a single entry, wrapped
    * in `act()`. `top` defaults to 0 for tests that only care about
-   * `isIntersecting`.
+   * `isIntersecting`; `ratio` (the visible share) defaults to fully in or out.
    */
-  fire: (index: number, isIntersecting: boolean, top?: number) => void;
+  fire: (index: number, isIntersecting: boolean, top?: number, ratio?: number) => void;
 }
 
 /** Stubs the global `IntersectionObserver` with a fake that records instances. */
@@ -87,10 +87,10 @@ export function stubIntersectionObserver(): StubIntersectionObserverResult {
 
   vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
 
-  function fire(index: number, isIntersecting: boolean, top = 0): void {
+  function fire(index: number, isIntersecting: boolean, top = 0, ratio = isIntersecting ? 1 : 0): void {
     act(() => {
       instances[index].callback(
-        [{ isIntersecting, boundingClientRect: { top } as DOMRect } as IntersectionObserverEntry],
+        [{ isIntersecting, intersectionRatio: ratio, boundingClientRect: { top } as DOMRect, intersectionRect: { height: 0 } as DOMRect, rootBounds: null } as IntersectionObserverEntry],
         instances[index] as unknown as IntersectionObserver
       );
     });

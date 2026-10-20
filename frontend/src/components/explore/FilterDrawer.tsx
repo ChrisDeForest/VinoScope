@@ -7,6 +7,7 @@ import { DIMENSIONS } from "../../utils/dimensionLabels";
 import { useWineFacets } from "../../hooks/useWineFacets";
 import { NumberStepperField } from "../common/NumberStepperField";
 import { TasteRangeField } from "./TasteRangeField";
+import { ComboBox, type ComboBoxOption } from "../common/ComboBox";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -42,6 +43,15 @@ function validate(draft: FilterValues): string | null {
   );
 }
 
+/** True when some scroller between `target` and `boundary` can still move in the wheel's direction. */
+function canScrollWithin(target: EventTarget | null, boundary: HTMLElement, deltaY: number): boolean {
+  for (let node = target instanceof Element ? target : null; node && node !== boundary; node = node.parentElement) {
+    if (!/(auto|scroll)/.test(getComputedStyle(node).overflowY) || node.scrollHeight <= node.clientHeight) continue;
+    if (deltaY < 0 ? node.scrollTop > 0 : node.scrollTop + node.clientHeight < node.scrollHeight - 1) return true;
+  }
+  return false;
+}
+
 function FilterGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="flex min-w-0 flex-col gap-3">
@@ -68,6 +78,7 @@ export function FilterDrawer({
   const [validationError, setValidationError] = useState<string | null>(null);
   const { facets, fromCatalog } = useWineFacets(open);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
@@ -90,13 +101,21 @@ export function FilterDrawer({
     const focusable = dialog?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
     focusable?.[0]?.focus();
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
+    // Listened for on the document so Escape works even after a click on blank space drops focus;
+    // a dropdown that used the Escape to close its own list marks it with preventDefault.
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      onCloseRef.current();
+    }
 
+    // Scrolling over the panel never moves the page behind it, even at either end of the list.
+    const panel = panelRef.current;
+    function handleWheel(event: WheelEvent) {
+      if (panel && !canScrollWithin(event.target, panel, event.deltaY)) event.preventDefault();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Tab" || !dialog) return;
 
       const controls = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
@@ -114,8 +133,12 @@ export function FilterDrawer({
     }
 
     dialog?.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleEscape);
+    panel?.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       dialog?.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleEscape);
+      panel?.removeEventListener("wheel", handleWheel);
       previousActiveElementRef.current?.focus();
       previousActiveElementRef.current = null;
     };
@@ -143,11 +166,22 @@ export function FilterDrawer({
     ? facets.countries.filter((entry) => entry.name === draft.country)
     : facets.countries.filter((entry) => entry.regions.length > 0);
   const knownRegions = regionGroups.flatMap((entry) => entry.regions);
+  const typeOptions: ComboBoxOption[] = [{ value: "", label: "All types" }, ...typeValues.map((value) => ({ value, label: typeLabel(value) }))];
+  const countryOptions: ComboBoxOption[] = [{ value: "", label: "All countries" }, ...countryNames.map((name) => ({ value: name, label: name }))];
+  const regionOptions: ComboBoxOption[] = [
+    { value: "", label: "All regions" },
+    ...(draft.region && !knownRegions.includes(draft.region) ? [{ value: draft.region, label: draft.region }] : []),
+    ...regionGroups.flatMap((entry) =>
+      entry.regions.map((region) => ({ value: region, label: region, group: draft.country ? undefined : entry.name }))
+    ),
+  ];
+  const sortOptions: ComboBoxOption[] = SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }));
   const years = yearOptions(
     facets.vintage.min ?? FALLBACK_FIRST_YEAR,
     facets.vintage.max ?? new Date().getFullYear(),
     [draft.vintageFrom, draft.vintageTo]
   );
+  const yearChoices: ComboBoxOption[] = [{ value: "", label: "Any" }, ...years.map((year) => ({ value: year, label: year }))];
   const activeCount = countActiveFilters(draft);
 
   return (
@@ -157,8 +191,12 @@ export function FilterDrawer({
       role="dialog"
       aria-modal="true"
       aria-labelledby="filters-title"
+      onMouseDown={(event) => {
+        // A press on the dimmed backdrop (not inside the panel) closes the drawer.
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <div className="flex h-full w-full max-w-sm min-w-0 flex-col border-l border-surface-border bg-surface">
+      <div ref={panelRef} className="flex h-full w-full max-w-sm min-w-0 flex-col border-l border-surface-border bg-surface">
         <div className="flex items-center justify-between p-4 pb-3">
           <h2 id="filters-title" className="font-serif text-lg text-ink">
             Filters
@@ -168,23 +206,13 @@ export function FilterDrawer({
           </button>
         </div>
 
-        <div data-testid="filter-drawer-body" className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
+        <div data-testid="filter-drawer-body" className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-4 pb-4">
           <FilterGroup id="filters-find" title="Find">
             <div className={LABELLED}>
               <label htmlFor="filter-search">Search</label>
               <input id="filter-search" type="text" value={draft.q} onChange={(e) => update("q", e.target.value)} placeholder="Wine or winery name" className={FIELD} />
             </div>
-            <div className={LABELLED}>
-              <label htmlFor="filter-type">Type</label>
-              <select id="filter-type" value={draft.type} onChange={(e) => update("type", e.target.value)} className={FIELD}>
-                <option value="">All types</option>
-                {typeValues.map((value) => (
-                  <option key={value} value={value}>
-                    {typeLabel(value)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <ComboBox id="filter-type" label="Type" value={draft.type} options={typeOptions} onChange={(value) => update("type", value)} searchable={false} />
             <div className={LABELLED}>
               <label htmlFor="filter-grape">Grape</label>
               <input id="filter-grape" type="text" value={draft.grape} onChange={(e) => update("grape", e.target.value)} placeholder="e.g. cabernet" className={FIELD} />
@@ -192,43 +220,15 @@ export function FilterDrawer({
           </FilterGroup>
 
           <FilterGroup id="filters-origin" title="Origin">
-            <div className={LABELLED}>
-              <label htmlFor="filter-country">Country</label>
-              <select id="filter-country" value={draft.country} onChange={(e) => changeCountry(e.target.value)} className={FIELD}>
-                <option value="">All countries</option>
-                {countryNames.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={LABELLED}>
-              <label htmlFor="filter-region">Region</label>
-              {fromCatalog ? (
-                <select id="filter-region" value={draft.region} onChange={(e) => update("region", e.target.value)} className={FIELD}>
-                  <option value="">All regions</option>
-                  {draft.region && !knownRegions.includes(draft.region) ? <option value={draft.region}>{draft.region}</option> : null}
-                  {draft.country
-                    ? knownRegions.map((region) => (
-                        <option key={region} value={region}>
-                          {region}
-                        </option>
-                      ))
-                    : regionGroups.map((entry) => (
-                        <optgroup key={entry.name} label={entry.name}>
-                          {entry.regions.map((region) => (
-                            <option key={region} value={region}>
-                              {region}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                </select>
-              ) : (
-                <input id="filter-region" type="text" value={draft.region} onChange={(e) => update("region", e.target.value)} placeholder="e.g. Bordeaux" className={FIELD} />
-              )}
-            </div>
+            <ComboBox id="filter-country" label="Country" value={draft.country} options={countryOptions} onChange={changeCountry} />
+            {fromCatalog ? (
+              <ComboBox id="filter-region" label="Region" value={draft.region} options={regionOptions} onChange={(value) => update("region", value)} />
+            ) : (
+              <div className={LABELLED}>
+                <label htmlFor="filter-region">Region</label>
+  <input id="filter-region" type="text" value={draft.region} onChange={(e) => update("region", e.target.value)} placeholder="e.g. Bordeaux" className={FIELD} />
+              </div>
+            )}
           </FilterGroup>
 
           <FilterGroup id="filters-price" title="Price & alcohol">
@@ -245,17 +245,15 @@ export function FilterDrawer({
           <FilterGroup id="filters-vintage" title="Vintage">
             <div className="flex gap-2 min-w-0">
               {(["vintageFrom", "vintageTo"] as const).map((key) => (
-                <div key={key} className={`${LABELLED} min-w-0 flex-1`}>
-                  <label htmlFor={`filter-${key}`}>{key === "vintageFrom" ? "Vintage from" : "Vintage to"}</label>
-                  <select id={`filter-${key}`} value={draft[key]} onChange={(e) => update(key, e.target.value)} className={FIELD}>
-                    <option value="">Any</option>
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <ComboBox
+                  key={key}
+                  id={`filter-${key}`}
+                  label={key === "vintageFrom" ? "Vintage from" : "Vintage to"}
+                  value={draft[key]}
+                  options={yearChoices}
+                  onChange={(value) => update(key, value)}
+                  className="flex-1"
+                />
               ))}
             </div>
             <label className="flex items-center gap-2 text-sm text-ink">
@@ -276,16 +274,7 @@ export function FilterDrawer({
           </FilterGroup>
 
           <FilterGroup id="filters-sort" title="Sort">
-            <div className={LABELLED}>
-              <label htmlFor="filter-sort">Sort by</label>
-              <select id="filter-sort" value={draft.sort} onChange={(e) => update("sort", e.target.value as SortOption)} className={FIELD}>
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <ComboBox id="filter-sort" label="Sort by" value={draft.sort} options={sortOptions} onChange={(value) => update("sort", value as SortOption)} searchable={false} />
           </FilterGroup>
         </div>
 
