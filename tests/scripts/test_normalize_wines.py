@@ -143,3 +143,27 @@ def test_normalize_csv_preserves_integer_vintage_when_other_rows_have_blank_vint
     out_df = pd.read_csv(output_csv, dtype=str)
     assert out_df.loc[0, "vintage"] == "2022"
     assert pd.isna(out_df.loc[1, "vintage"])
+
+
+def test_normalize_csv_carries_availability_column_when_present(tmp_path):
+    header = (
+        "name,winery,vintage,grape,grape_pct,type,country,region,subregion,"
+        "abv,price,currency,sweetness,acidity,tannin,body,fruitiness,"
+        "description,image_url,source_site,source_url,source_product_id"
+    )
+    row = (
+        "Review Red,Some Winery,2020,Merlot,,red,France,Bordeaux,,13.5,28.00,"
+        "USD,1,3,3,3,3,Ripe plum,,Wine Review Online,https://example.com/review,"
+    )
+    with_column = tmp_path / "with.csv"
+    with_column.write_text(f"{header},availability\n{row},unavailable\n{row.replace('Review Red', 'Shop Red')},\n")
+    without_column = tmp_path / "without.csv"
+    without_column.write_text(f"{header}\n{row}\n")
+
+    normalize_csv(str(with_column), str(tmp_path / "with_out.csv"))
+    normalize_csv(str(without_column), str(tmp_path / "without_out.csv"))
+
+    with_df = pd.read_csv(tmp_path / "with_out.csv", dtype=str)
+    assert with_df.loc[0, "availability"] == "unavailable"
+    assert pd.isna(with_df.loc[1, "availability"])
+    assert "availability" not in pd.read_csv(tmp_path / "without_out.csv", dtype=str).columns

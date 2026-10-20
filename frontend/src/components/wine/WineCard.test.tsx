@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { WineCard } from "./WineCard";
 import type { WineListItem } from "../../types/wine";
 
@@ -66,6 +66,40 @@ describe("WineCard", () => {
   it("links to the wine's detail page", () => {
     renderCard(baseWine);
     expect(screen.getByRole("link")).toHaveAttribute("href", "/wines/1");
+  });
+
+  function renderRoutedCard() {
+    render(
+      <MemoryRouter initialEntries={["/explore"]}>
+        <Routes>
+          <Route path="/explore" element={<WineCard wine={baseWine} />} />
+          <Route path="/wines/:id" element={<p>Detail page</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+
+  it("opens the wine when any part of the card is clicked", async () => {
+    renderRoutedCard();
+    await userEvent.click(screen.getByText("Napa Valley, United States"));
+    expect(screen.getByText("Detail page")).toBeInTheDocument();
+  });
+
+  it("keeps the card open when the click ends a text selection", () => {
+    renderRoutedCard();
+    const text = screen.getByText("Napa Valley, United States");
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+    fireEvent.click(text);
+    expect(screen.queryByText("Detail page")).not.toBeInTheDocument();
+    window.getSelection()!.removeAllRanges();
+  });
+
+  it("lets the name be drag-selected instead of dragged as a link", () => {
+    renderCard(baseWine);
+    expect(screen.getByRole("link")).toHaveAttribute("draggable", "false");
   });
 
   it("shows 'Price unavailable' when price is null", () => {

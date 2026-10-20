@@ -105,6 +105,10 @@ def normalize_row(row):
 def normalize_csv(input_path, output_path):
     df = pd.read_csv(input_path, dtype=str)
     rows = [normalize_row(row) for _, row in df.iterrows()]
+    # Optional column read by import_wines; carried through only when present.
+    if "availability" in df.columns:
+        for out_row, (_, row) in zip(rows, df.iterrows()):
+            out_row["availability"] = clean_text(row.get("availability"))
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)

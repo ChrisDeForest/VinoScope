@@ -109,6 +109,12 @@ describe("ComparePage", () => {
     expect(screen.getByText("Add at least 2 wines to compare.")).toBeInTheDocument();
   });
 
+  it("points an empty comparison at Explore to find wines", () => {
+    renderPage(["/compare"]);
+    expect(screen.getByText("You haven't added any wines yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Explore wines to add" })).toHaveAttribute("href", "/explore");
+  });
+
   it("reuses recently loaded details when returning to Compare", async () => {
     getWineMock.mockResolvedValue(makeWine(12));
     const first = renderPage(["/compare?wines=12"]);

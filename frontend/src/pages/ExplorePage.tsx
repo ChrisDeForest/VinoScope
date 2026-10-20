@@ -23,6 +23,7 @@ import {
   type FilterValues,
 } from "../components/explore/filterTypes";
 import { readPageState, writePageState } from "../utils/pageState";
+import { PENDING_IMAGE_SLUGS, isPendingReview } from "../constants/pendingReview";
 
 const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: string) => string }[] = [
   { key: "q", name: "search", describe: (value) => `Search: "${value}"` },
@@ -46,8 +47,11 @@ const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: st
 
 type PageSize = number | "all";
 
-const PAGE_SIZE_OPTIONS: PageSize[] = [12, 24, 48, 96, "all"];
+const PAGE_SIZE_OPTIONS: PageSize[] = [12, 24, 48, 96, 200, "all"];
 const DEFAULT_PAGE_SIZE = 12;
+const CUSTOM_OPTION = "custom";
+// TEMPORARY: query param for the photo-review toggle (see constants/pendingReview).
+const PENDING_PARAM = "pending";
 // The wines API rejects a limit above 100, so bigger ranges are fetched in chunks.
 const API_MAX_LIMIT = 100;
 const STATE_KEY = "vinoscope-explore-state";
@@ -57,8 +61,10 @@ const PAGE_SIZE_KEY = "vinoscope-explore-page-size";
 function readPageSize(): PageSize {
   try {
     const stored = localStorage.getItem(PAGE_SIZE_KEY);
-    const match = PAGE_SIZE_OPTIONS.find((option) => String(option) === stored);
-    return match ?? DEFAULT_PAGE_SIZE;
+    if (stored === "all") return "all";
+    // Any whole number counts, so a custom amount is remembered as well as the presets.
+    const size = Number(stored);
+    return stored !== null && Number.isInteger(size) && size > 0 ? size : DEFAULT_PAGE_SIZE;
   } catch {
     return DEFAULT_PAGE_SIZE;
   }
@@ -97,8 +103,9 @@ interface ExploreSnapshot {
   total: number;
 }
 
-function filtersKeyOf(filters: FilterValues): string {
-  return filtersToSearchParams(filters).toString();
+function filtersKeyOf(filters: FilterValues, pendingOnly = false): string {
+  const key = filtersToSearchParams(filters).toString();
+  return pendingOnly ? `${key}&${PENDING_PARAM}=1` : key;
 }
 
 export function ExplorePage() {
@@ -107,10 +114,11 @@ export function ExplorePage() {
 
   const [initial] = useState(() => {
     const filters = filtersFromSearchParams(searchParams);
+    const pendingOnly = searchParams.get(PENDING_PARAM) === "1";
     const snapshot = readPageState<ExploreSnapshot>(STATE_KEY);
-    const hit = snapshot !== null && snapshot.filtersKey === filtersKeyOf(filters);
+    const hit = snapshot !== null && snapshot.filtersKey === filtersKeyOf(filters, pendingOnly);
     const scrollY = hit ? readPageState<number>(SCROLL_KEY) ?? 0 : 0;
-    return { filters, hit, snapshot, scrollY };
+    return { filters, pendingOnly, hit, snapshot, scrollY };
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterValues>(initial.filters);
@@ -123,6 +131,9 @@ export function ExplorePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState<PageSize>(readPageSize);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customDraft, setCustomDraft] = useState("");
+  const [pendingOnly, setPendingOnly] = useState(initial.pendingOnly);
   const loadMoreRequestId = useRef(0);
   const primaryRequestId = useRef(0);
   // The main fetch effect only depends on `appliedFilters`, so it can't pick up
@@ -151,19 +162,21 @@ export function ExplorePage() {
         const next = new URLSearchParams(prev);
         FILTER_PARAM_NAMES.forEach((name) => next.delete(name));
         filtersToSearchParams(appliedFilters).forEach((value, name) => next.set(name, value));
+        if (pendingOnly) next.set(PENDING_PARAM, "1");
+        else next.delete(PENDING_PARAM);
         return next;
       },
       { replace: true }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedFilters]);
+  }, [appliedFilters, pendingOnly]);
 
   useEffect(() => {
     setSearchDraft(appliedFilters.q);
   }, [appliedFilters.q]);
 
   useEffect(() => {
-    const filtersKey = filtersKeyOf(appliedFilters);
+    const filtersKey = filtersKeyOf(appliedFilters, pendingOnly);
     const requestId = ++primaryRequestId.current;
     setError(null);
     if (loadedFiltersKeyRef.current === filtersKey) {
@@ -174,12 +187,15 @@ export function ExplorePage() {
     }
     setLoading(true);
     const size = pageSizeRef.current;
-    fetchWineRange(appliedFilters, 0, size === "all" ? Infinity : size)
+    // The pending list is a hand-kept set of slugs the API can't filter on, so that view loads
+    // every matching wine and keeps the pending ones.
+    fetchWineRange(appliedFilters, 0, pendingOnly || size === "all" ? Infinity : size)
       .then((data) => {
         if (requestId !== primaryRequestId.current) return;
         loadedFiltersKeyRef.current = filtersKey;
-        setItems(data.items);
-        setTotal(data.total);
+        const shown = pendingOnly ? data.items.filter((wine) => isPendingReview(wine.image_url)) : data.items;
+        setItems(shown);
+        setTotal(pendingOnly ? shown.length : data.total);
         // Drop any loadMore that was still in flight for the previous items/total.
         loadMoreRequestId.current += 1;
       })
@@ -191,16 +207,16 @@ export function ExplorePage() {
         if (requestId !== primaryRequestId.current) return;
         setLoading(false);
       });
-  }, [appliedFilters]);
+  }, [appliedFilters, pendingOnly]);
 
   useEffect(() => {
     if (loading) return;
     writePageState<ExploreSnapshot>(STATE_KEY, {
-      filtersKey: filtersKeyOf(appliedFilters),
+      filtersKey: filtersKeyOf(appliedFilters, pendingOnly),
       items,
       total,
     });
-  }, [items, total, loading, appliedFilters]);
+  }, [items, total, loading, appliedFilters, pendingOnly]);
 
   useEffect(() => {
     if (!restoredScrollRef.current) {
@@ -252,6 +268,30 @@ export function ExplorePage() {
 
   function handleLoadMore() {
     void loadMore(pageSize === "all" ? Infinity : pageSize);
+  }
+
+  function handleShowChange(value: string) {
+    if (value === CUSTOM_OPTION) {
+      setCustomDraft(typeof pageSize === "number" ? String(pageSize) : "");
+      setCustomOpen(true);
+      return;
+    }
+    setCustomOpen(false);
+    handlePageSizeChange(value === "all" ? "all" : Number(value));
+  }
+
+  function handleCustomSubmit(e: FormEvent) {
+    e.preventDefault();
+    const size = Math.round(Number(customDraft));
+    if (!Number.isFinite(size) || size < 1) return;
+    setCustomOpen(false);
+    // Anything past the total is capped rather than rejected, so a big number means "all of them".
+    handlePageSizeChange(total > 0 ? Math.min(size, total) : size);
+  }
+
+  function togglePendingOnly() {
+    invalidateLoadMore();
+    setPendingOnly((prev) => !prev);
   }
 
   function handlePageSizeChange(size: PageSize) {
@@ -306,6 +346,14 @@ export function ExplorePage() {
   const activeCount = countActiveFilters(appliedFilters);
   const activeChips = CHIP_LABELS.filter((chip) => appliedFilters[chip.key]);
   const hasMore = items.length < total;
+  const showOptions = [
+    ...PAGE_SIZE_OPTIONS.map((option) => ({
+      value: String(option),
+      label: option === "all" ? (total > 0 ? `All (${total})` : "All") : String(option),
+    })),
+    ...(PAGE_SIZE_OPTIONS.includes(pageSize) ? [] : [{ value: String(pageSize), label: `${pageSize} (custom)` }]),
+    { value: CUSTOM_OPTION, label: "Custom…" },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -341,15 +389,43 @@ export function ExplorePage() {
           id="explore-page-size"
           label="Show"
           value={String(pageSize)}
-          options={PAGE_SIZE_OPTIONS.map((option) => ({
-            value: String(option),
-            label: option === "all" ? (total > 0 ? `All (${total})` : "All") : String(option),
-          }))}
-          onChange={(value) => handlePageSizeChange(value === "all" ? "all" : Number(value))}
+          options={showOptions}
+          onChange={handleShowChange}
           searchable={false}
-          disabled={loading}
-          className="w-28"
+          disabled={loading || pendingOnly}
+          className="w-32"
         />
+        {customOpen ? (
+          <form onSubmit={handleCustomSubmit} className="flex items-end gap-1">
+            <label className="flex flex-col gap-1 text-sm text-ink-muted">
+              {total > 0 ? `How many (1–${total})` : "How many"}
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={customDraft}
+                onChange={(e) => setCustomDraft(e.target.value)}
+                autoFocus
+                className="w-24 bg-surface-raised border border-surface-border rounded px-2 py-1 text-ink"
+              />
+            </label>
+            <button type="submit" className="rounded border border-surface-border px-3 py-1 text-sm text-ink hover:border-accent">
+              Apply
+            </button>
+          </form>
+        ) : null}
+        {PENDING_IMAGE_SLUGS.length > 0 ? (
+          <button
+            type="button"
+            onClick={togglePendingOnly}
+            aria-pressed={pendingOnly}
+            disabled={loading}
+            title="Temporary: only the wines whose photos are waiting for a check"
+            className={`rounded-full border px-3 py-1 text-sm ${pendingOnly ? "border-accent bg-accent text-surface" : "border-surface-border text-ink-muted hover:border-accent"}`}
+          >
+            Pending ({PENDING_IMAGE_SLUGS.length})
+          </button>
+        ) : null}
       </div>
 
       {activeChips.length > 0 ? (

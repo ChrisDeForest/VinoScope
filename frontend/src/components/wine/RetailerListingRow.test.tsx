@@ -40,6 +40,7 @@ describe("RetailerListingRow", () => {
       />
     );
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByText("Not available right now")).toBeInTheDocument();
   });
 
   it("shows an approx-USD conversion line for a non-USD listing", () => {

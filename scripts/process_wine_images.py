@@ -10,8 +10,8 @@ from PIL import Image
 from scipy.ndimage import binary_fill_holes
 
 ROOT = Path(__file__).resolve().parent.parent
-CLEANED_CSV = ROOT / "data" / "cleaned" / "wines_combined_200_currency_audited.csv"
-RAW_CSV = ROOT / "data" / "raw" / "wines_combined_200_currency_audited.csv"
+CLEANED_CSV = ROOT / "data" / "cleaned" / "wines_combined_500.csv"
+RAW_CSV = ROOT / "data" / "raw" / "wines_combined_500.csv"
 MANIFEST_PATH = ROOT / "data" / "images" / "manifest.csv"
 RAW_DIR = ROOT / "data" / "images" / "raw"
 OUT_DIR = ROOT / "frontend" / "public" / "wines"

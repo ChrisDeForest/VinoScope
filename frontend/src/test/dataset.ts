@@ -1,4 +1,4 @@
-import csvText from "../../../data/cleaned/wines_combined_200_currency_audited.csv?raw";
+import csvText from "../../../data/cleaned/wines_combined_500.csv?raw";
 
 // Minimal RFC 4180 parser: quoted fields may contain commas, newlines, and "" escapes.
 export function parseCsv(text: string): Record<string, string>[] {

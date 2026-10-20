@@ -18,6 +18,7 @@ from app.schemas.wine import VALID_TYPES
 INT_FIELDS = ("vintage",)
 RATING_FIELDS = ("sweetness", "acidity", "tannin", "body", "fruitiness")
 FLOAT_FIELDS = ("abv", "price")
+UNAVAILABLE_LABEL = "Not available right now"
 
 
 class ImportValidationError(Exception):
@@ -172,6 +173,9 @@ def create_retailer_listing(session: Session, wine: Wine, row) -> RetailerListin
     listing = None
     if product_id:
         listing = candidates.filter_by(source_product_id=product_id).order_by(RetailerListing.id).first()
+    unavailable = (_clean(row.get("availability")) or "").lower() == "unavailable"
+    if listing is None and unavailable and not product_id:
+        listing = candidates.filter(RetailerListing.product_url.is_(None)).order_by(RetailerListing.id).first()
     if listing is None and product_url:
         url_matches = candidates.filter_by(product_url=product_url)
         # Do not merge different known products that happen to share a URL.
@@ -183,7 +187,12 @@ def create_retailer_listing(session: Session, wine: Wine, row) -> RetailerListin
         session.add(listing)
     listing.price = float(row["price"]) if _clean(row.get("price")) else None
     listing.currency = _clean(row.get("currency"))
-    listing.product_url = product_url
+    # "unavailable" rows keep their source_url as provenance but get no shop link.
+    listing.product_url = None if unavailable else product_url
+    if unavailable:
+        listing.availability = UNAVAILABLE_LABEL
+    elif listing.availability == UNAVAILABLE_LABEL:
+        listing.availability = None
     if product_id:
         listing.source_product_id = product_id
     listing.collected_at = datetime.now(timezone.utc)

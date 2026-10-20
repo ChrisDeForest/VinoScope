@@ -20,7 +20,9 @@ export function RetailerListingRow({ listing }: { listing: RetailerListing }) {
         >
           View Retailer
         </a>
-      ) : null}
+      ) : (
+        <span className="text-sm text-ink-muted">Not available right now</span>
+      )}
     </div>
   );
 }

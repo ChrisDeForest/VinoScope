@@ -13,6 +13,15 @@ vi.mock("../services/api", async () => {
   return { ...actual, listWines: vi.fn(), getWineFacets: vi.fn(() => Promise.reject(new Error("offline"))) };
 });
 
+// The real pending list is emptied once photos are signed off; the toggle test uses its own.
+vi.mock("../constants/pendingReview", () => {
+  const slugs = ["trius-trius-rose-2022"];
+  return {
+    PENDING_IMAGE_SLUGS: slugs,
+    isPendingReview: (imageUrl: string | null) => imageUrl !== null && slugs.some((slug) => imageUrl === `/wines/${slug}.webp`),
+  };
+});
+
 function makeWine(id: number, overrides: Partial<WineListItem> = {}): WineListItem {
   return {
     id,
@@ -353,6 +362,58 @@ describe("ExplorePage", () => {
     await waitFor(() => expect(screen.getByText("Showing 230 of 230")).toBeInTheDocument());
     for (const call of listWinesMock.mock.calls) expect(call[0].limit).toBeLessThanOrEqual(100);
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+  });
+
+  it("a custom Show amount loads that many, is capped at the total, and is remembered", async () => {
+    catalogue(200);
+    renderExplore();
+    await waitFor(() => expect(screen.getByText("Showing 12 of 200")).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await chooseOption(user, screen.getByLabelText("Show"), "Custom…");
+    const amount = screen.getByLabelText("How many (1–200)");
+    await user.clear(amount);
+    await user.type(amount, "30");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(screen.getByText("Showing 30 of 200")).toBeInTheDocument());
+    expect(localStorage.getItem("vinoscope-explore-page-size")).toBe("30");
+    expect(screen.getByLabelText("Show")).toHaveValue("30 (custom)");
+
+    await chooseOption(user, screen.getByLabelText("Show"), "Custom…");
+    await user.clear(screen.getByLabelText("How many (1–200)"));
+    await user.type(screen.getByLabelText("How many (1–200)"), "9999");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(screen.getByText("Showing 200 of 200")).toBeInTheDocument());
+  });
+
+  it("the Pending toggle shows only the wines waiting for a photo check", async () => {
+    listWinesMock.mockResolvedValue({
+      total: 3,
+      items: [
+        makeWine(1, { name: "Pending wine", image_url: "/wines/trius-trius-rose-2022.webp" }),
+        makeWine(2, { name: "Checked wine", image_url: "/wines/some-other-wine-2020.webp" }),
+        makeWine(3, { name: "No photo wine" }),
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={["/explore"]}>
+        <ExplorePage />
+        <LocationDisplay />
+      </MemoryRouter>
+    );
+    await waitFor(() => expect(screen.getByText("Checked wine")).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /^Pending/ }));
+    await waitFor(() => expect(screen.queryByText("Checked wine")).not.toBeInTheDocument());
+    expect(screen.getByText("Pending wine")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1 of 1")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("pending=1");
+    expect(screen.getByLabelText("Show")).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: /^Pending/ }));
+    await waitFor(() => expect(screen.getByText("Checked wine")).toBeInTheDocument());
+    expect(screen.getByTestId("location")).not.toHaveTextContent("pending");
   });
 
   it("choosing a smaller count shows only that many without refetching", async () => {

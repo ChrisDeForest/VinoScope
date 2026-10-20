@@ -296,3 +296,35 @@ def test_import_preserves_distinct_retailer_offers(tmp_path, test_db_url, replac
             assert session.query(RetailerListing).count() == 2
     finally:
         engine.dispose()
+
+
+def test_import_unavailable_row_keeps_price_but_drops_product_link(tmp_path, test_db_url):
+    path = tmp_path / "cleaned.csv"
+    path.write_text(
+        CLEANED_HEADER.rstrip("\n") + ",availability\n"
+        "Review Only Red,Review Winery,2020,Merlot,,red,France,Bordeaux,,13.5,28.00,USD,"
+        "1,3,3,3,3,Ripe plum and soft tannins,,Wine Review Online,https://example.com/review,,unavailable\n"
+        "Shop Red,Shop Winery,2021,Merlot,,red,France,Bordeaux,,13.5,20.00,USD,"
+        "1,3,3,3,3,Ripe plum and soft tannins,,Total Wine,https://example.com/shop,,\n"
+    )
+
+    import_csv(str(path), database_url=test_db_url)
+    import_csv(str(path), database_url=test_db_url)  # re-import must not duplicate listings
+
+    engine = get_engine(test_db_url)
+    session = get_session_factory(engine)()
+    try:
+        assert session.query(RetailerListing).count() == 2
+        review = session.query(Wine).filter_by(name="Review Only Red").one()
+        listing = session.query(RetailerListing).filter_by(wine_id=review.id).one()
+        assert listing.price == 28.0
+        assert listing.product_url is None
+        assert listing.availability == "Not available right now"
+
+        shop = session.query(Wine).filter_by(name="Shop Red").one()
+        shop_listing = session.query(RetailerListing).filter_by(wine_id=shop.id).one()
+        assert shop_listing.product_url == "https://example.com/shop"
+        assert shop_listing.availability is None
+    finally:
+        session.close()
+        engine.dispose()

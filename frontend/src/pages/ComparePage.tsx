@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ApiError } from "../services/api";
 import { getCachedWine } from "../services/wineCache";
 import { useCompareSelection } from "../hooks/useCompareSelection";
@@ -57,7 +58,13 @@ export function ComparePage() {
       <CompareTiles selectedIds={selectedIds} wineStates={wineStates} addWine={addWine} removeWine={removeWine} moveWine={moveWine} />
 
       {loadedWines.length < 2 ? (
-        <p className="text-ink-muted text-center py-8">Add at least 2 wines to compare.</p>
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
+          {selectedIds.length === 0 ? <p className="font-serif text-lg text-ink">You haven't added any wines yet.</p> : null}
+          <p className="text-ink-muted">Add at least 2 wines to compare.</p>
+          <Link to="/explore" className="bg-accent text-surface font-semibold px-6 py-3 rounded hover:opacity-90">
+            Explore wines to add
+          </Link>
+        </div>
       ) : (
         <>
           <CompareTable wines={loadedWines} />
