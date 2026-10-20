@@ -31,6 +31,12 @@ describe("answersToDraft", () => {
     });
   });
 
+  it("keeps only values matching an option, normalised to the option's value", () => {
+    const draft = answersToDraft({ type: ["RED", "plaid", "Rosé"], country: ["italy", "Atlantis", "ITALY"] });
+    expect(draft.type).toEqual(["red", "rosé"]);
+    expect(draft.country).toEqual(["Italy"]);
+  });
+
   it("round-trips a new-style draft", () => {
     const draft = { ...EMPTY_DRAFT, type: ["rosé"], tannin: [1, 2], budget: ["150-plus"] };
     expect(answersToDraft(draftToAnswers(draft))).toEqual(draft);

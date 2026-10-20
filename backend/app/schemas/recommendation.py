@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 from app.schemas.wine import WineListItem
 from app.validation import PRICE_RANGE_ERROR, price_range_invalid
@@ -8,7 +8,7 @@ from app.validation import PRICE_RANGE_ERROR, price_range_invalid
 
 PreferenceLevel = Annotated[int, Field(ge=1, le=5)]
 Preference = PreferenceLevel | list[PreferenceLevel] | None
-Choice = Annotated[str, Field(min_length=1, max_length=40)]
+Choice = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
 Choices = Choice | Annotated[list[Choice], Field(max_length=20)] | None
 
 

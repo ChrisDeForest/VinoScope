@@ -16,6 +16,7 @@ export function QuizStage({
   onContinue,
   continueLabel = "Continue",
   continueDisabled = false,
+  disabled = false,
 }: {
   steps: QuizStep[];
   current: number;
@@ -23,6 +24,8 @@ export function QuizStage({
   onContinue: () => void;
   continueLabel?: string;
   continueDisabled?: boolean;
+  /** Locks the answer chips and Back (e.g. while a request is in flight). */
+  disabled?: boolean;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownRef = useRef(current);
@@ -46,7 +49,8 @@ export function QuizStage({
               key={answered.id}
               type="button"
               onClick={() => onJump(index)}
-              className="rounded-full border border-surface-border px-3 py-1 text-xs text-ink-muted hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              disabled={disabled}
+              className="rounded-full border border-surface-border px-3 py-1 text-xs text-ink-muted hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
             >
               <span className="sr-only">Change answer: {answered.question} </span>
               {answered.summary}
@@ -59,7 +63,7 @@ export function QuizStage({
         <h2 ref={headingRef} tabIndex={-1} className="font-serif text-2xl leading-tight text-ink focus:outline-none sm:text-4xl">
           {step.question}
         </h2>
-        {step.hint ? <p className="mt-2 max-w-xl text-sm text-ink-muted sm:text-base">{step.hint}</p> : null}
+        {step.hint ? <p id={`quiz-hint-${step.id}`} className="mt-2 max-w-xl text-sm text-ink-muted sm:text-base">{step.hint}</p> : null}
         <div className="mt-6 flex w-full justify-center">{step.content}</div>
         <button
           type="button"
@@ -72,7 +76,12 @@ export function QuizStage({
       </div>
 
       {current > 0 ? (
-        <button type="button" onClick={() => onJump(current - 1)} className="absolute bottom-4 left-5 text-sm text-ink-muted hover:text-ink">
+        <button
+          type="button"
+          onClick={() => onJump(current - 1)}
+          disabled={disabled}
+          className="absolute bottom-4 left-5 rounded text-sm text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+        >
           ← Back
         </button>
       ) : null}

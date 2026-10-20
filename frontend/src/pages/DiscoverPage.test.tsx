@@ -293,6 +293,29 @@ describe("DiscoverPage", () => {
     await screen.findByText("Wine 1");
   });
 
+  it("locks the answer controls while a submission is in flight", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock.mockReturnValue(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await finishQuiz(user);
+    expect(await screen.findByRole("button", { name: "← Back" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "I'm not sure" })).toBeDisabled();
+    pending.resolve({ profile: { description: ["Dry"] }, total: 1, items: [makeItem(1)] });
+    await screen.findByText("Wine 1");
+  });
+
+  it("moves focus to the page heading when switching between the quiz and the results", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    expect(screen.getByRole("heading", { level: 1, name: "Discover" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Edit answers" }));
+    expect(screen.getByRole("heading", { level: 1, name: "Discover" })).toHaveFocus();
+  });
+
   it("ignores a stale load-more response when new answers are submitted before it resolves", async () => {
     const staleLoadMore = deferred<RecommendationResponse>();
     getRecommendationsMock

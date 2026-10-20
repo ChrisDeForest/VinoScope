@@ -76,6 +76,16 @@ export function DiscoverPage() {
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
   const skipInitialFetchRef = useRef(initial.hit);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const shownModeRef = useRef(mode);
+
+  // Moving between the quiz and the results unmounts the control that was used, so
+  // land focus on the page heading instead of dropping it to the body.
+  useEffect(() => {
+    if (shownModeRef.current === mode) return;
+    shownModeRef.current = mode;
+    headingRef.current?.focus();
+  }, [mode]);
 
   useEffect(() => {
     if (!skipInitialFetchRef.current) {
@@ -196,6 +206,8 @@ export function DiscoverPage() {
           noneLabel={noneLabel}
           onToggle={(value) => setAnswer(id, toggleValue(draft[id], value))}
           onClear={() => setAnswer(id, [])}
+          disabled={loading}
+          describedBy={`quiz-hint-${id}`}
         />
       ),
     };
@@ -218,6 +230,8 @@ export function DiscoverPage() {
           noneLabel="I'm not sure"
           onToggle={(value) => setAnswer(dim, toggleValue(selected, value).map(Number).sort((a, b) => a - b))}
           onClear={() => setAnswer(dim, [])}
+          disabled={loading}
+          describedBy={`quiz-hint-${dim}`}
         />
       ),
     };
@@ -239,6 +253,8 @@ export function DiscoverPage() {
           noneLabel="Any price"
           onToggle={(value) => setAnswer("budget", toggleBudget(draft.budget, value))}
           onClear={() => setAnswer("budget", [])}
+          disabled={loading}
+          describedBy="quiz-hint-budget"
         />
       ),
     },
@@ -253,7 +269,7 @@ export function DiscoverPage() {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="font-serif text-2xl text-ink">Discover</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="font-serif text-2xl text-ink focus:outline-none">Discover</h1>
           {hasAnswers ? (
             <button type="button" onClick={startOver} className="text-sm text-accent hover:underline">
               Start over
@@ -268,6 +284,7 @@ export function DiscoverPage() {
           onContinue={() => (lastStep ? submit() : setStep(step + 1))}
           continueLabel={lastStep ? (loading ? "Finding wines…" : "Show my wines") : "Continue"}
           continueDisabled={loading}
+          disabled={loading}
         />
       </div>
     );
@@ -276,7 +293,7 @@ export function DiscoverPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-serif text-2xl text-ink">Discover</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="font-serif text-2xl text-ink focus:outline-none">Discover</h1>
         <div className="flex gap-4">
           <button type="button" onClick={editAnswers} className="text-sm text-accent hover:underline">
             Edit answers

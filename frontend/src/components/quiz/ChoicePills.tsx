@@ -1,7 +1,7 @@
 import type { ChoiceOption } from "./quizChoices";
 
 const PILL =
-  "inline-flex items-center gap-2 rounded-full border bg-surface px-4 py-2.5 text-base text-ink motion-safe:transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "inline-flex items-center gap-2 rounded-full border bg-surface px-4 py-2.5 text-base text-ink motion-safe:transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60";
 
 function CheckBox({ on, round = false }: { on: boolean; round?: boolean }) {
   return (
@@ -23,6 +23,8 @@ export function ChoicePills({
   onToggle,
   onClear,
   noneLabel,
+  disabled = false,
+  describedBy,
 }: {
   legend: string;
   options: ChoiceOption[];
@@ -30,10 +32,12 @@ export function ChoicePills({
   onToggle: (value: string) => void;
   onClear: () => void;
   noneLabel: string;
+  disabled?: boolean;
+  describedBy?: string;
 }) {
   const noneOn = selected.length === 0;
   return (
-    <fieldset className="flex w-full max-w-2xl flex-col items-center gap-4">
+    <fieldset disabled={disabled} aria-describedby={describedBy} className="flex w-full max-w-2xl flex-col items-center gap-4">
       <legend className="sr-only">{legend}</legend>
       <div className="flex flex-wrap justify-center gap-2.5">
         {options.map((option) => {

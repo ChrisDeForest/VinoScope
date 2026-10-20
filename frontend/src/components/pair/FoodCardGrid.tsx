@@ -23,7 +23,7 @@ export function FoodCardGrid({
               onClick={() => onSelect(food)}
               className={`relative aspect-[4/3] overflow-hidden rounded-xl border-2 bg-surface text-left motion-safe:transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60 ${
                 on
-                  ? "border-accent shadow-[0_0_0_3px_rgba(201,168,106,0.3)]"
+                  ? "border-accent ring-2 ring-accent ring-offset-2 ring-offset-surface-raised"
                   : "border-transparent hover:border-surface-border motion-safe:hover:-translate-y-0.5"
               }`}
             >

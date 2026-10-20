@@ -16,6 +16,11 @@ def test_inverted_recommendation_budget_is_rejected(client):
     assert client.post("/api/recommendations", json={"min_price": 50, "max_price": 20}).status_code == 422
 
 
+def test_blank_choice_values_are_rejected(client):
+    assert client.post("/api/recommendations", json={"type": [" "]}).status_code == 422
+    assert client.post("/api/recommendations", json={"country": "  "}).status_code == 422
+
+
 def test_inverted_explore_budget_is_rejected(client):
     assert client.get("/api/wines?min_price=50&max_price=20").status_code == 422
 

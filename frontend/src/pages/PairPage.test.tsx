@@ -255,8 +255,81 @@ describe("PairPage", () => {
     renderPage();
     const user = userEvent.setup();
     await findWines(user, "Steak");
-    await screen.findByText(/no wines available to pair right now/i);
-    await user.click(screen.getByRole("button", { name: "Choose a different food" }));
+    await screen.findByText(/no wines match these choices/i);
+    const buttons = screen.getAllByRole("button", { name: "Choose a different food" });
+    expect(buttons).toHaveLength(2);
+    await user.click(buttons[1]);
     expect(question("What are you eating?")).toBeInTheDocument();
+  });
+
+  it("loads more with the request that produced the results, not the live quiz answers", async () => {
+    sessionStorage.setItem(
+      "vinoscope-pair-state",
+      JSON.stringify({
+        mode: "results",
+        step: 0,
+        food: "steak",
+        types: ["white"],
+        budget: ["under-20"],
+        request: { food: "steak", types: ["red"], prices: { min_price: 40, max_price: 80 } },
+        profile: [],
+        items: [makeItem(1)],
+        total: 2,
+      })
+    );
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 2, items: [makeItem(2)] });
+    renderPage();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Load more" }));
+    await screen.findByText("Wine 2");
+    expect(getRecommendationsMock).toHaveBeenCalledWith({
+      ...FOOD_PAIRINGS.steak.vector,
+      type: ["red"],
+      min_price: 40,
+      max_price: 80,
+      limit: 20,
+      offset: 1,
+    });
+  });
+
+  it("loads more with a legacy snapshot's original max price", async () => {
+    sessionStorage.setItem(
+      "vinoscope-pair-state",
+      JSON.stringify({ mode: "results", selectedFood: "salmon", type: "white", maxPrice: 30, profile: [], items: [makeItem(1)], total: 2 })
+    );
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 2, items: [makeItem(2)] });
+    renderPage();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Load more" }));
+    await screen.findByText("Wine 2");
+    expect(getRecommendationsMock).toHaveBeenCalledWith({
+      ...FOOD_PAIRINGS.salmon.vector,
+      type: ["white"],
+      max_price: 30,
+      limit: 20,
+      offset: 1,
+    });
+  });
+
+  it("locks the quiz controls while a search is in flight", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock.mockReturnValue(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await findWines(user, "Steak");
+    expect(screen.getByRole("button", { name: "← Back" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Change answer: What would you like to spend\?|Change answer: What are you eating\?/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Any price" })).toBeDisabled();
+    pending.resolve({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    await screen.findByText("Wine 1");
+  });
+
+  it("moves focus to the page heading when the results appear and when the quiz returns", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await findWines(user, "Steak");
+    await screen.findByText("Wine 1");
+    expect(screen.getByRole("heading", { level: 1, name: "Pair" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Choose a different food" }));
+    expect(screen.getByRole("heading", { level: 1, name: "Pair" })).toHaveFocus();
   });
 });

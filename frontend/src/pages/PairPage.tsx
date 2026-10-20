@@ -26,7 +26,15 @@ const PAGE_SIZE = 20;
 const STATE_KEY = "vinoscope-pair-state";
 const LAST_STEP = 2;
 
+/** The search that produced the results; Load more and Retry always repeat this, never the live quiz. */
+interface PairRequest {
+  food: FoodKey;
+  types: string[];
+  prices: { min_price?: number; max_price?: number };
+}
+
 interface PairSnapshot {
+  request: PairRequest | null;
   mode: "quiz" | "results";
   step: number;
   food: FoodKey | null;
@@ -40,6 +48,7 @@ interface PairSnapshot {
 /** What may be in storage: the current shape or one saved by the old picker. */
 type StoredPairState = Partial<Omit<PairSnapshot, "mode">> & {
   mode?: string;
+  request?: PairRequest | null;
   selectedFood?: FoodKey | null;
   type?: string;
   maxPrice?: number;
@@ -53,11 +62,24 @@ function readSnapshot(): PairSnapshot | null {
   // before it split into "tomato_pasta"/"cream_pasta") can't be trusted at all --
   // FOOD_PAIRINGS[food] would be undefined and crash the results view.
   if (food && !(food in FOOD_PAIRINGS)) return null;
+  const types = stored.types ?? (stored.type ? [stored.type] : []);
+  const mode = stored.mode === "results" && food ? "results" : "quiz";
+  let request: PairRequest | null = stored.request ?? null;
+  if (request && !(request.food in FOOD_PAIRINGS)) request = null;
+  if (!request && mode === "results" && food) {
+    // Saved by the old picker: results were fetched with its free-form price, so keep it as sent.
+    request = {
+      food,
+      types,
+      prices: stored.budget ? budgetToPrices(stored.budget) : stored.maxPrice !== undefined ? { max_price: stored.maxPrice } : {},
+    };
+  }
   return {
-    mode: stored.mode === "results" && food ? "results" : "quiz",
+    request,
+    mode,
     step: Math.min(Math.max(stored.step ?? 0, 0), LAST_STEP),
     food,
-    types: stored.types ?? (stored.type ? [stored.type] : []),
+    types,
     budget: stored.budget ?? pricesToBudget(undefined, stored.maxPrice),
     profile: stored.profile ?? [],
     items: stored.items ?? [],
@@ -73,6 +95,7 @@ export function PairPage() {
   const [food, setFood] = useState<FoodKey | null>(initial?.food ?? null);
   const [types, setTypes] = useState<string[]>(initial?.types ?? []);
   const [budget, setBudget] = useState<string[]>(initial?.budget ?? []);
+  const [request, setRequest] = useState<PairRequest | null>(initial?.request ?? null);
   const [profile, setProfile] = useState<string[]>(initial?.profile ?? []);
   const [items, setItems] = useState<RecommendationItem[]>(initial?.items ?? []);
   const [total, setTotal] = useState(initial?.total ?? 0);
@@ -81,6 +104,16 @@ export function PairPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const shownModeRef = useRef(mode);
+
+  // Moving between the quiz and the results unmounts the control that was used, so
+  // land focus on the page heading instead of dropping it to the body.
+  useEffect(() => {
+    if (shownModeRef.current === mode) return;
+    shownModeRef.current = mode;
+    headingRef.current?.focus();
+  }, [mode]);
 
   useEffect(() => {
     return () => {
@@ -90,10 +123,10 @@ export function PairPage() {
 
   useEffect(() => {
     if (loading) return;
-    writePageState<PairSnapshot>(STATE_KEY, { mode, step, food, types, budget, profile, items, total });
-  }, [mode, step, food, types, budget, profile, items, total, loading]);
+    writePageState<PairSnapshot>(STATE_KEY, { request, mode, step, food, types, budget, profile, items, total });
+  }, [request, mode, step, food, types, budget, profile, items, total, loading]);
 
-  async function fetchRecommendations(chosenFood: FoodKey, offset: number, append: boolean) {
+  async function fetchRecommendations(sent: PairRequest, offset: number, append: boolean) {
     const requestId = ++requestIdRef.current;
     if (append) {
       setLoadingMore(true);
@@ -107,9 +140,9 @@ export function PairPage() {
     }
     try {
       const response = await getRecommendations({
-        ...FOOD_PAIRINGS[chosenFood].vector,
-        ...(types.length ? { type: types } : {}),
-        ...budgetToPrices(budget),
+        ...FOOD_PAIRINGS[sent.food].vector,
+        ...(sent.types.length ? { type: sent.types } : {}),
+        ...sent.prices,
         limit: PAGE_SIZE,
         offset,
       });
@@ -138,11 +171,11 @@ export function PairPage() {
   }
 
   function handleRetry() {
-    if (food) fetchRecommendations(food, 0, false);
+    if (request) fetchRecommendations(request, 0, false);
   }
 
   function handleLoadMore() {
-    if (food) fetchRecommendations(food, items.length, true);
+    if (request) fetchRecommendations(request, items.length, true);
   }
 
   function chooseFood() {
@@ -157,7 +190,11 @@ export function PairPage() {
 
   function handleContinue() {
     if (step < LAST_STEP) setStep(step + 1);
-    else if (food) fetchRecommendations(food, 0, false);
+    else if (food) {
+      const sent: PairRequest = { food, types, prices: budgetToPrices(budget) };
+      setRequest(sent);
+      fetchRecommendations(sent, 0, false);
+    }
   }
 
   const foodLabel = food ? FOOD_PAIRINGS[food].label : "";
@@ -183,6 +220,8 @@ export function PairPage() {
           noneLabel="No preference"
           onToggle={(value) => setTypes(toggleValue(types, value))}
           onClear={() => setTypes([])}
+          disabled={loading}
+          describedBy="quiz-hint-type"
         />
       ),
     },
@@ -199,6 +238,8 @@ export function PairPage() {
           noneLabel="Any price"
           onToggle={(value) => setBudget(toggleBudget(budget, value))}
           onClear={() => setBudget([])}
+          disabled={loading}
+          describedBy="quiz-hint-budget"
         />
       ),
     },
@@ -220,13 +261,11 @@ export function PairPage() {
   if (mode === "quiz") {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="font-serif text-2xl text-ink">Pair</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="font-serif text-2xl text-ink focus:outline-none">Pair</h1>
         {error ? <ErrorMessage message={error} onRetry={handleRetry} /> : null}
-        {loading && food ? (
-          <p className="text-sm text-ink-muted" aria-live="polite">
-            Finding wines for {foodLabel}…
-          </p>
-        ) : null}
+        <p className="min-h-[1.25rem] text-sm text-ink-muted" aria-live="polite">
+          {loading && food ? `Finding wines for ${foodLabel}…` : ""}
+        </p>
         <QuizStage
           steps={steps}
           current={step}
@@ -234,6 +273,7 @@ export function PairPage() {
           onContinue={handleContinue}
           continueLabel={continueLabel}
           continueDisabled={(step === 0 && !food) || loading}
+          disabled={loading}
         />
       </div>
     );
@@ -242,18 +282,21 @@ export function PairPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl text-ink">Pair</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="font-serif text-2xl text-ink focus:outline-none">Pair</h1>
         <button type="button" onClick={chooseFood} className="text-sm text-accent hover:underline">
           Choose a different food
         </button>
       </div>
       {items.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-ink-muted">No wines available to pair right now.</p>
+          <p className="text-ink-muted mb-2">No wines match these choices.</p>
+          <button type="button" onClick={chooseFood} className="text-sm text-accent hover:underline">
+            Choose a different food
+          </button>
         </div>
       ) : (
         <>
-          <ProfileSummary description={profile} title={`Pairing with ${foodLabel}`} />
+          <ProfileSummary description={profile} title={`Pairing with ${request ? FOOD_PAIRINGS[request.food].label : foodLabel}`} />
           <WineGrid wines={items} />
           {loadMoreError ? <ErrorMessage message={loadMoreError} onRetry={handleLoadMore} /> : null}
           {hasMore ? <LoadMoreButton onClick={handleLoadMore} loading={loadingMore} /> : null}
