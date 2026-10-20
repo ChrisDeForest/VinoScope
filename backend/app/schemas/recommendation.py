@@ -8,6 +8,8 @@ from app.validation import PRICE_RANGE_ERROR, price_range_invalid
 
 PreferenceLevel = Annotated[int, Field(ge=1, le=5)]
 Preference = PreferenceLevel | list[PreferenceLevel] | None
+Choice = Annotated[str, Field(min_length=1, max_length=40)]
+Choices = Choice | Annotated[list[Choice], Field(max_length=20)] | None
 
 
 class RecommendationRequest(BaseModel):
@@ -16,8 +18,8 @@ class RecommendationRequest(BaseModel):
     tannin: Preference = None
     body: Preference = None
     fruitiness: Preference = None
-    type: Optional[str] = None
-    country: Optional[str] = None
+    type: Choices = None
+    country: Choices = None
     min_price: Optional[float] = Field(default=None, ge=0)
     max_price: Optional[float] = Field(default=None, ge=0)
     limit: int = Field(default=20, ge=1, le=100)

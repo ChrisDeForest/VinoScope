@@ -335,3 +335,45 @@ def test_recommendations_cors_allows_post_preflight(client):
     )
     assert response.status_code == 200
     assert "POST" in response.headers.get("access-control-allow-methods", "")
+
+
+def test_recommendations_type_list_filters_with_any_of(client, recommendation_wines):
+    body = client.post("/api/recommendations", json={"type": ["Red", "white"]}).json()
+    assert body["total"] == 5
+    assert "Primarily Red or white wines" in body["profile"]["description"]
+    white = next(item for item in body["items"] if item["id"] == recommendation_wines["white_wine"])
+    assert "White wine as requested" in white["explanation"]
+
+
+def test_recommendations_country_list_filters_with_any_of(client, recommendation_wines):
+    body = client.post("/api/recommendations", json={"country": ["France", "Spain"]}).json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == recommendation_wines["white_wine"]
+    assert "From France" in body["items"][0]["explanation"]
+
+
+def test_recommendations_empty_lists_mean_no_filter(client, recommendation_wines):
+    body = client.post("/api/recommendations", json={"type": [], "country": []}).json()
+    assert body["total"] == 5
+    assert body["profile"]["description"] == []
+
+
+def test_recommendations_type_list_order_shares_the_ranking_cache(client, recommendation_wines, monkeypatch):
+    from app.services import recommendations
+    calls = []
+    distance = recommendations._distance
+    def tracked(values, wine):
+        calls.append(wine.id)
+        return distance(values, wine)
+    monkeypatch.setattr(recommendations, "_distance", tracked)
+    client.post("/api/recommendations", json={"type": ["red", "white"], "body": 4})
+    count = len(calls)
+    client.post("/api/recommendations", json={"type": ["White", "red"], "body": 4})
+    assert count > 0
+    assert len(calls) == count
+
+
+def test_recommendations_rejects_bad_type_lists(client):
+    assert client.post("/api/recommendations", json={"type": [""]}).status_code == 422
+    assert client.post("/api/recommendations", json={"type": ["red"] * 21}).status_code == 422
+    assert client.post("/api/recommendations", json={"country": "x" * 41}).status_code == 422

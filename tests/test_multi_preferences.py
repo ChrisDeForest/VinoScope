@@ -30,3 +30,22 @@ def test_profile_and_explanations_use_all_selected_levels():
     assert build_profile({"sweetness": [2, 4]}, None, None, None) == ["Dry to Sweet"]
     assert build_explanation({"sweetness": [1, 5]}, {"sweetness": 5}, None, None, None, None) == ["Very sweet"]
     assert build_explanation({"sweetness": [1, 5]}, {"sweetness": 3}, None, None, None, None) == []
+
+
+def test_profile_wording_for_type_lists():
+    assert build_profile({}, "red", None, None) == ["Primarily red wines"]
+    assert build_profile({}, ["red"], None, None) == ["Primarily red wines"]
+    assert build_profile({}, ["red", "white"], None, None) == ["Primarily red or white wines"]
+    assert build_profile({}, ["red", "white", "Red", "rosé"], None, None) == ["Primarily red, white or rosé wines"]
+    assert build_profile({}, [], None, None) == []
+
+
+def test_explanation_names_the_wines_own_type_and_country():
+    assert build_explanation({}, {}, "white", "France", None, None) == ["White wine as requested", "From France"]
+
+
+def test_request_accepts_string_or_list_choices():
+    assert RecommendationRequest(type="red").type == "red"
+    assert RecommendationRequest(type=["red", "white"], country=["Italy"]).country == ["Italy"]
+    with pytest.raises(ValidationError):
+        RecommendationRequest(type=[""])

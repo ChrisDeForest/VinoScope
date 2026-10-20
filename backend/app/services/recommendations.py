@@ -47,6 +47,29 @@ def _levels(value: int | list[int] | None) -> list[int]:
     return [value] if isinstance(value, int) else (value or [])
 
 
+def _choices(value: str | list[str] | None) -> tuple[str, ...] | None:
+    """Lower-cased, de-duplicated, sorted filter values; None when there is nothing to filter on."""
+    values = [value] if isinstance(value, str) else (value or [])
+    normalised = tuple(sorted({item.lower() for item in values}))
+    return normalised or None
+
+
+def _choice_labels(value: str | list[str] | None) -> list[str]:
+    """The values as the user wrote them, de-duplicated case-insensitively, in the order given."""
+    values = [value] if isinstance(value, str) else (value or [])
+    seen: set[str] = set()
+    labels: list[str] = []
+    for item in values:
+        if item.lower() not in seen:
+            seen.add(item.lower())
+            labels.append(item)
+    return labels
+
+
+def _join_or(words: list[str]) -> str:
+    return words[0] if len(words) == 1 else f"{', '.join(words[:-1])} or {words[-1]}"
+
+
 def _distance(user_values: dict[str, int | list[int] | None], wine: Wine) -> float:
     total_weighted_sq = 0.0
     total_weight = 0.0
@@ -106,7 +129,7 @@ def _price_explanation(min_price: Optional[float], max_price: Optional[float]) -
 
 def build_profile(
     user_values: dict[str, int | list[int] | None],
-    type: Optional[str],
+    type: str | list[str] | None,
     min_price: Optional[float],
     max_price: Optional[float],
 ) -> list[str]:
@@ -119,8 +142,9 @@ def build_profile(
                 description.append(LABELS[dim][levels[0]])
             else:
                 description.append(f"{LABELS[dim][levels[0]]} to {LABELS[dim][levels[-1]]}")
-    if type is not None:
-        description.append(f"Primarily {type} wines")
+    type_labels = _choice_labels(type)
+    if type_labels:
+        description.append(f"Primarily {_join_or(type_labels)} wines")
     price_phrase = _price_phrase(min_price, max_price)
     if price_phrase is not None:
         description.append(price_phrase)
@@ -130,19 +154,20 @@ def build_profile(
 def build_explanation(
     user_values: dict[str, int | list[int] | None],
     wine_dims: dict[str, Optional[int]],
-    type: Optional[str],
-    country: Optional[str],
+    wine_type: Optional[str],
+    wine_country: Optional[str],
     min_price: Optional[float],
     max_price: Optional[float],
 ) -> list[str]:
+    """`wine_type`/`wine_country` are the wine's own values, passed only when that filter was requested."""
     explanation: list[str] = []
     price_phrase = _price_explanation(min_price, max_price)
     if price_phrase is not None:
         explanation.append(price_phrase)
-    if type is not None:
-        explanation.append(f"{type.capitalize()} wine as requested")
-    if country is not None:
-        explanation.append(f"From {country}")
+    if wine_type is not None:
+        explanation.append(f"{wine_type.capitalize()} wine as requested")
+    if wine_country is not None:
+        explanation.append(f"From {wine_country}")
     for dim in DIMENSIONS:
         user_val = _levels(user_values.get(dim))
         wine_val = wine_dims.get(dim)
@@ -155,13 +180,13 @@ def build_explanation(
 
 def _ranking_key(
     user_values: dict[str, int | list[int] | None],
-    type: Optional[str],
-    country: Optional[str],
+    type: str | list[str] | None,
+    country: str | list[str] | None,
     min_price: Optional[float],
     max_price: Optional[float],
 ) -> tuple:
     dims_key = tuple(tuple(sorted(_levels(user_values.get(dim)))) for dim in DIMENSIONS)
-    return (dims_key, type, country, min_price, max_price)
+    return (dims_key, _choices(type), _choices(country), min_price, max_price)
 
 
 # Ranking a full catalog (scoring + sorting every wine) is the expensive part of a
@@ -198,8 +223,8 @@ _ranking_cache_lock = threading.Lock()
 def _ranked_wines(
     db: Session,
     user_values: dict[str, int | list[int] | None],
-    type: Optional[str],
-    country: Optional[str],
+    type: str | list[str] | None,
+    country: str | list[str] | None,
     min_price: Optional[float],
     max_price: Optional[float],
 ) -> list[dict]:
@@ -220,10 +245,12 @@ def _ranked_wines(
         .join(Winery, Wine.winery_id == Winery.id)
         .outerjoin(price_sq, price_sq.c.wine_id == Wine.id)
     )
-    if type is not None:
-        stmt = stmt.where(func.lower(Wine.type) == type.lower())
-    if country is not None:
-        stmt = stmt.where(func.lower(Wine.country) == country.lower())
+    types = _choices(type)
+    countries = _choices(country)
+    if types is not None:
+        stmt = stmt.where(func.lower(Wine.type).in_(types))
+    if countries is not None:
+        stmt = stmt.where(func.lower(Wine.country).in_(countries))
     if min_price is not None:
         stmt = stmt.where(price_sq.c.usd_price >= min_price)
     if max_price is not None:
@@ -326,7 +353,14 @@ def get_recommendations(
                 "match_score": entry["score"],
                 "factors_compared": entry["factors_compared"],
                 "factors_requested": entry["factors_requested"],
-                "explanation": build_explanation(user_values, wine_dims, type, country, min_price, max_price),
+                "explanation": build_explanation(
+                    user_values,
+                    wine_dims,
+                    entry["type"] if _choices(type) else None,
+                    entry["country"] if _choices(country) else None,
+                    min_price,
+                    max_price,
+                ),
             }
         )
 
