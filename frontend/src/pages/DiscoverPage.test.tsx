@@ -6,7 +6,6 @@ import { MemoryRouter } from "react-router-dom";
 import { DiscoverPage } from "./DiscoverPage";
 import * as api from "../services/api";
 import type { RecommendationItem, RecommendationResponse } from "../types/wine";
-import { chooseOption } from "../test/combobox";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
@@ -58,76 +57,120 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-describe("DiscoverPage", () => {
-  it("keeps preference editing open when an earlier load-more completes", async () => {
-    const pending = deferred<RecommendationResponse>();
-    getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] })
-      .mockReturnValueOnce(pending.promise);
-    renderPage();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    await screen.findByText("Wine 1");
-    await user.click(screen.getByRole("button", { name: "Load more" }));
-    await user.click(screen.getByRole("button", { name: "Edit preferences" }));
-    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
-    await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
-    expect(screen.getByLabelText("Wine type")).toHaveValue("White");
-  });
+type User = ReturnType<typeof userEvent.setup>;
 
-  it("rejects an inverted budget and lets the user reset saved preferences", async () => {
-    renderPage();
-    const user = userEvent.setup();
-    await user.type(screen.getByLabelText("Min price"), "50");
-    await user.type(screen.getByLabelText("Max price"), "20");
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    expect(screen.getByRole("alert")).toHaveTextContent(/minimum.*maximum/i);
-    expect(getRecommendationsMock).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Reset preferences" }));
-    expect(screen.getByLabelText("Min price")).toHaveValue(null);
-    expect(localStorage.getItem("vinoscope-discover-profile")).toBeNull();
-  });
+async function pick(user: User, ...labels: string[]) {
+  for (const label of labels) await user.click(screen.getByRole("button", { name: label }));
+}
+
+async function next(user: User) {
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+}
+
+/** Presses Continue through any remaining questions, then "Show my wines". */
+async function finishQuiz(user: User) {
+  while (screen.queryByRole("button", { name: "Continue" })) await next(user);
+  await user.click(screen.getByRole("button", { name: "Show my wines" }));
+}
+
+function question(name: string) {
+  return screen.getByRole("heading", { level: 2, name });
+}
+
+const FIRST = "What are you in the mood for?";
+
+describe("DiscoverPage", () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     getRecommendationsMock.mockReset();
   });
 
-  it("starts in form mode with no stored profile", () => {
+  it("starts on the first question with no stored profile", () => {
     renderPage();
-    expect(screen.getByRole("button", { name: "See My Recommendations" })).toBeInTheDocument();
+    expect(question(FIRST)).toBeInTheDocument();
+    expect(screen.getByText("Question 1 of 8")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No preference" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("submitting the form fetches recommendations and switches to results mode", async () => {
-    getRecommendationsMock.mockResolvedValue({
-      profile: { description: ["Very dry"] },
-      total: 1,
-      items: [makeItem(1)],
-    } satisfies RecommendationResponse);
+  it("walks all eight questions and sends lists, single levels and budget prices", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     renderPage();
-
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
+    await pick(user, "Red", "White");
+    await next(user);
+    expect(question("Any countries you love?")).toBeInTheDocument();
+    await pick(user, "France");
+    await next(user);
+    await pick(user, "$20–40", "$80–150");
+    expect(screen.getByRole("button", { name: "$40–80" })).toHaveAttribute("aria-pressed", "true");
+    await next(user);
+    await pick(user, "Dry");
+    await next(user);
+    await next(user); // acidity: I'm not sure
+    await pick(user, "Medium tannin");
+    await next(user);
+    await pick(user, "Light-bodied", "Full-bodied");
+    await finishQuiz(user);
 
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
-    expect(screen.getByText("Very dry")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit preferences" })).toBeInTheDocument();
+    await screen.findByText("Wine 1");
+    expect(getRecommendationsMock).toHaveBeenCalledWith({
+      type: ["red", "white"],
+      country: ["France"],
+      sweetness: 2,
+      tannin: 3,
+      body: [2, 4],
+      min_price: 20,
+      max_price: 150,
+      limit: 20,
+      offset: 0,
+    });
   });
 
-  it("persists submitted answers to localStorage and restores results without refetching on the next mount", async () => {
-    getRecommendationsMock.mockResolvedValue({
-      profile: { description: ["Dry"] },
-      total: 1,
-      items: [makeItem(2)],
-    });
+  it("clears a question's picks with its none pill", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await pick(user, "Red");
+    await pick(user, "No preference");
+    expect(screen.getByRole("button", { name: "Red" })).toHaveAttribute("aria-pressed", "false");
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    expect(getRecommendationsMock.mock.calls[0][0]).not.toHaveProperty("type");
+  });
+
+  it("jumps back to an earlier question from its answer chip", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await pick(user, "Red");
+    await next(user);
+    await user.click(screen.getByRole("button", { name: /Change answer: What are you in the mood for\?.*Red/ }));
+    expect(question(FIRST)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Red" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("restores the current quiz step after navigating away", async () => {
     const first = renderPage();
     const user = userEvent.setup();
-    await chooseOption(user, screen.getByLabelText("Wine type"), "Red");
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
+    await pick(user, "Red");
+    await next(user);
+    first.unmount();
+    renderPage();
+    expect(question("Any countries you love?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Change answer: .*Red/ })).toBeInTheDocument();
+  });
+
+  it("persists submitted answers and restores results without refetching on the next mount", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: ["Dry"] }, total: 1, items: [makeItem(2)] });
+    const first = renderPage();
+    const user = userEvent.setup();
+    await pick(user, "Red");
+    await finishQuiz(user);
+    await screen.findByText("Wine 2");
+    expect(JSON.parse(localStorage.getItem("vinoscope-discover-profile")!)).toEqual({ type: ["red"] });
     first.unmount();
 
     getRecommendationsMock.mockClear();
-
     renderPage();
     expect(screen.getByText("Wine 2")).toBeInTheDocument();
     expect(getRecommendationsMock).not.toHaveBeenCalled();
@@ -137,8 +180,8 @@ describe("DiscoverPage", () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: ["Dry"] }, total: 1, items: [makeItem(2)] });
     const first = renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
+    await finishQuiz(user);
+    await screen.findByText("Wine 2");
     first.unmount();
 
     localStorage.setItem("vinoscope-discover-profile", JSON.stringify({ type: "white" }));
@@ -146,31 +189,77 @@ describe("DiscoverPage", () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(3)] });
 
     renderPage();
-    await waitFor(() => expect(screen.getByText("Wine 3")).toBeInTheDocument());
+    await screen.findByText("Wine 3");
     expect(getRecommendationsMock).toHaveBeenCalledWith(expect.objectContaining({ type: "white" }));
   });
 
-  it("clicking Edit preferences returns to the form pre-filled with the last answers", async () => {
-    getRecommendationsMock.mockResolvedValue({
-      profile: { description: [] },
-      total: 1,
-      items: [makeItem(1)],
-    });
+  it("maps a profile saved by the old form into the quiz", async () => {
+    localStorage.setItem(
+      "vinoscope-discover-profile",
+      JSON.stringify({ type: "red", sweetness: 2, min_price: 25, max_price: 60 })
+    );
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     renderPage();
     const user = userEvent.setup();
-    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Edit preferences" })).toBeInTheDocument());
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Edit answers" }));
+    expect(screen.getByRole("button", { name: "Red" })).toHaveAttribute("aria-pressed", "true");
+    await next(user);
+    await next(user);
+    expect(screen.getByRole("button", { name: "$20–40" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "$40–80" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "$80–150" })).toHaveAttribute("aria-pressed", "false");
+    await next(user);
+    expect(screen.getByRole("button", { name: "Dry" })).toHaveAttribute("aria-pressed", "true");
+  });
 
-    await user.click(screen.getByRole("button", { name: "Edit preferences" }));
-    expect(screen.getByLabelText("Wine type")).toHaveValue("White");
+  it("Edit answers reopens the quiz at question 1 prefilled", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await pick(user, "White");
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Edit answers" }));
+    expect(question(FIRST)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "White" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("Start over clears the saved profile and every answer", async () => {
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await pick(user, "White");
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Start over" }));
+    expect(question(FIRST)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "White" })).toHaveAttribute("aria-pressed", "false");
+    expect(localStorage.getItem("vinoscope-discover-profile")).toBeNull();
+  });
+
+  it("keeps the quiz open when an earlier load-more completes", async () => {
+    const pending = deferred<RecommendationResponse>();
+    getRecommendationsMock
+      .mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] })
+      .mockReturnValueOnce(pending.promise);
+    renderPage();
+    const user = userEvent.setup();
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+    await user.click(screen.getByRole("button", { name: "Edit answers" }));
+    await pick(user, "White");
+    await act(async () => pending.resolve({ profile: { description: [] }, total: 2, items: [makeItem(2)] }));
+    expect(question(FIRST)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "White" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("shows the empty-profile fallback message when profile.description is empty", async () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 1, items: [makeItem(1)] });
     renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
+    await finishQuiz(user);
     await waitFor(() => expect(screen.getByText(/no specific preferences set/i)).toBeInTheDocument());
   });
 
@@ -178,46 +267,33 @@ describe("DiscoverPage", () => {
     getRecommendationsMock.mockRejectedValueOnce(new Error("network error"));
     renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
+    await finishQuiz(user);
     await waitFor(() => expect(screen.getByText(/failed to load recommendations/i)).toBeInTheDocument());
   });
 
   it("clicking Load more appends the next page", async () => {
-    getRecommendationsMock.mockResolvedValueOnce({
-      profile: { description: [] },
-      total: 2,
-      items: [makeItem(1)],
-    });
+    getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(1)] });
     renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
-
-    getRecommendationsMock.mockResolvedValueOnce({
-      profile: { description: [] },
-      total: 2,
-      items: [makeItem(2)],
-    });
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    getRecommendationsMock.mockResolvedValueOnce({ profile: { description: [] }, total: 2, items: [makeItem(2)] });
     await user.click(screen.getByRole("button", { name: "Load more" }));
-    await waitFor(() => expect(screen.getByText("Wine 2")).toBeInTheDocument());
+    await screen.findByText("Wine 2");
   });
 
-  it("disables the submit button and shows loading feedback while a submission is in flight", async () => {
+  it("disables the last button and shows loading feedback while a submission is in flight", async () => {
     const pending = deferred<RecommendationResponse>();
     getRecommendationsMock.mockReturnValue(pending.promise);
     renderPage();
-
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-
-    const submitButton = await screen.findByRole("button", { name: "Finding wines…" });
-    expect(submitButton).toBeDisabled();
-
+    await finishQuiz(user);
+    expect(await screen.findByRole("button", { name: "Finding wines…" })).toBeDisabled();
     pending.resolve({ profile: { description: ["Dry"] }, total: 1, items: [makeItem(1)] });
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    await screen.findByText("Wine 1");
   });
 
-  it("ignores a stale load-more response when a new profile is submitted before it resolves", async () => {
+  it("ignores a stale load-more response when new answers are submitted before it resolves", async () => {
     const staleLoadMore = deferred<RecommendationResponse>();
     getRecommendationsMock
       .mockResolvedValueOnce({ profile: { description: ["Dry"] }, total: 2, items: [makeItem(1)] })
@@ -226,17 +302,17 @@ describe("DiscoverPage", () => {
 
     renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
 
     await user.click(screen.getByRole("button", { name: "Load more" }));
     expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Edit preferences" }));
-    await chooseOption(user, screen.getByLabelText("Wine type"), "White");
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
+    await user.click(screen.getByRole("button", { name: "Edit answers" }));
+    await pick(user, "White");
+    await finishQuiz(user);
 
-    await waitFor(() => expect(screen.getByText("Wine 9")).toBeInTheDocument());
+    await screen.findByText("Wine 9");
     expect(screen.queryByText("Wine 1")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load more" })).not.toBeDisabled();
 
@@ -260,24 +336,20 @@ describe("DiscoverPage", () => {
     );
 
     await waitFor(() => expect(getRecommendationsMock).toHaveBeenCalledTimes(2));
-
-    // Resolve the earlier (now-stale) mount-effect call after the later one settles.
     second.resolve({ profile: { description: ["Second"] }, total: 1, items: [makeItem(20)] });
-    await waitFor(() => expect(screen.getByText("Wine 20")).toBeInTheDocument());
-
+    await screen.findByText("Wine 20");
     first.resolve({ profile: { description: ["First"] }, total: 1, items: [makeItem(10)] });
     await waitFor(() => expect(screen.queryByText("Wine 10")).not.toBeInTheDocument());
     expect(screen.getByText("Wine 20")).toBeInTheDocument();
   });
 
-  it("shows an empty-results state with a way back to the form when a query has no matches", async () => {
+  it("shows an empty-results state with a way back to the questionnaire", async () => {
     getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 0, items: [] });
     renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "See My Recommendations" }));
-
-    await waitFor(() => expect(screen.getByText(/no wines match your preferences/i)).toBeInTheDocument());
+    await finishQuiz(user);
+    await screen.findByText(/no wines match your preferences/i);
     await user.click(screen.getByRole("button", { name: "Back to questionnaire" }));
-    expect(screen.getByRole("button", { name: "See My Recommendations" })).toBeInTheDocument();
+    expect(question(FIRST)).toBeInTheDocument();
   });
 });
