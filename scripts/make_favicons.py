@@ -53,7 +53,8 @@ def write_favicons(out_dir: Path = OUT_DIR) -> list[Path]:
     png_path = out_dir / "apple-touch-icon.png"
     _raster(180).save(png_path)
     ico_path = out_dir / "favicon.ico"
-    _raster(48).save(ico_path, sizes=[(16, 16), (32, 32), (48, 48)])
+    _raster(48).save(ico_path, sizes=[(16, 16), (32, 32), (48, 48)],
+                     append_images=[_raster(16), _raster(32)])
     return [svg_path, png_path, ico_path]
 
 

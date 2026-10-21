@@ -22,3 +22,13 @@ def test_raster_sizes(tmp_path):
     assert Image.open(tmp_path / "apple-touch-icon.png").size == (180, 180)
     ico = Image.open(tmp_path / "favicon.ico")
     assert set(ico.info["sizes"]) == {(16, 16), (32, 32), (48, 48)}
+
+
+def test_small_ico_frames_are_drawn_at_their_own_size(tmp_path):
+    from scripts.make_favicons import _raster
+
+    write_favicons(tmp_path)
+    ico = Image.open(tmp_path / "favicon.ico")
+    ico.size = (16, 16)
+    frame16 = ico.convert("RGBA")
+    assert frame16.tobytes() == _raster(16).tobytes()
