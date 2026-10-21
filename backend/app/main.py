@@ -11,7 +11,15 @@ from app.api.admin import router as admin_router
 from app.api.wines import router as wines_router
 from app.api.recommendations import router as recommendations_router
 
-app = FastAPI(title="VinoScope API")
+
+def api_docs_settings(env=os.environ):
+    """The interactive docs and OpenAPI schema are for development; production hides them."""
+    if env.get("VINOSCOPE_ENV") == "production":
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+
+
+app = FastAPI(title="VinoScope API", **api_docs_settings())
 
 cors_origins = [origin.strip() for origin in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",") if origin.strip()]
 app.add_middleware(

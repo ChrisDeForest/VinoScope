@@ -111,3 +111,15 @@ def test_inverted_ranges_return_422(client, filterable_wines, params, detail):
 @pytest.mark.parametrize("params", [{"min_acidity": 0}, {"max_fruitiness": 6}, {"min_abv": -1}])
 def test_out_of_range_values_return_422(client, filterable_wines, params):
     assert client.get("/api/wines", params=params).status_code == 422
+
+
+@pytest.mark.parametrize("param", ["q", "type", "country", "region", "grape"])
+def test_free_text_filters_accept_up_to_100_characters(client, filterable_wines, param):
+    response = client.get("/api/wines", params={param: "x" * 100})
+    assert response.status_code == 200, response.text
+
+
+@pytest.mark.parametrize("param", ["q", "type", "country", "region", "grape"])
+def test_free_text_filters_reject_longer_values(client, filterable_wines, param):
+    response = client.get("/api/wines", params={param: "x" * 101})
+    assert response.status_code == 422

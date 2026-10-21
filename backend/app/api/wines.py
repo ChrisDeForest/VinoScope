@@ -22,15 +22,17 @@ from app.validation import PRICE_RANGE_ERROR, price_range_invalid, range_invalid
 router = APIRouter()
 
 TasteLevel = Optional[int]
+# Longest value accepted for a free-text filter; caps how much text one request can send to the DB.
+MAX_FILTER_LENGTH = 100
 
 
 @router.get("/wines", response_model=WineListResponse)
 def list_wines(
-    type: Optional[str] = None,
-    country: Optional[str] = None,
-    region: Optional[str] = None,
-    grape: Optional[str] = None,
-    q: Optional[str] = None,
+    type: Optional[str] = Query(default=None, max_length=MAX_FILTER_LENGTH),
+    country: Optional[str] = Query(default=None, max_length=MAX_FILTER_LENGTH),
+    region: Optional[str] = Query(default=None, max_length=MAX_FILTER_LENGTH),
+    grape: Optional[str] = Query(default=None, max_length=MAX_FILTER_LENGTH),
+    q: Optional[str] = Query(default=None, max_length=MAX_FILTER_LENGTH),
     min_price: Optional[float] = Query(default=None, ge=0),
     max_price: Optional[float] = Query(default=None, ge=0),
     min_abv: Optional[float] = Query(default=None, ge=0),
