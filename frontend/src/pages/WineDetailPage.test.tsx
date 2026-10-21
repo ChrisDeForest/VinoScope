@@ -107,12 +107,14 @@ describe("WineDetailPage", () => {
     expect(sawErrorFlash).toBe(false);
   });
 
-  it("renders a not-found state on a 404", async () => {
+  it("renders the wine 404 page when the wine doesn't exist", async () => {
     getWineMock.mockRejectedValue(new ApiError(404, "Wine not found"));
     renderDetail("999999");
 
-    await waitFor(() => expect(screen.getByText("Wine not found")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: /back to explore/i })).toHaveAttribute("href", "/explore");
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1, name: "That wine isn't in our cellar." })).toBeInTheDocument()
+    );
+    expect(screen.getByRole("link", { name: "Explore all wines" })).toHaveAttribute("href", "/explore");
   });
 
   it("renders 'No retailers currently listed' when there are no listings", async () => {

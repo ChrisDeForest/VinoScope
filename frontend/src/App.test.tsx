@@ -61,4 +61,9 @@ describe("App routing", () => {
     expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute("href", "/compare");
     expect(screen.getByRole("link", { name: "Learn" })).toHaveAttribute("href", "/learn");
   });
+
+  it("renders the 404 page for an unknown address", () => {
+    renderAt("/no-such-page");
+    expect(screen.getByRole("heading", { level: 1, name: "Well, that spilled." })).toBeInTheDocument();
+  });
 });

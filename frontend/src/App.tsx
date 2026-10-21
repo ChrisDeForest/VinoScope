@@ -8,6 +8,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { PairPage } from "./pages/PairPage";
 import { ComparePage } from "./pages/ComparePage";
 import { LearnPage } from "./pages/LearnPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
         <Route path="/pair" element={<PairPage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/learn" element={<LearnPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </PageShell>
   );

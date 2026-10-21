@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ApiError } from "../services/api";
 import { getCachedWine } from "../services/wineCache";
@@ -13,6 +13,7 @@ import { WineEditPanel } from "../components/admin/WineEditPanel";
 import { AddToCompareButton } from "../components/compare/AddToCompareButton";
 import { WineImage } from "../components/wine/WineImage";
 import type { WineDetail } from "../types/wine";
+import { NotFoundPage } from "./NotFoundPage";
 
 export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,14 +44,7 @@ export function WineDetailPage() {
   }
 
   if (error instanceof ApiError && error.status === 404) {
-    return (
-      <div className="text-center py-12">
-        <h1 className="font-serif text-2xl text-ink mb-2">Wine not found</h1>
-        <Link to="/explore" className="text-accent hover:underline">
-          Back to Explore
-        </Link>
-      </div>
-    );
+    return <NotFoundPage variant="wine" />;
   }
 
   if (error || !data || !wine) {
