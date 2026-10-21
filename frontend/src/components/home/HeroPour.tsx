@@ -38,13 +38,16 @@ function HeroCopy({ showCue }: { showCue: boolean }) {
           Explore Wines
         </Link>
       </div>
-      <p
+      <div
         aria-hidden="true"
         data-testid="scroll-cue"
-        className={`absolute bottom-6 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.2em] text-cellar-muted transition-opacity duration-300 ${showCue ? "opacity-100" : "opacity-0"}`}
+        className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-cellar-ink drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-opacity duration-300 ${showCue ? "opacity-100" : "opacity-0"}`}
       >
-        Scroll
-      </p>
+        <span className="text-sm font-semibold uppercase tracking-[0.25em]">Scroll to pour</span>
+        <svg viewBox="0 0 24 24" className="scroll-nudge h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </div>
     </div>
   );
 }

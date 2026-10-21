@@ -71,3 +71,20 @@ html.home-scroll-padding {
     animation: quiz-rise 0.35s ease both;
   }
 }
+
+/* The home hero's scroll arrow bobs downward so first-time visitors notice it. */
+@keyframes scroll-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-nudge {
+    animation: scroll-nudge 1.6s ease-in-out infinite;
+  }
+}
