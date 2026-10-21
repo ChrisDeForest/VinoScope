@@ -215,4 +215,19 @@ describe("Header", () => {
       expect(button).toHaveAttribute("aria-expanded", "false");
     });
   });
+
+  describe("Admin link in production builds", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("is not rendered when the build is not a development build", async () => {
+      vi.stubEnv("DEV", false);
+      stubMatchMedia({ reducedMotion: true });
+      renderHeader();
+      expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: "Menu" }));
+      expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+    });
+  });
 });

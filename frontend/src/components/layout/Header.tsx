@@ -34,6 +34,8 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
     : "text-ink-muted hover:text-ink motion-safe:transition-colors";
   const navLinkClass = ({ isActive }: { isActive: boolean }) => (isActive ? "text-accent" : idleLinkClass);
   const menuButtonRingClass = isOverlay ? "focus-visible:outline-cellar-ink" : "focus-visible:outline-accent";
+  // Admin is reachable on the live site only from home (nginx + AdminGate); no link there.
+  const showAdminLink = import.meta.env.DEV;
 
   // Close on route change, wherever it came from (nav link, back/forward, etc).
   useEffect(() => {
@@ -114,9 +116,11 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
           </nav>
           <div className="flex items-center gap-3">
             <ThemeSwitcher variant={isOverlay ? "overlay" : "default"} />
-            <NavLink to="/admin" className={({ isActive }) => `text-sm ${isActive ? "text-accent" : idleLinkClass}`}>
-              Admin
-            </NavLink>
+            {showAdminLink ? (
+              <NavLink to="/admin" className={({ isActive }) => `text-sm ${isActive ? "text-accent" : idleLinkClass}`}>
+                Admin
+              </NavLink>
+            ) : null}
           </div>
         </div>
       </div>
@@ -150,13 +154,15 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
         </nav>
         <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-surface-border px-1.5 pb-1 pt-2.5">
           <ThemeSwitcher />
-          <NavLink
-            to="/admin"
-            onClick={closeMenu}
-            className={({ isActive }) => `text-sm ${isActive ? "text-accent" : "text-ink-muted hover:text-ink"}`}
-          >
-            Admin
-          </NavLink>
+          {showAdminLink ? (
+            <NavLink
+              to="/admin"
+              onClick={closeMenu}
+              className={({ isActive }) => `text-sm ${isActive ? "text-accent" : "text-ink-muted hover:text-ink"}`}
+            >
+              Admin
+            </NavLink>
+          ) : null}
         </div>
       </div>
     </header>
