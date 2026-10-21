@@ -77,6 +77,17 @@ main() {
     grep -q '^backend/' <<< "$CHANGED" && need_restart=1
   fi
 
+  # Reminders for changes this script deliberately doesn't apply. Checked before the early exit
+  # below, because a commit may change nothing but these.
+  if grep -qE '^deploy/(nginx|systemd)/' <<< "$CHANGED"; then
+    notify "server config changed, run install.sh" \
+      "deploy/nginx or deploy/systemd changed in $(git rev-parse --short HEAD). Those aren't applied automatically. On the Pi run:  sudo /home/chris/vinoscope/deploy/install.sh"
+  fi
+  if grep -qE '^data/cleaned/.*\.csv$' <<< "$CHANGED"; then
+    notify "wine data changed, import not run" \
+      "data/cleaned changed. Importing overwrites admin edits, so it isn't automatic. See deploy/README.md, 'Re-importing the wine data'."
+  fi
+
   if (( !need_frontend && !need_pip && !need_restart )); then
     echo "$NEW" > "$DEPLOYED_FILE"
     echo "No updates."
@@ -117,15 +128,6 @@ main() {
     if [[ -d "$LIVE_DIR" ]]; then mv "$LIVE_DIR" "$PREVIOUS_DIR"; fi
     mv "$BUILD_DIR" "$LIVE_DIR" || fail "swapping in the new build" 6
     cd "$REPO_DIR"
-  fi
-
-  if grep -qE '^deploy/(nginx|systemd)/' <<< "$CHANGED"; then
-    notify "server config changed, run install.sh" \
-      "deploy/nginx or deploy/systemd changed in $(git rev-parse --short HEAD). Those aren't applied automatically. On the Pi run:  sudo /home/chris/vinoscope/deploy/install.sh"
-  fi
-  if grep -qE '^data/cleaned/.*\.csv$' <<< "$CHANGED"; then
-    notify "wine data changed, import not run" \
-      "data/cleaned changed. Importing overwrites admin edits, so it isn't automatic. See deploy/README.md, 'Re-importing the wine data'."
   fi
 
   echo "$NEW" > "$DEPLOYED_FILE"
