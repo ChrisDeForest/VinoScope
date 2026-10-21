@@ -19,6 +19,8 @@ echo "--- backup folder"
 install -d -m 700 -o postgres -g postgres /var/backups/vinoscope
 
 echo "--- nginx"
+# Folder for the short API cache (proxy_cache_path). Debian doesn't create /var/cache/nginx.
+install -d -m 700 -o www-data -g www-data /var/cache/nginx/vinoscope
 install -m 644 "$DEPLOY_DIR/nginx/vinoscope-proxy.conf" /etc/nginx/snippets/vinoscope-proxy.conf
 install -m 644 "$DEPLOY_DIR/nginx/$SITE.conf" "/etc/nginx/sites-available/$SITE"
 if [[ -f "/etc/letsencrypt/live/$SITE/fullchain.pem" ]]; then
