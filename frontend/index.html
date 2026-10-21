@@ -4,17 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VinoScope</title>
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("vinoscope-theme");
-          var theme = stored === "cream-terracotta" || stored === "charcoal-gold" ? stored : "dark-burgundy";
-          document.documentElement.setAttribute("data-theme", theme);
-        } catch (e) {
-          document.documentElement.setAttribute("data-theme", "dark-burgundy");
-        }
-      })();
-    </script>
+    <!-- Sets the saved theme before first paint. A file, not inline, so the CSP can forbid inline scripts. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

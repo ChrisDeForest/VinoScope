@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { useScrolledPast } from "../../hooks/useScrolledPast";
+import { usePageviews } from "../../hooks/usePageviews";
 
 // Applied to <html> only while on the home route, where the header is fixed
 // and can otherwise obscure a scrolled-to or focused element's top edge.
@@ -11,6 +12,7 @@ const HOME_SCROLL_PADDING_CLASS = "home-scroll-padding";
 
 export function PageShell({ children }: { children: ReactNode }) {
   const isHome = useLocation().pathname === "/";
+  usePageviews();
   // HeroPour renders a #hero-end sentinel right after the hero; once it has
   // scrolled past the viewport top the home header switches from overlay to
   // solid. PageShell mounts once for the whole session (it wraps <Routes> in
