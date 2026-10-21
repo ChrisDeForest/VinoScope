@@ -24,6 +24,8 @@ ExecStart=/home/chris/vinoscope/.venv/bin/uvicorn app.main:app --host 127.0.0.1 
 # but unresponsive) API is caught by the Pi's 5-minute healthcheck, which restarts it.
 Restart=always
 RestartSec=3
+# A frozen API ignores the polite stop signal; don't wait systemd's default 90 s before killing it
+TimeoutStopSec=20
 
 # Hardening: a throwaway unprivileged user that can read the code but write nowhere
 DynamicUser=yes
