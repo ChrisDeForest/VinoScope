@@ -6,6 +6,7 @@ import {
   createListing,
   updateListing,
   deleteListing,
+  checkAdminAccess,
 } from "./adminApi";
 import { setAdminKey } from "./adminAuth";
 import { ApiError } from "./api";
@@ -86,5 +87,23 @@ describe("adminApi", () => {
       status: 422,
       message: "invalid type",
     });
+  });
+});
+
+describe("checkAdminAccess", () => {
+  it("is true only for a 204 from /api/admin-access", async () => {
+    fetchMock.mockResolvedValue({ status: 204 });
+    await expect(checkAdminAccess()).resolves.toBe(true);
+    expect(String(fetchMock.mock.calls[0][0])).toContain("/api/admin-access");
+  });
+
+  it("is false for 403", async () => {
+    fetchMock.mockResolvedValue({ status: 403 });
+    await expect(checkAdminAccess()).resolves.toBe(false);
+  });
+
+  it("is false when the request fails", async () => {
+    fetchMock.mockRejectedValue(new TypeError("offline"));
+    await expect(checkAdminAccess()).resolves.toBe(false);
   });
 });

@@ -103,3 +103,14 @@ export async function deleteListing(wineId: number, listingId: number): Promise<
   }
   invalidateWineCache(wineId);
 }
+
+// Asks nginx whether this visitor may use admin (home network only on the live site).
+// nginx answers /api/admin-access itself: 204 = allowed, 403 = not.
+export async function checkAdminAccess(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin-access`);
+    return response.status === 204;
+  } catch {
+    return false;
+  }
+}

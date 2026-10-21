@@ -9,6 +9,7 @@ import { PairPage } from "./pages/PairPage";
 import { ComparePage } from "./pages/ComparePage";
 import { LearnPage } from "./pages/LearnPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { AdminGate } from "./components/admin/AdminGate";
 
 export function App() {
   return (
@@ -18,7 +19,14 @@ export function App() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/wines/:id" element={<WineDetailPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminGate>
+              <AdminPage />
+            </AdminGate>
+          }
+        />
         <Route path="/pair" element={<PairPage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/learn" element={<LearnPage />} />
