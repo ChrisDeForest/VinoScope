@@ -1,1 +1,4 @@
 *.sh text eol=lf
+
+# Server config for the Pi: must stay LF so bash/systemd/nginx read it correctly
+deploy/** text eol=lf

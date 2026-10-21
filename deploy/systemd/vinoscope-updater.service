@@ -1,0 +1,19 @@
+# Pulls VinoScope from GitHub and redeploys whatever changed. Triggered by vinoscope-updater.timer.
+# Installed by deploy/install.sh. Edit it in the repo, not on the Pi.
+[Unit]
+Description=VinoScope auto updater (pull + build + restart when main changes)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=chris
+Group=chris
+# The script lives in the repo, so changes to it deploy themselves
+ExecStart=/home/chris/vinoscope/deploy/bin/update-vinoscope.sh
+LogsDirectory=vinoscope-updater
+TimeoutStartSec=30min
+# Not NoNewPrivileges / ProtectSystem=strict: the script uses sudo to restart the API, and its
+# failure mail goes through postfix's setgid postdrop. Both settings would break those.
+PrivateTmp=yes
+ProtectSystem=full
