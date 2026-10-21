@@ -23,7 +23,6 @@ import {
   type FilterValues,
 } from "../components/explore/filterTypes";
 import { readPageState, writePageState } from "../utils/pageState";
-import { PENDING_IMAGE_SLUGS, isPendingReview } from "../constants/pendingReview";
 
 const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: string) => string }[] = [
   { key: "q", name: "search", describe: (value) => `Search: "${value}"` },
@@ -50,8 +49,6 @@ type PageSize = number | "all";
 const PAGE_SIZE_OPTIONS: PageSize[] = [12, 24, 48, 96, 200, "all"];
 const DEFAULT_PAGE_SIZE = 12;
 const CUSTOM_OPTION = "custom";
-// TEMPORARY: query param for the photo-review toggle (see constants/pendingReview).
-const PENDING_PARAM = "pending";
 // The wines API rejects a limit above 100, so bigger ranges are fetched in chunks.
 const API_MAX_LIMIT = 100;
 const STATE_KEY = "vinoscope-explore-state";
@@ -103,9 +100,8 @@ interface ExploreSnapshot {
   total: number;
 }
 
-function filtersKeyOf(filters: FilterValues, pendingOnly = false): string {
-  const key = filtersToSearchParams(filters).toString();
-  return pendingOnly ? `${key}&${PENDING_PARAM}=1` : key;
+function filtersKeyOf(filters: FilterValues): string {
+  return filtersToSearchParams(filters).toString();
 }
 
 export function ExplorePage() {
@@ -114,11 +110,10 @@ export function ExplorePage() {
 
   const [initial] = useState(() => {
     const filters = filtersFromSearchParams(searchParams);
-    const pendingOnly = searchParams.get(PENDING_PARAM) === "1";
     const snapshot = readPageState<ExploreSnapshot>(STATE_KEY);
-    const hit = snapshot !== null && snapshot.filtersKey === filtersKeyOf(filters, pendingOnly);
+    const hit = snapshot !== null && snapshot.filtersKey === filtersKeyOf(filters);
     const scrollY = hit ? readPageState<number>(SCROLL_KEY) ?? 0 : 0;
-    return { filters, pendingOnly, hit, snapshot, scrollY };
+    return { filters, hit, snapshot, scrollY };
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterValues>(initial.filters);
@@ -133,7 +128,6 @@ export function ExplorePage() {
   const [pageSize, setPageSize] = useState<PageSize>(readPageSize);
   const [customOpen, setCustomOpen] = useState(false);
   const [customDraft, setCustomDraft] = useState("");
-  const [pendingOnly, setPendingOnly] = useState(initial.pendingOnly);
   const loadMoreRequestId = useRef(0);
   const primaryRequestId = useRef(0);
   // The main fetch effect only depends on `appliedFilters`, so it can't pick up
@@ -162,21 +156,19 @@ export function ExplorePage() {
         const next = new URLSearchParams(prev);
         FILTER_PARAM_NAMES.forEach((name) => next.delete(name));
         filtersToSearchParams(appliedFilters).forEach((value, name) => next.set(name, value));
-        if (pendingOnly) next.set(PENDING_PARAM, "1");
-        else next.delete(PENDING_PARAM);
         return next;
       },
       { replace: true }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedFilters, pendingOnly]);
+  }, [appliedFilters]);
 
   useEffect(() => {
     setSearchDraft(appliedFilters.q);
   }, [appliedFilters.q]);
 
   useEffect(() => {
-    const filtersKey = filtersKeyOf(appliedFilters, pendingOnly);
+    const filtersKey = filtersKeyOf(appliedFilters);
     const requestId = ++primaryRequestId.current;
     setError(null);
     if (loadedFiltersKeyRef.current === filtersKey) {
@@ -187,15 +179,12 @@ export function ExplorePage() {
     }
     setLoading(true);
     const size = pageSizeRef.current;
-    // The pending list is a hand-kept set of slugs the API can't filter on, so that view loads
-    // every matching wine and keeps the pending ones.
-    fetchWineRange(appliedFilters, 0, pendingOnly || size === "all" ? Infinity : size)
+    fetchWineRange(appliedFilters, 0, size === "all" ? Infinity : size)
       .then((data) => {
         if (requestId !== primaryRequestId.current) return;
         loadedFiltersKeyRef.current = filtersKey;
-        const shown = pendingOnly ? data.items.filter((wine) => isPendingReview(wine.image_url)) : data.items;
-        setItems(shown);
-        setTotal(pendingOnly ? shown.length : data.total);
+        setItems(data.items);
+        setTotal(data.total);
         // Drop any loadMore that was still in flight for the previous items/total.
         loadMoreRequestId.current += 1;
       })
@@ -207,16 +196,16 @@ export function ExplorePage() {
         if (requestId !== primaryRequestId.current) return;
         setLoading(false);
       });
-  }, [appliedFilters, pendingOnly]);
+  }, [appliedFilters]);
 
   useEffect(() => {
     if (loading) return;
     writePageState<ExploreSnapshot>(STATE_KEY, {
-      filtersKey: filtersKeyOf(appliedFilters, pendingOnly),
+      filtersKey: filtersKeyOf(appliedFilters),
       items,
       total,
     });
-  }, [items, total, loading, appliedFilters, pendingOnly]);
+  }, [items, total, loading, appliedFilters]);
 
   useEffect(() => {
     if (!restoredScrollRef.current) {
@@ -287,11 +276,6 @@ export function ExplorePage() {
     setCustomOpen(false);
     // Anything past the total is capped rather than rejected, so a big number means "all of them".
     handlePageSizeChange(total > 0 ? Math.min(size, total) : size);
-  }
-
-  function togglePendingOnly() {
-    invalidateLoadMore();
-    setPendingOnly((prev) => !prev);
   }
 
   function handlePageSizeChange(size: PageSize) {
@@ -392,7 +376,7 @@ export function ExplorePage() {
           options={showOptions}
           onChange={handleShowChange}
           searchable={false}
-          disabled={loading || pendingOnly}
+          disabled={loading}
           className="w-32"
         />
         {customOpen ? (
@@ -413,18 +397,6 @@ export function ExplorePage() {
               Apply
             </button>
           </form>
-        ) : null}
-        {PENDING_IMAGE_SLUGS.length > 0 ? (
-          <button
-            type="button"
-            onClick={togglePendingOnly}
-            aria-pressed={pendingOnly}
-            disabled={loading}
-            title="Temporary: only the wines whose photos are waiting for a check"
-            className={`rounded-full border px-3 py-1 text-sm ${pendingOnly ? "border-accent bg-accent text-surface" : "border-surface-border text-ink-muted hover:border-accent"}`}
-          >
-            Pending ({PENDING_IMAGE_SLUGS.length})
-          </button>
         ) : null}
       </div>
 
