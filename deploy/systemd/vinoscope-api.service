@@ -19,7 +19,10 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # If a migration fails the API doesn't start, and the OnFailure email says why.
 ExecStartPre=/home/chris/vinoscope/.venv/bin/alembic -c /home/chris/vinoscope/backend/alembic.ini upgrade head
 ExecStart=/home/chris/vinoscope/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-server-header
-Restart=on-failure
+# Come back after any exit (crash or not). A deliberate "systemctl stop" still stops it.
+# If it fails 5 times in 5 minutes systemd gives up and OnFailure emails you. A hung (running
+# but unresponsive) API is caught by the Pi's 5-minute healthcheck, which restarts it.
+Restart=always
 RestartSec=3
 
 # Hardening: a throwaway unprivileged user that can read the code but write nowhere
