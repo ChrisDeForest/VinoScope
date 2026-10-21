@@ -39,6 +39,7 @@ Production settings that ship with the repo:
 | Updater | `vinoscope-updater.timer` → `.service` (every 15 min, as chris) |
 | DB backups | `vinoscope-db-backup.timer` → `/var/backups/vinoscope/` (nightly, last 14 kept) |
 | nginx site | `/etc/nginx/sites-available/wines.chrisdeforest.dev` (from `deploy/nginx/`) |
+| Admin allow-list | `/etc/nginx/snippets/home-network.conf` (Pi only) |
 | Logs | `journalctl -u vinoscope-api`, `/var/log/vinoscope-updater/last-run.log`, `/var/log/nginx/wines_*.log` |
 
 ### nginx limits
@@ -52,6 +53,20 @@ Production settings that ship with the repo:
 Over the limit → `429`. Repeat offenders are banned by fail2ban (nginx `deny`, 403).
 Requests that send `X-Admin-Key` skip the cache, so the admin page always sees fresh data.
 The `X-Cache-Status` response header shows `HIT`/`MISS` for API reads.
+
+### Admin on the live site
+
+There's no Admin link in production builds. Go to `/admin` directly. It works only from home:
+nginx allows `/api/admin/*`, every edit (non-GET under `/api/`) and the `/api/admin-access`
+check only for the addresses in `/etc/nginx/snippets/home-network.conf` (LAN + the home's static
+public IP). Everyone else gets the 404 page and 403s. The admin key is still required.
+
+That file is **only on the Pi** (this repo is public). If the home IP changes (move, new ISP):
+
+    sudoedit /etc/nginx/snippets/home-network.conf     # update the "allow <ip>;" line
+    sudo nginx -t && sudo systemctl reload nginx
+
+Admin edits reach other visitors on their next page load, within 60 s (the API cache).
 
 ## Everyday commands (on the Pi)
 

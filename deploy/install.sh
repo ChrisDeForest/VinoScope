@@ -21,6 +21,15 @@ install -d -m 700 -o postgres -g postgres /var/backups/vinoscope
 echo "--- nginx"
 # Folder for the short API cache (proxy_cache_path). Debian doesn't create /var/cache/nginx.
 install -d -m 700 -o www-data -g www-data /var/cache/nginx/vinoscope
+# Who may use admin on the live site. Holds the home public IP, so it lives only on the Pi
+# (this repo is public). Created LAN-only if missing; never overwritten.
+if [[ ! -f /etc/nginx/snippets/home-network.conf ]]; then
+  printf '%s\n' \
+    "# Addresses allowed to use VinoScope's admin (deploy/README.md, 'Admin on the live site')." \
+    "# Add the home public IP below, then: sudo nginx -t && sudo systemctl reload nginx" \
+    "allow 192.168.1.0/24;" > /etc/nginx/snippets/home-network.conf
+  echo "Created /etc/nginx/snippets/home-network.conf (LAN only). Add the home public IP to it."
+fi
 install -m 644 "$DEPLOY_DIR/nginx/vinoscope-proxy.conf" /etc/nginx/snippets/vinoscope-proxy.conf
 install -m 644 "$DEPLOY_DIR/nginx/$SITE.conf" "/etc/nginx/sites-available/$SITE"
 if [[ -f "/etc/letsencrypt/live/$SITE/fullchain.pem" ]]; then
