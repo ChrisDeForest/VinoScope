@@ -16,7 +16,6 @@ function renderAt(path: string, children: ReactNode = <p>Page content</p>) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  document.documentElement.classList.remove("home-scroll-padding");
 });
 
 describe("PageShell", () => {
@@ -31,12 +30,12 @@ describe("PageShell", () => {
     expect(screen.getByRole("main")).not.toHaveClass("max-w-6xl");
   });
 
-  it("on other routes, renders no skip link, a normal in-flow header, and a contained main", () => {
+  it("on other routes, renders no skip link, a sticky header, and a contained main", () => {
     renderAt("/pair");
     expect(screen.queryByText("Skip to all features")).not.toBeInTheDocument();
     const header = screen.getByRole("banner");
     expect(header).not.toHaveClass("fixed");
-    expect(header).toHaveClass("border-b");
+    expect(header).toHaveClass("sticky", "border-b");
     expect(screen.getByRole("main")).toHaveClass("max-w-6xl");
   });
 
@@ -63,15 +62,6 @@ describe("PageShell", () => {
     expect(header).not.toHaveClass("border-b");
   });
 
-  it("sets a scroll-padding class on <html> on the home route and removes it elsewhere (I2)", () => {
-    const { unmount } = renderAt("/");
-    expect(document.documentElement).toHaveClass("home-scroll-padding");
-    unmount();
-
-    renderAt("/pair");
-    expect(document.documentElement).not.toHaveClass("home-scroll-padding");
-  });
-
   describe("route changes to and from home (C1)", () => {
     function renderRoutedApp(initialPath: string) {
       return render(
@@ -94,20 +84,18 @@ describe("PageShell", () => {
       );
     }
 
-    it("re-subscribes and applies scroll padding when navigating from another route to home", async () => {
+    it("re-subscribes when navigating from another route to home", async () => {
       const { fire } = stubIntersectionObserver();
       const user = userEvent.setup();
       renderRoutedApp("/pair");
 
       expect(screen.getByRole("banner")).not.toHaveClass("fixed");
-      expect(document.documentElement).not.toHaveClass("home-scroll-padding");
 
       await user.click(screen.getByRole("link", { name: "Go home" }));
 
       const header = screen.getByRole("banner");
       expect(header).toHaveClass("fixed");
       expect(header).not.toHaveClass("border-b");
-      expect(document.documentElement).toHaveClass("home-scroll-padding");
 
       fire(0, false, -50);
       expect(header).toHaveClass("border-b");
@@ -123,13 +111,11 @@ describe("PageShell", () => {
 
       await user.click(screen.getByRole("link", { name: "Go to pair" }));
       expect(screen.getByRole("banner")).not.toHaveClass("fixed");
-      expect(document.documentElement).not.toHaveClass("home-scroll-padding");
 
       await user.click(screen.getByRole("link", { name: "Go home" }));
       const header = screen.getByRole("banner");
       expect(header).toHaveClass("fixed");
       expect(header).not.toHaveClass("border-b");
-      expect(document.documentElement).toHaveClass("home-scroll-padding");
 
       fire(1, false, -50);
       expect(header).toHaveClass("border-b");

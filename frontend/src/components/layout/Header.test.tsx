@@ -23,10 +23,10 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: /admin/i })).toHaveAttribute("href", "/admin");
   });
 
-  it("default (not fixed): bordered, in-flow, theme colors", () => {
+  it("default (not fixed): bordered, solid, and sticky so it stays on screen while scrolling", () => {
     renderHeader();
     const header = screen.getByRole("banner");
-    expect(header).toHaveClass("border-b");
+    expect(header).toHaveClass("border-b", "bg-surface", "sticky", "top-0");
     expect(header).not.toHaveClass("fixed");
     expect(screen.getByRole("link", { name: "VinoScope" })).toHaveClass("text-ink");
   });

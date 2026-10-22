@@ -23,8 +23,9 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
   // the mobile menu isn't open — an open panel over the hero has no backing
   // of its own, so it's treated like "scrolled past" and rendered solid.
   const isOverlay = fixed && overlay && !menuOpen;
+  // Off the home page the header sticks to the top so the nav is always one tap away.
   const headerClass = !fixed
-    ? "relative border-b border-surface-border"
+    ? "sticky top-0 z-20 bg-surface border-b border-surface-border"
     : isOverlay
       ? "fixed inset-x-0 top-0 z-20 motion-safe:transition-colors"
       : "fixed inset-x-0 top-0 z-20 bg-surface backdrop-blur border-b border-surface-border motion-safe:transition-colors";
@@ -87,7 +88,8 @@ export function Header({ overlay = false, fixed = false }: { overlay?: boolean; 
 
   return (
     <header className={headerClass}>
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      {/* A fixed h-14 row, so the Learn chapter bar can sit exactly below it (top-14). */}
+      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         <NavLink to="/" className={`font-serif text-lg tracking-wide ${brandClass}`}>
           VinoScope
         </NavLink>

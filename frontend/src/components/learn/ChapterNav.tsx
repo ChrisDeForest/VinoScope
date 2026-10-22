@@ -12,7 +12,7 @@ export function ChapterNav({ chapters }: { chapters: readonly ChapterLink[] }) {
   if (!visible) return null;
 
   return (
-    <nav aria-label="Learn chapters" className="sticky top-0 z-10 -mx-4 px-4 bg-surface border-b border-surface-border">
+    <nav aria-label="Learn chapters" className="sticky top-14 z-10 -mx-4 px-4 bg-surface border-b border-surface-border">
       <ul className="flex gap-6 overflow-x-auto py-3 text-sm whitespace-nowrap">
         {chapters.map((chapter) => {
           const isActive = chapter.id === active;

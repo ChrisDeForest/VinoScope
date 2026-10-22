@@ -9,11 +9,9 @@ body {
   color: var(--color-ink);
 }
 
-/* Set on <html> by PageShell only while on the home route, where the header
-   is `fixed` and would otherwise sit on top of a scrolled-to or focused
-   element's top edge (e.g. Shift+Tab past the finale links, or the skip
-   link's target). Left off every other route, where the header is in-flow. */
-html.home-scroll-padding {
+/* The header stays on screen on every page (fixed on home, sticky elsewhere),
+   so anchor jumps and focus scrolling stop below it instead of under it. */
+html {
   scroll-padding-top: 4rem;
 }
 
