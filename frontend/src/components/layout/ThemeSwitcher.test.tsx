@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { THEME_OPTIONS } from "../../theme/useTheme";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
 describe("ThemeSwitcher", () => {
@@ -9,38 +10,77 @@ describe("ThemeSwitcher", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("defaults to dark-burgundy", () => {
+  it("defaults to Dark Burgundy, closed", () => {
     render(<ThemeSwitcher />);
-    expect(screen.getByRole("combobox")).toHaveValue("dark-burgundy");
+    const trigger = screen.getByRole("combobox", { name: "Theme" });
+    expect(trigger).toHaveTextContent("Dark Burgundy");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("switching themes updates the root data-theme attribute and persists to localStorage", async () => {
+  it("opens a list of every theme with the current one selected", async () => {
     const user = userEvent.setup();
     render(<ThemeSwitcher />);
-    await user.selectOptions(screen.getByRole("combobox"), "charcoal-gold");
+    await user.click(screen.getByRole("combobox", { name: "Theme" }));
+    const options = within(screen.getByRole("listbox")).getAllByRole("option");
+    expect(options.map((option) => option.textContent)).toEqual(THEME_OPTIONS.map((option) => option.label));
+    expect(screen.getByRole("option", { name: "Dark Burgundy" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("picking a theme applies and saves it, then closes the list", async () => {
+    const user = userEvent.setup();
+    render(<ThemeSwitcher />);
+    await user.click(screen.getByRole("combobox", { name: "Theme" }));
+    await user.click(screen.getByRole("option", { name: "Charcoal & Gold" }));
     expect(document.documentElement.getAttribute("data-theme")).toBe("charcoal-gold");
     expect(localStorage.getItem("vinoscope-theme")).toBe("charcoal-gold");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveTextContent("Charcoal & Gold");
+  });
+
+  it("works from the keyboard: arrows to move, Enter to pick, Escape to close", async () => {
+    const user = userEvent.setup();
+    render(<ThemeSwitcher />);
+    const trigger = screen.getByRole("combobox", { name: "Theme" });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{ArrowDown}");
+    expect(trigger).toHaveAttribute("aria-activedescendant", screen.getByRole("option", { name: "Cream & Terracotta" }).id);
+    await user.keyboard("{Enter}");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("cream-terracotta");
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("closes when clicking outside it", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <ThemeSwitcher />
+        <p>Elsewhere</p>
+      </>
+    );
+    await user.click(screen.getByRole("combobox", { name: "Theme" }));
+    await user.click(screen.getByText("Elsewhere"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   it("defaults to the default variant's surface styling", () => {
     render(<ThemeSwitcher />);
-    const select = screen.getByRole("combobox");
-    expect(select).toHaveClass("bg-surface-raised", "text-ink");
-    expect(select).not.toHaveClass("bg-black/30");
+    const trigger = screen.getByRole("combobox", { name: "Theme" });
+    expect(trigger).toHaveClass("bg-surface-raised", "text-ink");
+    expect(trigger).not.toHaveClass("bg-black/30");
   });
 
   it("the overlay variant uses translucent dark styling and cellar text color", () => {
     render(<ThemeSwitcher variant="overlay" />);
-    const select = screen.getByRole("combobox");
-    expect(select).toHaveClass("bg-black/30", "text-cellar-ink");
-    expect(select).not.toHaveClass("bg-surface-raised");
-  });
-
-  it("keeps <option> elements readable regardless of variant", () => {
-    render(<ThemeSwitcher variant="overlay" />);
-    const options = screen.getAllByRole("option");
-    for (const option of options) {
-      expect(option).toHaveClass("bg-surface", "text-ink");
-    }
+    const trigger = screen.getByRole("combobox", { name: "Theme" });
+    expect(trigger).toHaveClass("bg-black/30", "text-cellar-ink");
+    expect(trigger).not.toHaveClass("bg-surface-raised");
   });
 });
