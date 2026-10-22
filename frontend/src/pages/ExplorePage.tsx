@@ -24,6 +24,7 @@ import {
 } from "../components/explore/filterTypes";
 import { readPageState, writePageState } from "../utils/pageState";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { trackEvent } from "../utils/analytics";
 
 const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: string) => string }[] = [
   { key: "q", name: "search", describe: (value) => `Search: "${value}"` },
@@ -168,6 +169,20 @@ export function ExplorePage() {
   useEffect(() => {
     setSearchDraft(appliedFilters.q);
   }, [appliedFilters.q]);
+
+  // Analytics: what the visitor changed, never the filters the page opened with (a shared
+  // link or a remount). A cleared search or filter isn't reported.
+  const reportedFiltersRef = useRef(appliedFilters);
+  useEffect(() => {
+    const previous = reportedFiltersRef.current;
+    reportedFiltersRef.current = appliedFilters;
+    for (const key of Object.keys(appliedFilters) as (keyof FilterValues)[]) {
+      const value = appliedFilters[key];
+      if (value === previous[key] || value === "") continue;
+      if (key === "q") trackEvent("search", { search_term: value });
+      else trackEvent("filter_used", { filter_name: key, filter_value: value });
+    }
+  }, [appliedFilters]);
 
   useEffect(() => {
     const filtersKey = filtersKeyOf(appliedFilters);

@@ -15,6 +15,7 @@ import { WineImage } from "../components/wine/WineImage";
 import type { WineDetail } from "../types/wine";
 import { NotFoundPage } from "./NotFoundPage";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { trackEvent } from "../utils/analytics";
 
 export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,14 @@ export function WineDetailPage() {
     setEdited(null);
     setEditing(false);
   }, [data]);
+
+  // Keyed on the id so an admin edit (a new `wine` object) isn't counted as another view.
+  const viewedId = data?.id;
+  useEffect(() => {
+    if (!data) return;
+    trackEvent("view_wine", { wine_id: data.id, wine_name: data.name, wine_type: data.type, country: data.country ?? "unknown" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewedId]);
 
   const wine = edited ?? data;
   const notFound = error instanceof ApiError && error.status === 404;

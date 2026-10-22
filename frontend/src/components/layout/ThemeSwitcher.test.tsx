@@ -1,13 +1,18 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { THEME_OPTIONS } from "../../theme/useTheme";
+import { stubGtag } from "../../test/stubs";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
 describe("ThemeSwitcher", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("defaults to Dark Burgundy, closed", () => {
@@ -36,6 +41,17 @@ describe("ThemeSwitcher", () => {
     expect(localStorage.getItem("vinoscope-theme")).toBe("charcoal-gold");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveTextContent("Charcoal & Gold");
+  });
+
+  it("reports the chosen theme to analytics, but not re-picking the current one", async () => {
+    const { events } = stubGtag();
+    const user = userEvent.setup();
+    render(<ThemeSwitcher />);
+    await user.click(screen.getByRole("combobox", { name: "Theme" }));
+    await user.click(screen.getByRole("option", { name: "Dark Burgundy" }));
+    await user.click(screen.getByRole("combobox", { name: "Theme" }));
+    await user.click(screen.getByRole("option", { name: "Charcoal & Gold" }));
+    expect(events()).toEqual([["theme_change", { theme: "charcoal-gold" }]]);
   });
 
   it("works from the keyboard: arrows to move, Enter to pick, Escape to close", async () => {

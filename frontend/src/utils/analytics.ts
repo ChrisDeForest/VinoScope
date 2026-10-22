@@ -55,6 +55,28 @@ export function initAnalytics(measurementId: string | undefined = MEASUREMENT_ID
   document.head.appendChild(script);
 }
 
+export type EventParams = Record<string, string | number>;
+
+// A custom GA event (search, add_to_compare, ...). window.gtag only exists once initAnalytics
+// has run with a measurement id, so this does nothing in development or tests.
+export function trackEvent(name: string, params: EventParams = {}): void {
+  window.gtag?.("event", name, params);
+}
+
+/** A multi-choice answer as one event value: "red,white", or "any" when nothing was picked. */
+export function eventList(value: string | string[] | undefined): string {
+  const values = value === undefined ? [] : Array.isArray(value) ? value : [value];
+  return values.length > 0 ? values.join(",") : "any";
+}
+
+/** Only the price bounds that were set, so an open budget sends neither. */
+export function priceParams(prices: { min_price?: number; max_price?: number }): EventParams {
+  const params: EventParams = {};
+  if (prices.min_price !== undefined) params.min_price = prices.min_price;
+  if (prices.max_price !== undefined) params.max_price = prices.max_price;
+  return params;
+}
+
 export function trackPageview(path: string, measurementId: string | undefined = MEASUREMENT_ID): void {
   if (!measurementId || !window.gtag) return;
   window.gtag("event", "page_view", {

@@ -23,6 +23,7 @@ import { answersToDraft, draftToAnswers, EMPTY_DRAFT, type DiscoverDraft } from 
 import { clearStoredProfile, getStoredProfile, setStoredProfile } from "../utils/discoverProfile";
 import { clearPageState, readPageState, writePageState } from "../utils/pageState";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { eventList, priceParams, trackEvent, type EventParams } from "../utils/analytics";
 
 const PAGE_SIZE = 20;
 const STATE_KEY = "vinoscope-discover-state";
@@ -77,6 +78,8 @@ export function DiscoverPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  // A finished quiz is reported once its results arrive, so the event can say how many matched.
+  const pendingReportRef = useRef<EventParams | null>(null);
   const skipInitialFetchRef = useRef(initial.hit);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownModeRef = useRef(mode);
@@ -133,6 +136,10 @@ export function DiscoverPage() {
       setTotal(response.total);
       setItems((prev) => (append ? [...prev, ...response.items] : response.items));
       setMode("results");
+      if (pendingReportRef.current && !append) {
+        trackEvent("quiz_complete", { ...pendingReportRef.current, results: response.total });
+        pendingReportRef.current = null;
+      }
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       const message = err instanceof ApiError ? err.message : "Failed to load recommendations";
@@ -156,6 +163,11 @@ export function DiscoverPage() {
     const newAnswers = draftToAnswers(draft);
     setAnswers(newAnswers);
     setStoredProfile(newAnswers);
+    pendingReportRef.current = {
+      wine_types: eventList(newAnswers.type),
+      countries: eventList(newAnswers.country),
+      ...priceParams(newAnswers),
+    };
     fetchRecommendations(newAnswers, 0, false);
   }
 

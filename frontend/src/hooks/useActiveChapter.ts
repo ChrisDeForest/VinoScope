@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // A chapter counts as "current" while it crosses a band just below the sticky nav.
 const ACTIVE_BAND = "-20% 0px -70% 0px";
 // The band's top edge, as a fraction of the viewport (matches the -20% top margin above).
 const BAND_TOP = 0.2;
 
-export function useActiveChapter(ids: readonly string[]): string | undefined {
+// `onEnter` runs whenever scrolling brings a chapter into the band (not for the initial default).
+export function useActiveChapter(ids: readonly string[], onEnter?: (id: string) => void): string | undefined {
   const [active, setActive] = useState<string | undefined>(ids[0]);
+  // A ref, so a new callback each render doesn't re-subscribe the observer.
+  const onEnterRef = useRef(onEnter);
+  onEnterRef.current = onEnter;
   // Joined so a new array with the same ids doesn't re-subscribe every render.
   const key = ids.join("|");
 
@@ -27,7 +31,10 @@ export function useActiveChapter(ids: readonly string[]): string | undefined {
           const distance = Math.abs(entry.boundingClientRect.top - bandTop);
           if (!nearest || distance < Math.abs(nearest.boundingClientRect.top - bandTop)) nearest = entry;
         }
-        if (nearest) setActive(nearest.target.id);
+        if (nearest) {
+          setActive(nearest.target.id);
+          onEnterRef.current?.(nearest.target.id);
+        }
       },
       { rootMargin: ACTIVE_BAND }
     );

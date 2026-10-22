@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { ChapterNav } from "./ChapterNav";
-import { stubIntersectionObserver } from "../../test/stubs";
+import { stubGtag, stubIntersectionObserver } from "../../test/stubs";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -31,6 +31,39 @@ describe("ChapterNav", () => {
     expect(vine).toHaveAttribute("href", "#vine");
     expect(taste).toHaveAttribute("aria-current", "true");
     expect(vine).not.toHaveAttribute("aria-current");
+  });
+
+  it("reports each chapter to analytics the first time a reader scrolls to it", () => {
+    const { instances } = stubIntersectionObserver();
+    const { events } = stubGtag();
+    render(
+      <>
+        <ChapterNav
+          chapters={[
+            { id: "taste", label: "How to Taste" },
+            { id: "vine", label: "Vine to Glass" },
+          ]}
+        />
+        <section id="taste" />
+        <section id="vine" />
+      </>
+    );
+    // Showing the first chapter as current before any scrolling isn't a view.
+    expect(events()).toEqual([]);
+    const enter = (id: string) =>
+      act(() => {
+        instances[0].callback(
+          [{ isIntersecting: true, target: document.getElementById(id), boundingClientRect: { top: 100 } } as unknown as IntersectionObserverEntry],
+          instances[0] as unknown as IntersectionObserver
+        );
+      });
+    enter("vine");
+    enter("taste");
+    enter("vine");
+    expect(events()).toEqual([
+      ["learn_chapter_view", { chapter: "Vine to Glass" }],
+      ["learn_chapter_view", { chapter: "How to Taste" }],
+    ]);
   });
 
   it("does not observe chapters while hidden", () => {

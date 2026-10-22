@@ -7,6 +7,7 @@ import { ExplorePage } from "./ExplorePage";
 import * as api from "../services/api";
 import type { WineListItem } from "../types/wine";
 import { chooseOption } from "../test/combobox";
+import { stubGtag } from "../test/stubs";
 
 vi.mock("../services/api", async () => {
   const actual = await vi.importActual<typeof import("../services/api")>("../services/api");
@@ -132,6 +133,24 @@ describe("ExplorePage", () => {
       expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ q: "cabernet" }))
     );
     expect(screen.queryByRole("dialog", { name: "Filters" })).not.toBeInTheDocument();
+  });
+
+  it("reports searches and filter changes to analytics, but not the filters a page opens with", async () => {
+    const { events } = stubGtag();
+    listWinesMock.mockResolvedValue({ total: 1, items: [makeWine(1)] });
+    renderExplore(["/explore?type=red"]);
+    await waitFor(() => expect(screen.getByText("Wine 1")).toBeInTheDocument());
+    expect(events()).toEqual([]);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Search"), "cabernet{enter}");
+    await chooseOption(user, screen.getByLabelText("Sort by"), "Price: Low to High");
+    await waitFor(() => expect(listWinesMock).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "price_asc" })));
+    expect(events()).toEqual([
+      ["search", { search_term: "cabernet" }],
+      ["filter_used", { filter_name: "sort", filter_value: "price_asc" }],
+    ]);
+    vi.unstubAllGlobals();
   });
 
   it("has a visible sort control that applies immediately", async () => {

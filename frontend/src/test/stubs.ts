@@ -113,3 +113,22 @@ export function restoreConnection(): void {
   // @ts-expect-error -- test-only cleanup of a non-standard navigator property
   delete navigator.connection;
 }
+
+// ---------------------------------------------------------------------------
+// Google Analytics (window.gtag)
+// ---------------------------------------------------------------------------
+
+/**
+ * Stubs `window.gtag` so `trackEvent` calls are recorded. Undo with `vi.unstubAllGlobals()`.
+ * `events()` lists the custom events sent so far as `[name, params]`, page views left out.
+ */
+export function stubGtag(): { events: () => [string, Record<string, unknown>][] } {
+  const gtag = vi.fn();
+  vi.stubGlobal("gtag", gtag);
+  return {
+    events: () =>
+      gtag.mock.calls
+        .filter((call) => call[0] === "event" && call[1] !== "page_view")
+        .map((call) => [call[1] as string, call[2] as Record<string, unknown>]),
+  };
+}

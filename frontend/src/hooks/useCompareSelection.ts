@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { useMatch, useSearchParams } from "react-router-dom";
+import { useLocation, useMatch, useSearchParams } from "react-router-dom";
+import { trackEvent } from "../utils/analytics";
 
 const MAX_WINES = 4;
 const PARAM_KEY = "wines";
@@ -49,6 +50,7 @@ export function useCompareSelection(): {
   moveWine: (id: number, targetId: number) => void;
 } {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { pathname } = useLocation();
   const isComparePage = useMatch("/compare") !== null;
   const saved = useSyncExternalStore(subscribe, readSavedIds, () => "");
   const urlSelection = isComparePage ? searchParams.get(PARAM_KEY) : null;
@@ -74,10 +76,13 @@ export function useCompareSelection(): {
   function addWine(id: number) {
     if (!Number.isSafeInteger(id) || id <= 0 || selectedIds.includes(id) || selectedIds.length >= MAX_WINES) return;
     writeIds([...selectedIds, id]);
+    trackEvent("add_to_compare", { wine_id: id, page: pathname, compare_count: selectedIds.length + 1 });
   }
 
   function removeWine(id: number) {
+    if (!selectedIds.includes(id)) return;
     writeIds(selectedIds.filter((existing) => existing !== id));
+    trackEvent("remove_from_compare", { wine_id: id, page: pathname, compare_count: selectedIds.length - 1 });
   }
 
   function moveWine(id: number, targetId: number) {

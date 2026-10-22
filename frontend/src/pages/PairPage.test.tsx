@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { stubGtag } from "../test/stubs";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -72,6 +73,10 @@ async function findWines(user: User, label: string) {
 }
 
 describe("PairPage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     getRecommendationsMock.mockReset();
     sessionStorage.clear();
@@ -120,6 +125,23 @@ describe("PairPage", () => {
       offset: 0,
     });
     expect(screen.getByRole("heading", { name: /Pairing with Cream pasta/ })).toBeInTheDocument();
+  });
+
+  it("reports each pairing search to analytics with its choices and result count", async () => {
+    const { events } = stubGtag();
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 3, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Cream pasta" }));
+    await user.click(screen.getByRole("button", { name: "Continue with cream pasta" }));
+    await user.click(screen.getByRole("button", { name: "White" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "$20–40" }));
+    await user.click(screen.getByRole("button", { name: "Find my wines" }));
+    await screen.findByText("Wine 1");
+    expect(events()).toEqual([
+      ["pairing_search", { food: "Cream pasta", wine_types: "white", min_price: 20, max_price: 40, results: 3 }],
+    ]);
   });
 
   it("falls back to the quiz instead of crashing when a saved snapshot names an unknown food key", () => {

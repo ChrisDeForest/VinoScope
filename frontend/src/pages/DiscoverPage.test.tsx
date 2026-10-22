@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { stubGtag } from "../test/stubs";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -80,6 +81,10 @@ function question(name: string) {
 const FIRST = "What are you in the mood for?";
 
 describe("DiscoverPage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -125,6 +130,22 @@ describe("DiscoverPage", () => {
       limit: 20,
       offset: 0,
     });
+  });
+
+  it("reports a finished quiz to analytics with its main answers and result count", async () => {
+    const { events } = stubGtag();
+    getRecommendationsMock.mockResolvedValue({ profile: { description: [] }, total: 4, items: [makeItem(1)] });
+    renderPage();
+    const user = userEvent.setup();
+    await pick(user, "Red", "White");
+    await next(user);
+    await next(user); // countries: no preference
+    await pick(user, "$20–40");
+    await finishQuiz(user);
+    await screen.findByText("Wine 1");
+    expect(events()).toEqual([
+      ["quiz_complete", { wine_types: "red,white", countries: "any", min_price: 20, max_price: 40, results: 4 }],
+    ]);
   });
 
   it("clears a question's picks with its none pill", async () => {

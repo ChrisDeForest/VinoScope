@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { stubGtag } from "../test/stubs";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -69,6 +70,17 @@ describe("WineDetailPage", () => {
 
   afterEach(() => {
     clearAdminKey();
+    vi.unstubAllGlobals();
+  });
+
+  it("reports the wine that was viewed to analytics, once", async () => {
+    const { events } = stubGtag();
+    getWineMock.mockResolvedValue(fullWine);
+    renderDetail();
+    await screen.findByText("Caymus Cabernet Sauvignon");
+    expect(events()).toEqual([
+      ["view_wine", { wine_id: 1, wine_name: "Caymus Cabernet Sauvignon", wine_type: "red", country: "United States" }],
+    ]);
   });
 
   it("renders the full wine record", async () => {

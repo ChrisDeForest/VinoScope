@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { initAnalytics, trackPageview, trustedGtagURL } from "./analytics";
+import { initAnalytics, trackEvent, trackPageview, trustedGtagURL } from "./analytics";
 
 const ID = "G-TEST123";
 
@@ -51,6 +51,20 @@ describe("trackPageview", () => {
     const before = window.dataLayer?.length ?? 0;
     trackPageview("/", undefined);
     expect(window.dataLayer).toHaveLength(before);
+  });
+});
+
+describe("trackEvent", () => {
+  it("sends a named event with its parameters once gtag is loaded", () => {
+    initAnalytics(ID);
+    trackEvent("add_to_compare", { wine_id: 7 });
+    const dataLayer = window.dataLayer ?? [];
+    expect(Array.from(dataLayer[dataLayer.length - 1] as ArrayLike<unknown>)).toEqual(["event", "add_to_compare", { wine_id: 7 }]);
+  });
+
+  it("is a no-op when analytics is off", () => {
+    expect(() => trackEvent("theme_change", { theme: "charcoal-gold" })).not.toThrow();
+    expect(window.dataLayer).toBeUndefined();
   });
 });
 

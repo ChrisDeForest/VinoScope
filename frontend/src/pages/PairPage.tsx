@@ -22,6 +22,7 @@ import {
 import { FOOD_PAIRINGS, type FoodKey } from "../constants/foodPairings";
 import { readPageState, writePageState } from "../utils/pageState";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { eventList, priceParams, trackEvent, type EventParams } from "../utils/analytics";
 
 const PAGE_SIZE = 20;
 const STATE_KEY = "vinoscope-pair-state";
@@ -106,6 +107,8 @@ export function PairPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  // A pairing search is reported once its results arrive, so the event can say how many matched.
+  const pendingReportRef = useRef<EventParams | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownModeRef = useRef(mode);
 
@@ -153,6 +156,10 @@ export function PairPage() {
       setTotal(response.total);
       setItems((prev) => (append ? [...prev, ...response.items] : response.items));
       setMode("results");
+      if (pendingReportRef.current && !append) {
+        trackEvent("pairing_search", { ...pendingReportRef.current, results: response.total });
+        pendingReportRef.current = null;
+      }
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       const message = err instanceof ApiError ? err.message : "Failed to load recommendations";
@@ -195,6 +202,7 @@ export function PairPage() {
     else if (food) {
       const sent: PairRequest = { food, types, prices: budgetToPrices(budget) };
       setRequest(sent);
+      pendingReportRef.current = { food: FOOD_PAIRINGS[food].label, wine_types: eventList(types), ...priceParams(sent.prices) };
       fetchRecommendations(sent, 0, false);
     }
   }

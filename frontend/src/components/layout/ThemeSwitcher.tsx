@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { getStoredTheme, setStoredTheme, THEME_OPTIONS, type Theme, type ThemeSwatch } from "../../theme/useTheme";
+import { trackEvent } from "../../utils/analytics";
 
 // cellar-muted is a CSS-variable hex color, so Tailwind's /opacity modifier
 // can't apply to it directly, and browsers without color-mix (Safari < 16.2,
@@ -55,6 +56,7 @@ export function ThemeSwitcher({ variant = "default" }: { variant?: "default" | "
   }
 
   function choose(next: Theme) {
+    if (next !== theme) trackEvent("theme_change", { theme: next });
     setStoredTheme(next);
     setTheme(next);
     setOpen(false);

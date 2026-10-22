@@ -1,8 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useCompareSelection } from "./useCompareSelection";
+import { stubGtag } from "../test/stubs";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function makeWrapper(initialEntries: string[]) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -20,6 +25,19 @@ describe("useCompareSelection", () => {
     act(() => result.current.first.addWine(8));
     expect(result.current.second.selectedIds).toEqual([8]);
     expect(result.current.location.pathname + result.current.location.search).toBe("/explore?q=cabernet&type=red");
+  });
+
+  it("reports wines added to and removed from the comparison, with where it happened", () => {
+    const { events } = stubGtag();
+    const { result } = renderHook(() => useCompareSelection(), { wrapper: makeWrapper(["/explore"]) });
+    act(() => result.current.addWine(8));
+    act(() => result.current.addWine(8));
+    act(() => result.current.removeWine(8));
+    act(() => result.current.removeWine(8));
+    expect(events()).toEqual([
+      ["add_to_compare", { wine_id: 8, page: "/explore", compare_count: 1 }],
+      ["remove_from_compare", { wine_id: 8, page: "/explore", compare_count: 0 }],
+    ]);
   });
 
   it("honors shared comparison links with a trailing slash", () => {
