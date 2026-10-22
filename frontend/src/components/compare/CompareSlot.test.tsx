@@ -47,6 +47,13 @@ describe("CompareSlot", () => {
     expect(onRemove).toHaveBeenCalled();
   });
 
+  // jsdom doesn't hit-test, so this guards the real-browser bug directly: the bottle's
+  // drop-shadow filter paints the image above an unlayered button, swallowing its clicks.
+  it("layers the remove button above the bottle image", () => {
+    render(<CompareSlot wine={makeWine()} onRemove={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Remove Caymus Cabernet Sauvignon" })).toHaveClass("z-10");
+  });
+
   it("falls back to a placeholder image when image_url is null", () => {
     render(<CompareSlot wine={makeWine({ image_url: null })} onRemove={vi.fn()} />);
     const img = screen.getByRole("img") as HTMLImageElement;

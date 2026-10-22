@@ -9,7 +9,7 @@ export function CompareSlot({ wine, onRemove }: { wine: WineDetail; onRemove: ()
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${wine.name}`}
-        className="absolute top-1.5 right-1.5 bg-surface text-ink-muted hover:text-ink rounded-full w-6 h-6 flex items-center justify-center"
+        className="absolute top-1.5 right-1.5 z-10 bg-surface text-ink-muted hover:text-ink rounded-full w-6 h-6 flex items-center justify-center"
       >
         &times;
       </button>
