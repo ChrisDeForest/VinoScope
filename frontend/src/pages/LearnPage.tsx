@@ -6,11 +6,13 @@ import { LEARN_CHAPTERS } from "../components/learn/chapters";
 import { LearnIntro } from "../components/learn/LearnIntro";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import "../components/learn/learn.css";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 const SETTLE_MS = 4000;
 const USER_INPUT_EVENTS = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
 
 export function LearnPage() {
+  usePageMeta({ title: "Learn · VinoScope" });
   const { hash } = useLocation();
   const reducedMotion = usePrefersReducedMotion();
   const pageRef = useRef<HTMLDivElement>(null);

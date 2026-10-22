@@ -6,10 +6,12 @@ import { useCompareSelection } from "../hooks/useCompareSelection";
 import { CompareTable } from "../components/compare/CompareTable";
 import { CompareTiles, type SlotState } from "../components/compare/CompareTiles";
 import { Skeleton } from "../components/common/Skeleton";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 const CompareRadarChart = lazy(() => import("../components/compare/CompareRadarChart").then((module) => ({ default: module.CompareRadarChart })));
 
 export function ComparePage() {
+  usePageMeta({ title: "Compare · VinoScope" });
   const { selectedIds, addWine, removeWine, moveWine } = useCompareSelection();
   const [wineStates, setWineStates] = useState<Record<number, SlotState>>({});
   const requestIdsRef = useRef<Record<number, number>>({});

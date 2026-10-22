@@ -22,6 +22,7 @@ import { DIMENSION_LABELS, DIMENSIONS, type Dimension } from "../utils/dimension
 import { answersToDraft, draftToAnswers, EMPTY_DRAFT, type DiscoverDraft } from "../utils/discoverDraft";
 import { clearStoredProfile, getStoredProfile, setStoredProfile } from "../utils/discoverProfile";
 import { clearPageState, readPageState, writePageState } from "../utils/pageState";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 const PAGE_SIZE = 20;
 const STATE_KEY = "vinoscope-discover-state";
@@ -52,6 +53,7 @@ interface DiscoverSnapshot {
 }
 
 export function DiscoverPage() {
+  usePageMeta({ title: "Discover · VinoScope" });
   const [initial] = useState(() => {
     const stored = getStoredProfile();
     const answers = stored ?? {};

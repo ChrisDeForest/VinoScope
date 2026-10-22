@@ -6,10 +6,12 @@ import { listWines, getWine, ApiError } from "../services/api";
 import { WineEditPanel } from "../components/admin/WineEditPanel";
 import { ErrorMessage } from "../components/common/ErrorMessage";
 import { LoadMoreButton } from "../components/explore/LoadMoreButton";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 const PAGE_SIZE = 20;
 
 export function AdminPage() {
+  usePageMeta({ title: "Admin · VinoScope" });
   const [authed, setAuthed] = useState(() => getAdminKey() !== null);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);

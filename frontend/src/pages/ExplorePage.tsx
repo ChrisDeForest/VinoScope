@@ -23,6 +23,7 @@ import {
   type FilterValues,
 } from "../components/explore/filterTypes";
 import { readPageState, writePageState } from "../utils/pageState";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 const CHIP_LABELS: { key: keyof FilterValues; name: string; describe: (value: string) => string }[] = [
   { key: "q", name: "search", describe: (value) => `Search: "${value}"` },
@@ -105,6 +106,7 @@ function filtersKeyOf(filters: FilterValues): string {
 }
 
 export function ExplorePage() {
+  usePageMeta({ title: "Explore · VinoScope" });
   const [searchParams, setSearchParams] = useSearchParams();
   const navigationType = useNavigationType();
 

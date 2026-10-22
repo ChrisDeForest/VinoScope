@@ -81,6 +81,12 @@ describe("WineDetailPage", () => {
     expect(screen.getByText(/A bold, structured cabernet/)).toBeInTheDocument();
   });
 
+  it("titles the tab after the wine once it loads", async () => {
+    getWineMock.mockResolvedValue(fullWine);
+    renderDetail();
+    await waitFor(() => expect(document.title).toBe("Caymus Cabernet Sauvignon · VinoScope"));
+  });
+
   it("adds the displayed wine to the saved comparison", async () => {
     getWineMock.mockResolvedValue(fullWine);
     renderDetail();
@@ -115,6 +121,8 @@ describe("WineDetailPage", () => {
       expect(screen.getByRole("heading", { level: 1, name: "That wine isn't in our cellar." })).toBeInTheDocument()
     );
     expect(screen.getByRole("link", { name: "Explore all wines" })).toHaveAttribute("href", "/explore");
+    // The 404's own title wins over the wine page's.
+    expect(document.title).toBe("Wine not found · VinoScope");
   });
 
   it("renders 'No retailers currently listed' when there are no listings", async () => {

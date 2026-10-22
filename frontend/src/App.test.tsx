@@ -62,6 +62,19 @@ describe("App routing", () => {
     expect(screen.getByRole("link", { name: "Learn" })).toHaveAttribute("href", "/learn");
   });
 
+  it.each([
+    ["/", "VinoScope"],
+    ["/explore", "Explore · VinoScope"],
+    ["/discover", "Discover · VinoScope"],
+    ["/pair", "Pair · VinoScope"],
+    ["/compare", "Compare · VinoScope"],
+    ["/learn", "Learn · VinoScope"],
+  ])("gives %s its own tab title (also what Google Analytics reports)", (path, title) => {
+    document.title = "VinoScope";
+    renderAt(path);
+    expect(document.title).toBe(title);
+  });
+
   it("renders the 404 page for an unknown address", () => {
     renderAt("/no-such-page");
     expect(screen.getByRole("heading", { level: 1, name: "Well, that spilled." })).toBeInTheDocument();

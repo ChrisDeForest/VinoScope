@@ -21,6 +21,7 @@ import {
 } from "../components/quiz/quizChoices";
 import { FOOD_PAIRINGS, type FoodKey } from "../constants/foodPairings";
 import { readPageState, writePageState } from "../utils/pageState";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 const PAGE_SIZE = 20;
 const STATE_KEY = "vinoscope-pair-state";
@@ -88,6 +89,7 @@ function readSnapshot(): PairSnapshot | null {
 }
 
 export function PairPage() {
+  usePageMeta({ title: "Pair · VinoScope" });
   const [initial] = useState(readSnapshot);
 
   const [mode, setMode] = useState<"quiz" | "results">(initial?.mode ?? "quiz");

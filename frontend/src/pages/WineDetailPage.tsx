@@ -14,6 +14,7 @@ import { AddToCompareButton } from "../components/compare/AddToCompareButton";
 import { WineImage } from "../components/wine/WineImage";
 import type { WineDetail } from "../types/wine";
 import { NotFoundPage } from "./NotFoundPage";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,8 @@ export function WineDetailPage() {
   }, [data]);
 
   const wine = edited ?? data;
+  const notFound = error instanceof ApiError && error.status === 404;
+  usePageMeta({ title: notFound ? null : wine ? `${wine.name} · VinoScope` : "Wine · VinoScope" });
 
   if (loading) {
     return (
@@ -43,7 +46,7 @@ export function WineDetailPage() {
     );
   }
 
-  if (error instanceof ApiError && error.status === 404) {
+  if (notFound) {
     return <NotFoundPage variant="wine" />;
   }
 
